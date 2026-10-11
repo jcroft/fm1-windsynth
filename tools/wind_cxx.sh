@@ -10,6 +10,8 @@ CXX="$1"; OUT="$2"; shift 2
 mkdir -p "$OUT"
 for u in firmware/src/wind/wind_voice.cc \
          firmware/third_party/mutable/plaits/dsp/engine2/virtual_analog_vcf_engine.cc \
+         firmware/third_party/mutable/plaits/dsp/engine/fm_engine.cc \
+         firmware/third_party/mutable/plaits/resources.cc \
          firmware/third_party/mutable/stmlib/dsp/units.cc; do
     o="$OUT/$(basename "$u" .cc).o"
     $CXX -std=c++11 -O2 -ffp-contract=off -ffreestanding -fno-exceptions -fno-rtti -fno-threadsafe-statics \

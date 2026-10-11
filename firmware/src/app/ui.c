@@ -4,7 +4,7 @@
  *
  *   the screen    the note playing and the bite's bend; breath, cutoff and level as bars; the page's
  *                 four values along the bottom
- *   HOME ENV LFO SEL SEQ GLO   the pages (pressed again: the button's next page): HOME Voice, ENV
+ *   HOME ENV LFO SEL SEQ GLO   the pages (pressed again: the button's next page): HOME Voice and Engine, ENV
  *                 Breath, LFO Pitch, SEL Mod 1-4, SEQ Keys, GLO Setup. EDIT and SELECT step through
  *                 them all.
  *   KNOB 1-4      the page's values      PRESETS the preset (1-64)      OCT- / OCT+ the panel keys' octave
@@ -15,13 +15,14 @@
  *
  * MIDI never passes through here: wind_app reads it in the audio interrupt, every 1.45 ms. */
 
-enum { V_VOICE, V_BREATH, V_PITCH, V_MOD1, V_MOD2, V_MOD3, V_MOD4, V_KEYS, V_SETUP, NVIEWS };
-static const char *const VIEW_NAME[NVIEWS] = {"Voice", "Breath", "Pitch", "Mod 1", "Mod 2", "Mod 3", "Mod 4",
-                                              "Keys", "Setup"};
-static const uint8_t VIEW_BTN[NVIEWS] = {B_HOME, B_ENV, B_LFO, B_SEL, B_SEL, B_SEL, B_SEL, B_SEQ, B_GLO};
+enum { V_VOICE, V_ENGINE, V_BREATH, V_PITCH, V_MOD1, V_MOD2, V_MOD3, V_MOD4, V_KEYS, V_SETUP, NVIEWS };
+static const char *const VIEW_NAME[NVIEWS] = {"Voice", "Engine", "Breath", "Pitch", "Mod 1", "Mod 2", "Mod 3",
+                                              "Mod 4", "Keys", "Setup"};
+static const uint8_t VIEW_BTN[NVIEWS] = {B_HOME, B_HOME, B_ENV, B_LFO, B_SEL, B_SEL, B_SEL, B_SEL, B_SEQ, B_GLO};
 #define K_NONE 255                     /* a knob with nothing on it */
 static const uint8_t VIEW_KNOB[NVIEWS][4] = {
     {P_CUTOFF, P_RESO, P_MORPH, P_SLOPE},
+    {P_ENGINE, P_RATIO, P_INDEX, K_NONE},
     {P_BSRC, P_CURVE, P_ATTACK, P_RELEASE},
     {P_BEND, P_GLIDE, P_GSRC, P_GMODE},
     {P_M1SRC, P_M1DST, P_M1AMT, K_NONE},
@@ -339,7 +340,10 @@ static void input(void)
             say("PRESET", t);
         }
     }
-    plat_enc(EN_ALGO);                               /* (the engine, when there is more than one) */
+    if ((e = plat_enc(EN_ALGO)) != 0) {             /* the engine */
+        knob_set(P_ENGINE, proj.par[P_ENGINE] + (e > 0 ? 1 : -1));
+        say_param(P_ENGINE);
+    }
     for (i = 0; i < 4; i++)
         if ((e = plat_enc(EN_K1 + (int)i)) != 0) {
             turn(EN_K1 + (int)i, VIEW_KNOB[ui.view][i], e);

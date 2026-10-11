@@ -93,7 +93,7 @@ static void wav_write(const char *path, uint32_t n)
     fclose(f);
 }
 
-static void test_sweep(const char *refpath, const char *dir)
+static void test_sweep(uint32_t engine, const char *refpath, const char *dir)
 {
     FILE *f = fopen(refpath, "rb");
     char path[512];
@@ -107,7 +107,7 @@ static void test_sweep(const char *refpath, const char *dir)
     for (s = 0; s < SWEEP_STEPS; s++) {
         float note, timbre, morph, harmonics;
         sweep_params(s, &note, &timbre, &morph, &harmonics);
-        wv_render_raw(note, timbre, morph, harmonics, sweep + s * SWEEP_LEN, SWEEP_LEN);
+        wv_render_raw_engine(engine, note, timbre, morph, harmonics, sweep + s * SWEEP_LEN, SWEEP_LEN);
     }
     for (i = 0; i < SWEEP_STEPS * SWEEP_LEN; i++) {
         float d = fm_fabsf(sweep[i] - ref[i]);
@@ -116,11 +116,11 @@ static void test_sweep(const char *refpath, const char *dir)
             worst_at = (int)i;
         }
     }
-    CHECK(worst <= 1.0f / 32768.0f, "sweep differs from upstream Plaits by %g at sample %d", (double)worst,
-          worst_at);
-    printf("  sweep: %d samples, worst difference from upstream %g\n", SWEEP_STEPS * SWEEP_LEN,
-           (double)worst);
-    snprintf(path, sizeof path, "%s/wind_sweep.f32", dir);
+    CHECK(worst <= 1.0f / 32768.0f, "%s sweep differs from upstream Plaits by %g at sample %d",
+          engine == WV_FM ? "FM" : "VA-VCF", (double)worst, worst_at);
+    printf("  %s sweep: %d samples, worst difference from upstream %g\n", engine == WV_FM ? "FM" : "VA-VCF",
+           SWEEP_STEPS * SWEEP_LEN, (double)worst);
+    snprintf(path, sizeof path, engine == WV_FM ? "%s/wind_sweep_fm.f32" : "%s/wind_sweep.f32", dir);
     f = fopen(path, "wb");
     if (f) {
         fwrite(sweep, sizeof sweep, 1, f);
@@ -252,15 +252,61 @@ static void test_saw(void)
            (double)r[2], (double)r[3]);
 }
 
+/* FM through our filter: it sounds, the cutoff darkens and brightens it as on Classic, the index adds
+ * overtones, and switching engines back and forth leaves no NaN */
+static void test_fm(void)
+{
+    wind_frame_t f;
+    float b_dark, b_bright, b_low, b_high, p;
+    wv_init();
+    wv_engine(WV_FM);
+    memset(&f, 0, sizeof f);
+    f.note = 57.0f;
+    f.gate = 1.0f;
+    f.amp = 1.0f;
+    f.morph = 0.5f;                                 /* no feedback */
+    f.harmonics = 0.24f;                            /* 1:1 */
+    f.timbre = 0.8f;                                /* bright: plenty for the filter to take away */
+    f.cutoff = 0.3f;
+    play(&f, 0, SR / 4);
+    b_dark = brightness(SR / 8, SR / 8);
+    p = peak(SR / 8, SR / 8);
+    f.cutoff = 1.0f;
+    play(&f, 0, SR / 4);
+    b_bright = brightness(SR / 8, SR / 8);
+    CHECK(p > 0.01f && peak(SR / 8, SR / 8) > 0.1f && peak(SR / 8, SR / 8) < 1.0f, "FM level %g (dark %g)",
+          (double)peak(SR / 8, SR / 8), (double)p);
+    CHECK(b_bright > 4.0f * b_dark, "FM cutoff: brightness %g at 0.3, %g at 1.0", (double)b_dark, (double)b_bright);
+    f.timbre = 0.0f;                                /* the index: a sine at 0, overtones above */
+    play(&f, 0, SR / 4);
+    b_low = brightness(SR / 8, SR / 8);
+    f.timbre = 0.8f;
+    play(&f, 0, SR / 4);
+    b_high = brightness(SR / 8, SR / 8);
+    CHECK(b_high > 2.0f * b_low, "FM index: brightness %g at 0, %g at 0.8", (double)b_low, (double)b_high);
+    wv_engine(WV_CLASSIC);
+    play(&f, 0, SR / 20);
+    wv_engine(WV_FM);
+    play(&f, 0, SR / 20);
+    CHECK(!nan_seen, "NaN after switching engines");
+    CHECK(fm_fabsf(wv_fm_ratio(0.24f) - 1.0f) < 1e-4f && fm_fabsf(wv_fm_ratio(0.48f) - 2.0f) < 1e-3f,
+          "FM ratio %g at 0.24, %g at 0.48", (double)wv_fm_ratio(0.24f), (double)wv_fm_ratio(0.48f));
+    printf("  FM: cutoff brightness %.4f -> %.4f, index %.4f -> %.4f\n", (double)b_dark, (double)b_bright,
+           (double)b_low, (double)b_high);
+    wv_engine(WV_CLASSIC);
+}
+
 int main(int argc, char **argv)
 {
-    if (argc < 3) {
-        printf("usage: wind_voice_test <reference.f32> <OUTDIR>\n");
+    if (argc < 4) {
+        printf("usage: wind_voice_test <reference.f32> <reference_fm.f32> <OUTDIR>\n");
         return 2;
     }
-    test_sweep(argv[1], argv[2]);
-    test_voice(argv[2]);
+    test_sweep(WV_CLASSIC, argv[1], argv[3]);
+    test_sweep(WV_FM, argv[2], argv[3]);
+    test_voice(argv[3]);
     test_saw();
+    test_fm();
     if (fails)
         printf("%d check(s) failed\n", fails);
     return fails ? 1 : 0;

@@ -17,6 +17,7 @@ static const wa_param_t PARAMS[P_NPARAMS] = {
     {"Source", 0, WM_NSRC - 1, WM_SRC_OFF}, {"Dest", 0, WM_NDST - 1, WM_DST_CUTOFF}, {"Amount", -100, 100, 0},
     {"Key brth", 0, 100, 100}, {"Octave", -3, 3, 0},
     {"Transpose", -24, 24, 0}, {"Tune", -100, 100, 0}, {"MIDI ch", 0, 16, 0}, {"Theme", 0, THEME_N - 1, 0},
+    {"Engine", 0, WV_NENGINE - 1, WV_CLASSIC}, {"Ratio", 0, 100, 24}, {"Index", 0, 100, 40},
 };
 
 const wa_param_t *wa_param_info(int i) { return &PARAMS[(unsigned)i < P_NPARAMS ? i : 0]; }
@@ -119,6 +120,16 @@ void wa_param_text(int i, int v, char *b)
             put_u(b, (uint32_t)v);
         return;
     case P_THEME: copy_s(b, v ? "Dark" : "Light"); return;
+    case P_ENGINE: copy_s(b, v == WV_FM ? "FM" : "Classic"); return;
+    case P_RATIO: {                                      /* the modulator's ratio: "1.00", "3.50" */
+        uint32_t r = (uint32_t)(wv_fm_ratio((float)v * 0.01f) * 100.0f + 0.5f);
+        b = put_u(b, r / 100u);
+        *b++ = '.';
+        *b++ = (char)('0' + r / 10u % 10u);
+        *b++ = (char)('0' + r % 10u);
+        *b = 0;
+        return;
+    }
     default: put_i(b, v, 0); return;
     }
 }
@@ -127,6 +138,7 @@ void wa_param_text(int i, int v, char *b)
 static float base[WM_NDST];
 static wm_slot_t slot[WM_NSLOT];
 static int attack_ms = 5, release_ms = 60;
+static float ratio = 0.24f;            /* FM's HARMONICS */
 volatile wa_state_t wa_state;
 
 /* the panel's keys and a panic, from the UI to the next block: a ring with one writer, one reader */
@@ -172,6 +184,9 @@ void wa_set(int k, int v)
     case P_CUTOFF: base[WM_DST_CUTOFF] = (float)v * 0.01f; break;
     case P_RESO: base[WM_DST_RES] = (float)v * 0.01f; break;
     case P_MORPH: base[WM_DST_MORPH] = (float)v * 0.01f; break;
+    case P_INDEX: base[WM_DST_TIMBRE] = (float)v * 0.01f; break;
+    case P_RATIO: ratio = (float)v * 0.01f; break;
+    case P_ENGINE: wv_engine((uint32_t)v); break;
     case P_SLOPE: wv_slope(v ? WV_SLOPE_24 : WV_SLOPE_12); break;
     case P_BSRC: wc_cfg.breath_src = (uint8_t)v; break;
     case P_CURVE: wc_cfg.breath_curve = (int8_t)v; break;
@@ -233,7 +248,8 @@ void wa_render(int32_t *out, uint32_t n, uint32_t gain_q12, int (*midi_in)(uint3
         f.res = m[WM_DST_RES];
         f.amp = m[WM_DST_AMP] * g;
         f.morph = m[WM_DST_MORPH];
-        f.timbre = f.harmonics = 0.5f;
+        f.timbre = m[WM_DST_TIMBRE];
+        f.harmonics = ratio;
         wv_render(&f, out, k);
         for (i = 0; i < k; i++) {
             float a = fm_fabsf((float)out[2 * i] * (1.0f / 8388608.0f));
@@ -247,6 +263,7 @@ void wa_render(int32_t *out, uint32_t n, uint32_t gain_q12, int (*midi_in)(uint3
         wa_state.res = f.res;
         wa_state.amp = m[WM_DST_AMP];
         wa_state.morph = f.morph;
+        wa_state.timbre = f.timbre;
         wa_state.top = wc_top_note();
         out += 2 * k;
         n -= k;

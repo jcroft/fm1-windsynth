@@ -29,15 +29,16 @@ cutoff and output.
 
 ## Pages
 
-A page button opens its page; the four knobs set its four values. **EDIT** and the **SELECT** knob
+A page button opens its page, and pressed again its next one; the four knobs set its four values. **EDIT** and the **SELECT** knob
 step through every page.
 
 | Button | Page | Knobs |
 | --- | --- | --- |
-| HOME | Voice | Cutoff, Resonance, Morph (the waveform: a saw up to 25, a square at 50, then a pulse that narrows and widens again; a sub-octave fades in below 20 and above 80), Slope (12 or 24 dB) |
+| HOME | Voice | Cutoff, Resonance, Morph (Classic: the waveform, a saw up to 25, a square at 50, then a pulse that narrows and widens again, with a sub-octave below 20 and above 80; FM: the feedback, none at 50), Slope (12 or 24 dB) |
+| HOME again | Engine | Engine (Classic or FM; also the ALGORITHM knob), Ratio (FM's modulator, 0.5 to 16 times the note), Index (how much FM) |
 | ENV | Breath | Source (a CC, or aftertouch), Curve, Attack, Release |
 | LFO | Pitch | Bend range, Glide source, Glide time, Glide mode (always or legato) |
-| SEL | Mod 1–4 (press again for the next) | Source (breath, bite, mod wheel, pressure, velocity), Destination (cutoff, resonance, amp, morph), Amount (−100 to +100) |
+| SEL | Mod 1–4 (press again for the next) | Source (breath, bite, mod wheel, pressure, velocity), Destination (cutoff, resonance, amp, morph, timbre: FM's index), Amount (−100 to +100) |
 | SEQ | Keys | Key breath, Octave |
 | GLO | Setup | Transpose, Tune, MIDI channel (Omni by default), Theme (Light or Dark); the version |
 
@@ -64,6 +65,7 @@ you save).
   screen. The kalimba is gone. The browser version picks a MIDI input and shows what it hears.
 - 0.0.4: the init sound is a single saw with breath on the cutoff only.
 - 0.0.5: 64 presets, picked with PRESETS and saved with SAVE.
+- 0.0.6: a second engine, Plaits' 2-op FM, through the same filter so breath works the same way.
 
 ## Building and testing
 

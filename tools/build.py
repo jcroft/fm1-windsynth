@@ -46,12 +46,15 @@ O2_UNITS = ["wind/wind_ctl.c", "wind/wind_matrix.c", "wind/wind_app.c"]
 # shim), so it links with no C++ runtime. The host and web builds use the same (tools/wind_cxx.sh)
 WIND_UNITS = ["src/wind/wind_voice.cc",
               "third_party/mutable/plaits/dsp/engine2/virtual_analog_vcf_engine.cc",
+              "third_party/mutable/plaits/dsp/engine/fm_engine.cc",
+              "third_party/mutable/plaits/resources.cc",
               "third_party/mutable/stmlib/dsp/units.cc"]
-WIND_CXXFLAGS = ["-x", "c++", "-std=c++11", "-O2", "-ffunction-sections", "-ffreestanding", "-fno-exceptions",
+# (-fdata-sections: --gc-sections keeps only the Plaits tables an engine reads, not all of resources.cc)
+WIND_CXXFLAGS = ["-x", "c++", "-std=c++11", "-O2", "-ffunction-sections", "-fdata-sections", "-ffreestanding", "-fno-exceptions",
                  "-fno-rtti", "-fno-threadsafe-statics", "-fno-use-cxa-atexit", "-DTEST", "-Wall",
                  "-Ifirmware/src/wind/shim", "-Ifirmware/third_party/mutable", "-Ifirmware/src"]
 # the voice's entry points: linked (the build fails if the image lacks one)
-WIND_KEEP = ["wv_init", "wv_slope", "wv_env", "wv_render"]
+WIND_KEEP = ["wv_init", "wv_engine", "wv_slope", "wv_env", "wv_render"]
 LINE = re.compile(r"^\s*([0-9a-f]+):\s+((?:[0-9a-f]{2} )+)\s*\t(.*)$")
 
 # SDK files of AC79NN_SDK_V1.2.1_2023-12-13 (the tested version)

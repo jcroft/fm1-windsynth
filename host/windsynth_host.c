@@ -21,7 +21,7 @@
  *   leds                         print the lit buttons and keys
  *   expect WHAT VALUE            check state: exit 1 on mismatch; VALUE "<N" / ">N" is a bound
  *                                (WHAT: view dirty store_writes preset edited parN gate top (the note sounding)
- *                                 note (x100) breath cutoff res amp morph level (x100) litkeys (bits)
+ *                                 note (x100) breath cutoff res amp morph timbre level (x100) litkeys (bits)
  *                                 lumaY (brightness 0..255 of the screen at x 2, row Y: the theme)
  *                                 peak_db_max peak_db_min)
  *   reboot                       re-run boot from the simulated flash (persistence test)
@@ -372,6 +372,8 @@ static int expect(const char *what, const char *val)
         got = (int)(wa_state.amp * 100.0f + 0.5f);
     else if (!strcmp(what, "morph"))
         got = (int)(wa_state.morph * 100.0f + 0.5f);
+    else if (!strcmp(what, "timbre"))
+        got = (int)(wa_state.timbre * 100.0f + 0.5f);
     else if (!strcmp(what, "level"))
         got = (int)(wa_state.level * 100.0f + 0.5f);
     else if (!strcmp(what, "litkeys"))            /* the keys lit (bit per key) */
