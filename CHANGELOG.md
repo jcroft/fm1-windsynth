@@ -4,6 +4,14 @@ A release is a push to `main` that changes `VERSION` to a version with no tag ye
 release build, tags the commit `vX.Y.Z` and publishes the GitHub Release with that version's notes,
 taken from its section below. Add the section in the same pull request as the `VERSION` change.
 
+## 0.0.4
+
+- **The init sound is one saw**, with breath on the cutoff and nothing else: Morph starts at 25
+  (Classic's pure saw; at 30 it blended in a square), Resonance at 0, and Mod 2 to 4 are off (and
+  start on Cutoff rather than showing Amp, Reso and Morph). Settings you've already saved keep what
+  they had: Factory reset (or hold SAVE) to hear the new start.
+- The browser page's Breath slider is gone: play it from your windsynth.
+
 ## 0.0.3
 
 - **It plays.** Blow your windsynth into it (USB or the MIDI jack, any channel by default): breath on

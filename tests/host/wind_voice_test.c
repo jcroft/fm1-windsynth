@@ -217,6 +217,41 @@ static void test_voice(const char *dir)
     }
 }
 
+/* the n-th harmonic's level in buf[0..len), the note's period P samples: a Hann-windowed DFT bin */
+static float harmonic(uint32_t len, float period, int n)
+{
+    float re = 0.0f, im = 0.0f;
+    uint32_t i;
+    for (i = 0; i < len; i++) {
+        float w = 0.5f - 0.5f * fm_sin_turns((float)i / (float)len + 0.25f), t = (float)n * (float)i / period;
+        t -= (float)(int)t;
+        re += buf[i] * w * fm_sin_turns(t + 0.25f);
+        im += buf[i] * w * fm_sin_turns(t);
+    }
+    return fm_sqrtf(re * re + im * im);
+}
+
+/* the init sound is one saw: MORPH 0.25 is VA-VCF's pure saw (no square, no sub). With the filter open
+ * and no resonance its harmonics fall as 1/n. */
+static void test_saw(void)
+{
+    const float note = 57.0f, period = 47872.34f / (440.0f * fm_exp2f((note - 69.0f) / 12.0f));
+    const uint32_t len = 32768;
+    float h1, r[4];
+    int n;
+    wv_init();
+    wv_render_raw(note, 1.0f, 0.25f, 0.625f, buf, len);    /* settle */
+    wv_render_raw(note, 1.0f, 0.25f, 0.625f, buf, len);
+    h1 = harmonic(len, period, 1);
+    for (n = 2; n <= 5; n++) {
+        r[n - 2] = harmonic(len, period, n) / h1;
+        CHECK(fm_fabsf(r[n - 2] * (float)n - 1.0f) < 0.15f, "saw: harmonic %d at %.3f of the first, not 1/%d", n,
+              (double)r[n - 2], n);
+    }
+    printf("  saw harmonics 2-5: %.3f %.3f %.3f %.3f (1/n: .500 .333 .250 .200)\n", (double)r[0], (double)r[1],
+           (double)r[2], (double)r[3]);
+}
+
 int main(int argc, char **argv)
 {
     if (argc < 3) {
@@ -225,6 +260,7 @@ int main(int argc, char **argv)
     }
     test_sweep(argv[1], argv[2]);
     test_voice(argv[2]);
+    test_saw();
     if (fails)
         printf("%d check(s) failed\n", fails);
     return fails ? 1 : 0;

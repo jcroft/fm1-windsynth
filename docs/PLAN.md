@@ -154,8 +154,6 @@ The browser build is our main development surface until the FM-1 arrives, and th
 - **C++ in the build:** `em++` compiles the vendored Plaits files and `wind_voice.cc`; the C files stay on `emcc`. The same flags as the device: `-fno-exceptions -fno-rtti -fno-threadsafe-statics` and no fused multiply-add, so host and device produce the same samples.
 - **MIDI device picker and channel filter,** remembered in the browser. Today the page listens to every input.
 - **Dev overlay** beside the panel: live meters for breath (raw and conditioned), bend, glide time, the current note and each matrix destination, plus the render time per block on your computer.
-- **Virtual windsynth:** a breath slider, the space bar as breath with a ramp, and a bend wheel, for playing without the controller.
-- **Recorder:** captures incoming MIDI to a `.mid` file and replays it. Your EWI performances become repeatable test inputs (see Testing).
 - **A small JS API** on the page (`wind.get()`, `wind.set(path, value)`, `wind.onState(cb)`). It is the hook the custom UI will use later, so that UI never reaches into the firmware's memory directly.
 
 **Deployment:** CI publishes the page to GitHub Pages on every merge to `main`, as FiMba does, with the latest device package beside it for the web installer.
@@ -172,7 +170,7 @@ Six milestones; M0 to M3 need no hardware. Each ends at a check anyone can run.
    - Exit: the host render of a fixed note sweep matches upstream Plaits within 1 LSB, and the pi32v2 build links with no C++ runtime.
 3. **M2 Wind control.** Write `wind_ctl.c` and `wind_matrix.c`, replace the kalimba with the wind voice, and add the MIDI picker and dev overlay.
    - Exit: you play it from your windsynth in the browser. CC2 opens the cutoff, bite bends ±2 semitones, CC5 sets glide, and the parser and matrix unit tests pass.
-4. **M3 Playable instrument.** Add engine 1 with the post-filter, settings pages on the FM-1 screen, presets (8 to start) saved to flash, the virtual windsynth, the recorder and the JS API.
+4. **M3 Playable instrument.** Add engine 1 with the post-filter, settings pages on the FM-1 screen, presets (8 to start) saved to flash and the JS API.
    - Exit: settings and presets survive a reload, and every control in the spec is reachable from the panel.
 5. **M4 On the device** (once the FM-1 arrives). Back up the flash with an RP2040 Transporter, install the package, then measure CPU per engine and MIDI-to-sound latency over USB and TRS.
    - Exit: it plays from both inputs, worst-case CPU is under 50 % of one core, and latency is under 6 ms.

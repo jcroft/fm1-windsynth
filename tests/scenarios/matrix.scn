@@ -4,6 +4,7 @@ tap SEL
 tap SEL
 expect view 4
 spin K1 1
+spin K2 2
 expect par15 1
 expect par16 2
 spin K3 100

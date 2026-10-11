@@ -8,13 +8,13 @@
 const char *const WA_NOTE_NAME[12] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
 
 static const wa_param_t PARAMS[P_NPARAMS] = {
-    {"Cutoff", 0, 100, 15}, {"Reso", 0, 100, 20}, {"Morph", 0, 100, 30}, {"Slope", 0, 1, 1},
+    {"Cutoff", 0, 100, 15}, {"Reso", 0, 100, 0}, {"Morph", 0, 100, 25}, {"Slope", 0, 1, 1},
     {"Breath", 0, 128, 2}, {"Curve", -100, 100, 0}, {"Attack", 1, 200, 5}, {"Release", 5, 2000, 60},
     {"Bend", 0, 12, 2}, {"Glide CC", 0, 128, 5}, {"Glide", 0, 100, 0}, {"Glide on", 0, 1, 0},
     {"Source", 0, WM_NSRC - 1, WM_SRC_BREATH}, {"Dest", 0, WM_NDST - 1, WM_DST_CUTOFF}, {"Amount", -100, 100, 75},
-    {"Source", 0, WM_NSRC - 1, WM_SRC_OFF}, {"Dest", 0, WM_NDST - 1, WM_DST_AMP}, {"Amount", -100, 100, 0},
-    {"Source", 0, WM_NSRC - 1, WM_SRC_OFF}, {"Dest", 0, WM_NDST - 1, WM_DST_RES}, {"Amount", -100, 100, 0},
-    {"Source", 0, WM_NSRC - 1, WM_SRC_OFF}, {"Dest", 0, WM_NDST - 1, WM_DST_MORPH}, {"Amount", -100, 100, 0},
+    {"Source", 0, WM_NSRC - 1, WM_SRC_OFF}, {"Dest", 0, WM_NDST - 1, WM_DST_CUTOFF}, {"Amount", -100, 100, 0},
+    {"Source", 0, WM_NSRC - 1, WM_SRC_OFF}, {"Dest", 0, WM_NDST - 1, WM_DST_CUTOFF}, {"Amount", -100, 100, 0},
+    {"Source", 0, WM_NSRC - 1, WM_SRC_OFF}, {"Dest", 0, WM_NDST - 1, WM_DST_CUTOFF}, {"Amount", -100, 100, 0},
     {"Key brth", 0, 100, 100}, {"Octave", -3, 3, 0},
     {"Transpose", -24, 24, 0}, {"Tune", -100, 100, 0}, {"MIDI ch", 0, 16, 0}, {"Theme", 0, THEME_N - 1, 0},
 };

@@ -63,8 +63,7 @@ kbd { font: 600 .85em ui-monospace, Menlo, monospace; background: var(--card); b
 .mon .v { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
 .mon .dot { display: inline-block; width: .6rem; height: .6rem; border-radius: 50%; background: var(--rule); vertical-align: middle; }
 .mon .dot.on { background: var(--teal); }
-.bar select, .bar input[type=range] { font: inherit; color: var(--ink); background: var(--card); border: 1px solid var(--rule); border-radius: 8px; }
-.bar label { display: inline-flex; gap: .4rem; align-items: center; }
+.bar select { font: inherit; color: var(--ink); background: var(--card); border: 1px solid var(--rule); border-radius: 8px; }
 /* the installer */
 .install { margin: 1.8rem 0 0; padding: 1.1rem 1.2rem 1.2rem; background: var(--card); border: 1px solid var(--rule); border-radius: 14px; }
 .install h2 { font: 700 1.35rem "Barlow Semi Condensed", "Barlow", sans-serif; margin: 0 0 .5rem; }
@@ -106,7 +105,6 @@ kbd { font: 600 .85em ui-monospace, Menlo, monospace; background: var(--card); b
   <button id="midi" type="button" title="Play it from your windsynth or any MIDI controller (Chrome or Edge)">Connect MIDI</button>
   <select id="midiIn" aria-label="MIDI input" hidden></select>
   <span class="midi" id="midistat"></span>
-  <label title="No breath controller? Drag this: it sends breath (CC2), as a windsynth would">Breath <input type="range" id="breath" min="0" max="127" value="0"></label>
   <button id="reset" type="button" title="Forget your sound and settings, and start again from the factory settings">Factory reset</button>
 </div>
 
@@ -167,7 +165,6 @@ kbd { font: 600 .85em ui-monospace, Menlo, monospace; background: var(--card); b
       <li>The <b>bite</b> (pitch bend) bends ±2 semitones by default (Pitch page). <b>Glide</b> follows CC5 by default; another CC, or none, on the Pitch page.</li>
       <li>Last note wins: overlapping notes play legato, without a new attack, and letting one go returns to the one still held.</li>
       <li>The FM-1's own keys play from F3, every key its printed note, as if blown at the Keys page's <b>Key breath</b>. <b>OCT−</b> / <b>OCT+</b> shift them; <b>PRESETS</b> transposes everything.</li>
-      <li>No windsynth? Play notes from the keys or a keyboard and drag <b>Breath</b> under the panel.</li>
     </ul>
   </div>
   <div>
@@ -577,8 +574,6 @@ document.getElementById("midi").addEventListener("click", async () => {
     midiStat.textContent = "MIDI was refused here (" + (err && err.name || "blocked") + "). Opening the page on its own, outside another site, may allow it.";
   }
 });
-// the on-page breath: CC2 on channel 1, which the default settings (Omni, breath CC2) hear
-document.getElementById("breath").addEventListener("input", (e) => send({ type: "midi", st: 0xB0, d1: 2, d2: +e.target.value }));
 document.getElementById("reset").addEventListener("click", () => {
   if (document.getElementById("reset").dataset.armed) {
     try { localStorage.removeItem(STORE_KEY); } catch {}
