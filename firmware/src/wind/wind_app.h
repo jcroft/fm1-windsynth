@@ -29,6 +29,7 @@ typedef struct {
     int16_t lo, hi, def;
 } wa_param_t;
 const wa_param_t *wa_param_info(int i);
+int wa_param_global(int i);            /* 1: the rig's, not the sound's (kept out of presets) */
 void wa_param_text(int i, int v, char *buf);   /* the value as the screen shows it (12 bytes) */
 
 enum { THEME_LIGHT, THEME_DARK, THEME_N };

@@ -18,8 +18,9 @@
 
 typedef struct {
     uint32_t magic, format;
-    int16_t par[P_NPARAMS];              /* wind_app.h P_* */
-    uint8_t rsv[32];                     /* room to grow: an older, shorter project loads (zeros here) */
+    int16_t par[P_NPARAMS];              /* wind_app.h P_*: the sound being played (the edit buffer) and the rig */
+    uint8_t preset;                      /* the preset it came from, 0..NPRESETS-1 */
+    uint8_t rsv[31];                     /* room to grow: an older, shorter project loads (zeros here) */
 } project_t;
 
 extern project_t proj;
@@ -28,6 +29,14 @@ void project_defaults(void);
 int project_load(void);                  /* 0 = loaded; else defaults are in place */
 int project_save(void);                  /* 0 = saved and verified */
 void project_apply(void);                /* every value to the engine (boot, load) */
+
+/* presets: NPRESETS sounds in flash, 16 to a bank object. A slot never saved is the init sound. */
+#define NPRESETS 64
+#define PRESET_NPAR 112                  /* room per preset: settings to come fit without a new format */
+void preset_load(int slot);              /* its sound into the project, applied (the rig is kept) */
+int preset_store(int slot);              /* the project's sound into the slot: 0 = saved */
+int preset_edited(void);                 /* 1: the sound differs from its preset's */
+void preset_peek(void);                  /* the project's preset as stored, for preset_edited (project_load) */
 
 void ui_init(void);
 void ui_frame(void);

@@ -20,7 +20,7 @@
  *   shot FILE.png                save the screen
  *   leds                         print the lit buttons and keys
  *   expect WHAT VALUE            check state: exit 1 on mismatch; VALUE "<N" / ">N" is a bound
- *                                (WHAT: view dirty store_writes parN gate top (the note sounding)
+ *                                (WHAT: view dirty store_writes preset edited parN gate top (the note sounding)
  *                                 note (x100) breath cutoff res amp morph level (x100) litkeys (bits)
  *                                 lumaY (brightness 0..255 of the screen at x 2, row Y: the theme)
  *                                 peak_db_max peak_db_min)
@@ -110,12 +110,13 @@ void plat_midi_out(uint32_t pkt)
 
 /* flash: one buffer per object, kept across a simulated reboot */
 static uint8_t store[OBJ_NOBJ][PLAT_STORE_MAX];
-static int store_len[OBJ_NOBJ] = {-1, -1};
+static int store_len[OBJ_NOBJ];          /* bytes held; with store_have 0, none */
+static uint8_t store_have[OBJ_NOBJ];
 static uint32_t store_writes;
 int plat_store_load(uint32_t obj, void *dst, uint32_t max)
 {
     int n;
-    if (obj >= OBJ_NOBJ || (n = store_len[obj]) < 0)
+    if (obj >= OBJ_NOBJ || !store_have[obj] || (n = store_len[obj]) < 0)
         return -1;
     if ((uint32_t)n > max)
         n = (int)max;
@@ -128,6 +129,7 @@ int plat_store_save(uint32_t obj, const void *src, uint32_t len)
         return -1;
     memcpy(store[obj], src, len);
     store_len[obj] = (int)len;
+    store_have[obj] = 1;
     store_writes++;
     return 0;
 }
@@ -348,6 +350,10 @@ static int expect(const char *what, const char *val)
         got = ui.dirty;
     else if (!strcmp(what, "store_writes"))
         got = (int)store_writes;
+    else if (!strcmp(what, "preset"))             /* the preset, 1..64 as the screen shows it */
+        got = proj.preset + 1;
+    else if (!strcmp(what, "edited"))             /* the sound differs from its preset's */
+        got = preset_edited();
     else if (!strncmp(what, "par", 3))            /* parN: parameter N (wind_app.h P_*) */
         got = proj.par[atoi(what + 3)];
     else if (!strcmp(what, "gate"))
