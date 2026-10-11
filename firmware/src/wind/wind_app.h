@@ -26,6 +26,7 @@ enum {
     P_RVTYPE, P_RVMIX, P_RVDECAY, P_RVTONE,          /* Reverb page (0.0.7) */
     P_RVPRE, P_RVSIZE, P_RVMOD, P_RVLOW,             /* Reverb 2 page */
     P_DLMODE, P_DLMIX, P_DLTIME, P_DLFB,             /* Delay page */
+    P_GDEPTH,                                        /* Pitch 2 page (0.0.8) */
     P_NPARAMS
 };
 typedef struct {

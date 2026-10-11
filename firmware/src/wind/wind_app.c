@@ -22,7 +22,7 @@ static const wa_param_t PARAMS[P_NPARAMS] = {
     {"Type", 0, WF_RV_NTYPE - 1, WF_RV_CLOUD}, {"Mix", 0, 100, 0}, {"Decay", 0, 100, 50}, {"Tone", 0, 100, 60},
     {"Pre-delay", 0, WF_PRE_MAX_MS, 20}, {"Size", 0, 100, 50}, {"Mod", 0, 100, 50}, {"Low end", -50, 50, 0},
     {"Mode", 0, WF_DL_NMODE - 1, WF_DL_DIGITAL}, {"Mix", 0, 100, 0}, {"Time", 20, WF_TIME_MAX_MS, 350},
-    {"Feedback", 0, 100, 35},
+    {"Feedback", 0, 100, 35}, {"CC depth", 0, 100, 100},
 };
 
 const wa_param_t *wa_param_info(int i) { return &PARAMS[(unsigned)i < P_NPARAMS ? i : 0]; }
@@ -32,7 +32,7 @@ const wa_param_t *wa_param_info(int i) { return &PARAMS[(unsigned)i < P_NPARAMS 
 int wa_param_global(int i)
 {
     switch (i) {
-    case P_BSRC: case P_CURVE: case P_GSRC: case P_KEYBREATH: case P_OCTAVE:
+    case P_BSRC: case P_CURVE: case P_GSRC: case P_GDEPTH: case P_KEYBREATH: case P_OCTAVE:
     case P_TRANSPOSE: case P_TUNE: case P_MIDICH: case P_THEME:
         return 1;
     default:
@@ -114,7 +114,7 @@ void wa_param_text(int i, int v, char *b)
         copy_s(b, "s");
         return;
     }
-    case P_GLIDE:
+    case P_GLIDE: case P_GDEPTH:
         if (!v)
             copy_s(b, "Off");
         else
@@ -230,6 +230,7 @@ void wa_set(int k, int v)
     case P_BEND: wc_cfg.bend_range = (uint8_t)v; break;
     case P_GSRC: wc_cfg.glide_src = (uint8_t)v; break;
     case P_GLIDE: wc_cfg.glide = (uint8_t)v; break;
+    case P_GDEPTH: wc_cfg.glide_depth = (uint8_t)v; break;
     case P_GMODE: wc_cfg.glide_always = (uint8_t)(v != 0); break;
     case P_KEYBREATH: wc_cfg.key_breath = (float)v * 0.01f; break;
     case P_TRANSPOSE: wc_cfg.transpose = (int8_t)v; break;

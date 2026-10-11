@@ -28,7 +28,7 @@ expect cutoff <30
 # Mod 2: breath to Timbre (FM's index)
 tap SEL
 tap SEL
-expect view 5
+expect view 6
 spin K1 1
 spin K2 4
 spin K3 50

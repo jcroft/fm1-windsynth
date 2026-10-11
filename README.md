@@ -22,7 +22,7 @@ blown at the **Key breath** level.
 | --- | --- | --- |
 | Breath | CC2, to filter cutoff (Mod 1: Breath → Cutoff, +75) | Aftertouch or any CC as the source; a curve; the Mod slots also send it to amp, resonance or morph |
 | Bite | Pitch bend, ±2 semitones | 0 to 12 semitones |
-| Glide | CC5 sets glide time | Another CC, or none; glide on every note or legato only |
+| Glide | CC5 sets glide time, up to 2 s | Another CC, or none; how long a glide the CC reaches at full (CC depth); glide on every note or legato only |
 
 The screen shows the note (with its offset in cents while you bend), the bite, and bars for breath,
 cutoff and output.
@@ -38,6 +38,7 @@ step through every page.
 | HOME again | Engine | Engine (Classic or FM; also the ALGORITHM knob), Ratio (FM's modulator, 0.5 to 16 times the note), Index (how much FM) |
 | ENV | Breath | Source (a CC, or aftertouch), Curve, Attack, Release |
 | LFO | Pitch | Bend range, Glide source, Glide time, Glide mode (always or legato) |
+| LFO again | Pitch 2 | CC depth: the glide time the glide CC reaches at full (2 s by default) |
 | SEL | Mod 1–4 (press again for the next) | Source (breath, bite, mod wheel, pressure, velocity), Destination (cutoff, resonance, amp, morph, timbre: FM's index), Amount (−100 to +100) |
 | SEQ | Keys | Key breath, Octave |
 | GLO | Setup | Transpose, Tune, MIDI channel (Omni by default), Theme (Light or Dark); the version |
@@ -70,7 +71,7 @@ press **SAVE** again (any other button leaves the presets alone). What you're pl
 included, is also kept by itself a few seconds after you stop, so it comes back after a restart.
 
 A preset holds the sound: the Voice, Pitch and Mod pages, and Attack and Release. Your rig's settings
-stay put when you change presets: breath source and curve, the glide CC, the Keys page and Setup.
+stay put when you change presets: breath source and curve, the glide CC and its depth, the Keys page and Setup.
 Hold **SAVE** for 1.5 s, then press it again, for the init sound (the preset slot is untouched until
 you save).
 
@@ -84,6 +85,7 @@ you save).
 - 0.0.5: 64 presets, picked with PRESETS and saved with SAVE.
 - 0.0.6: a second engine, Plaits' 2-op FM, through the same filter so breath works the same way.
 - 0.0.7: a reverb (Cloud, Hall, Plate, Room, Shimmer) and a delay (Digital, Tape, Analog, Ping-pong).
+- 0.0.8: CC depth, the longest glide the glide CC reaches.
 
 ## Building and testing
 

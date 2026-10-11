@@ -189,6 +189,14 @@ static void test_glide(void)
     run(250);
     CHECK(NEAR(o.note, 54.0f, 0.1f), "always: %g after 250 ms", (double)o.note);
     wc_midi(0x80, 60, 0);
+    wc_cfg.glide_depth = 40;                          /* the depth: CC5 at full reaches it */
+    wc_midi(0xB0, 5, 127);
+    CHECK(wc_cfg.glide == 40 && wc_take_glide_cc() == 40, "CC5 127 at depth 40: glide %d", wc_cfg.glide);
+    wc_midi(0xB0, 5, 64);
+    CHECK(wc_cfg.glide == 20, "CC5 64 at depth 40: glide %d", wc_cfg.glide);
+    wc_cfg.glide_depth = 100;
+    wc_midi(0xB0, 5, 64);
+    wc_take_glide_cc();
     wc_cfg.glide_src = WC_SRC_OFF;                    /* no glide CC */
     wc_midi(0xB0, 5, 0);
     CHECK(wc_cfg.glide == 50, "CC5 heard with the source off");
