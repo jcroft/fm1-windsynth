@@ -1,6 +1,6 @@
 #!/bin/sh
 # SPDX-License-Identifier: GPL-3.0-only
-# FiMba-1 host tests: the maths, the platform pieces kept from Felucca / X0X / FoMni, the instrument
+# Windsynth host tests: the maths, the platform pieces kept from Felucca / X0X / FoMni, the instrument
 # (built without libm, as on the device), and the whole firmware app in the simulator
 # (tests/scenarios/*.kal: keys, black-key modes, MIDI, FX, persistence), with screenshots and audio in
 # build/scenarios/ and one WAV per tine material in build/host/materials/.
@@ -30,23 +30,23 @@ run kalimba sh -c "$CC -O2 -ffp-contract=off -std=c99 -Wall -Wextra -Wdouble-pro
     -o $OUT/kalimba_test tests/host/kalimba_test.c firmware/src/dsp/kalimba.c && $OUT/kalimba_test $OUT/materials"
 run storage sh -c "$CC -O2 -o $OUT/storage_test tests/storage_test.c && $OUT/storage_test"
 # the update path, against the firmware package (Felucca's tests; needs ./build.sh)
-if [ -f build/fimba.fwsc ]; then
-    run ota-entry sh -c "$CC -o $OUT/ota_test tests/ota_test.c && $OUT/ota_test build/fimba.fwsc"
+if [ -f build/windsynth.fwsc ]; then
+    run ota-entry sh -c "$CC -o $OUT/ota_test tests/ota_test.c && $OUT/ota_test build/windsynth.fwsc"
     if [ -z "${AC79_SDK:-}" ]; then
         echo "  skip update-loader (needs AC79_SDK, as the build)"
     else
-    run update-loader sh -c "head -c 100000 build/fimba.bin > $OUT/old_app.bin && \
+    run update-loader sh -c "head -c 100000 build/windsynth.bin > $OUT/old_app.bin && \
         python3 tools/fm1pkg_make.py $OUT/old_app.bin build/loader/ota.bin $OUT/old.fwsc >/dev/null && \
-        $CC -o $OUT/ldr_test tests/ldr_test.c && $OUT/ldr_test $OUT/old.fwsc build/fimba.fwsc"
+        $CC -o $OUT/ldr_test tests/ldr_test.c && $OUT/ldr_test $OUT/old.fwsc build/windsynth.fwsc"
     fi
     run installer python3 tests/install_test.py
     # the package taken apart and every CRC checked; against FoMni's own package when one is there
     # (build/fomni-ref: see BUILDING.md, "Before installing")
     REF=""
     [ -f build/fomni-ref/build/omni.fwsc ] && REF="--ref build/fomni-ref/build/omni.fwsc"
-    run package sh -c "python3 tools/check_fwsc.py build/fimba.fwsc --app build/fimba.bin $REF"
+    run package sh -c "python3 tools/check_fwsc.py build/windsynth.fwsc --app build/windsynth.bin $REF"
 else
-    echo "  skip update-path tests (no build/fimba.fwsc: run ./build.sh)"
+    echo "  skip update-path tests (no build/windsynth.fwsc: run ./build.sh)"
 fi
 run host-build sh host/build_host.sh
 if command -v emcc >/dev/null 2>&1; then
@@ -57,7 +57,7 @@ if command -v emcc >/dev/null 2>&1; then
     run updater node tests/web/updater_test.mjs
     if [ -n "$CHROME" ]; then
         run standalone node tests/host/standalone_test.mjs "$CHROME"
-        if [ -f build/fimba.fwsc ]; then       # the installer's buttons, end to end (needs a firmware build)
+        if [ -f build/windsynth.fwsc ]; then       # the installer's buttons, end to end (needs a firmware build)
             run installer-page node tests/web/installer_page_test.mjs "$CHROME"
         fi
     fi

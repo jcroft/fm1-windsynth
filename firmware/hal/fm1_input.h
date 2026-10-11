@@ -25,7 +25,7 @@
  * quadrature cycle. fm1_enc_take() returns the steps.
  * LEDs: set fm1_led[col] (packed row bits, bit1 PA5..bit4 PA8); they are lit
  * while that column is selected. fm1_led_key/btn helpers address them by id.
- * FiMba: fm1_led_dim[col], the same, lit only one frame in FM1_LED_DIM: dim
+ * FiMba-1: fm1_led_dim[col], the same, lit only one frame in FM1_LED_DIM: dim
  * (~900 frames a second from the tick: a quarter as bright, at ~225 Hz).
  */
 #pragma once

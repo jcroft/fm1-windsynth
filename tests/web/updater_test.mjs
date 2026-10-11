@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// The installer as the page ships it: the update protocol inlined in build/emu/FiMba-1.html, taken out
+// The installer as the page ships it: the update protocol inlined in build/emu/Windsynth.html, taken out
 // of the page and run against a simulated FM-1 (tests/web/fake_fm1.mjs; after Felucca's
 // web/test_web.mjs), and the real package read the way the page reads it.
-//   node tests/web/updater_test.mjs        (after web/emu/build.sh; uses build/fimba.fwsc if there)
+//   node tests/web/updater_test.mjs        (after web/emu/build.sh; uses build/windsynth.fwsc if there)
 import { existsSync, readFileSync } from "node:fs";
 import { FakeFM1 } from "./fake_fm1.mjs";
 
 let failed = 0;
 const ok = (cond, what) => { console.log(`${what.padEnd(70)} ${cond ? "ok" : "FAIL"}`); if (!cond) failed++; };
 
-const page = readFileSync("build/emu/FiMba-1.html", "utf8");
+const page = readFileSync("build/emu/Windsynth.html", "utf8");
 const a = page.indexOf("/* ---- web/fm1pkg.js (inlined) ---- */"), b = page.indexOf("const $ = (id) =>", a);
 ok(a > 0 && b > a, "the page carries the inlined update protocol");
 const lib = page.slice(a, b) + "\nexport { Updater, productOf, logicalImage };";
@@ -36,12 +36,12 @@ const dev4 = new FakeFM1(image, { after: "FM-1_015" });
 const e3 = await new Updater(dev4.access).install(image, "FM-1_800").then(() => null, (x) => x);
 ok(e3 && e3.code === "mismatch" && e3.detail === "FM-1_015", "it comes back as something else: 'mismatch', with what it reports");
 
-if (existsSync("build/fimba.fwsc")) {
-  const raw = new Uint8Array(readFileSync("build/fimba.fwsc"));
+if (existsSync("build/windsynth.fwsc")) {
+  const raw = new Uint8Array(readFileSync("build/windsynth.fwsc"));
   const img = logicalImage(raw);
-  ok(/^FM-1_8\d*$/.test(productOf(raw)) && img.length === raw.length - 20, `build/fimba.fwsc: ${productOf(raw)}, its image ${img.length} B`);
+  ok(/^FM-1_8\d*$/.test(productOf(raw)) && img.length === raw.length - 20, `build/windsynth.fwsc: ${productOf(raw)}, its image ${img.length} B`);
 } else {
-  console.log(`${"build/fimba.fwsc (no firmware build)".padEnd(70)} skip`);
+  console.log(`${"build/windsynth.fwsc (no firmware build)".padEnd(70)} skip`);
 }
 console.log(failed ? `UPDATER TESTS FAILED (${failed})` : "updater tests passed");
 process.exit(failed ? 1 : 0);

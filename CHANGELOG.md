@@ -4,6 +4,14 @@ A release is a push to `main` that changes `VERSION` to a version with no tag ye
 release build, tags the commit `vX.Y.Z` and publishes the GitHub Release with that version's notes,
 taken from its section below. Add the section in the same pull request as the `VERSION` change.
 
+## 0.0.1
+
+- **FM-1 Windsynth starts here**, as a fork of FiMba-1 0.6.0. It still plays FiMba's kalimba while
+  the wind voice is built; see `docs/PLAN.md`. The USB name is now "Windsynth FM-1".
+- Versions `0.0.x` are development builds: nothing is released until `VERSION` moves past them.
+
+The history below is FiMba-1's.
+
 ## 0.6.0
 
 - **Reset to the defaults:** hold SAVE for 1.5 s, then press SAVE again to confirm (anything else, or

@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
-/* FiMba-1 project: one flash object (OBJ_PROJ). A project of another format, or none (or FoMni's),
+/* Windsynth project: one flash object (OBJ_PROJ). A project of another format, or none (or FoMni's),
  * gives the defaults. Part of the unity build, after app.h. */
 project_t proj;
 

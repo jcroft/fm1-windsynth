@@ -60,7 +60,7 @@ export class FakeFM1 {
       this.served++;
       if (this.served >= this.unplugAfter) { this.input.state = this.output.state = "disconnected"; return; }
       if (addr === 0xE0000000) setTimeout(() => this.boot("ota-FM-1_900", "Felucca Update"), 300);
-      else if (addr === 0xF0000000) setTimeout(() => this.boot(this.after, "FiMba FM-1"), 300);
+      else if (addr === 0xF0000000) setTimeout(() => this.boot(this.after, "Windsynth FM-1"), 300);
       else this.next();
     }
   }
