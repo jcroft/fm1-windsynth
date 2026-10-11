@@ -4,6 +4,17 @@ A release is a push to `main` that changes `VERSION` to a version with no tag ye
 release build, tags the commit `vX.Y.Z` and publishes the GitHub Release with that version's notes,
 taken from its section below. Add the section in the same pull request as the `VERSION` change.
 
+## 0.0.10
+
+- **Five more Plaits engines**, on ALGORITHM or the Engine page: **6-op** FM (Plaits' 96 DX7
+  patches, picked by name, starting on BRASS 6 BC), **Formant** (granular formants, vocal),
+  **Waveshape**, **VA** (two detuned oscillators) and **Swarm** (eight sawtooths). Each goes through
+  the same filter, so breath on cutoff works as before.
+- **Knobs named for the engine.** Ratio, Index and Morph take each engine's own names (6-op: Patch,
+  Bright, Env; Waveshape: Shape, Fold, Asym, and so on). Classic's Engine page no longer shows Ratio
+  and Index, which do nothing on it.
+- 6-op starts its envelopes with each breath; slurred notes keep the gesture going.
+
 ## 0.0.9
 
 - **Shimmer, rebuilt** toward Valhalla Shimmer and BigSky's. The whole tail now goes through a

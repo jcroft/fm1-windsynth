@@ -1,8 +1,19 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
-/* <algorithm> for the vendored code: only std::min and std::max are used */
+/* <algorithm> for the vendored code: std::min, std::max, std::copy and std::fill */
 #pragma once
 
 namespace std {
 template<class T> inline const T& min(const T& a, const T& b) { return b < a ? b : a; }
 template<class T> inline const T& max(const T& a, const T& b) { return a < b ? b : a; }
+template<class I, class O> inline O copy(I first, I last, O out)
+{
+    while (first != last)
+        *out++ = *first++;
+    return out;
+}
+template<class I, class T> inline void fill(I first, I last, const T& v)
+{
+    while (first != last)
+        *first++ = v;
+}
 }

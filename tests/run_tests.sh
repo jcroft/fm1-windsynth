@@ -31,11 +31,15 @@ CXX="${CXX:-c++}"
 run wind sh -c "mkdir -p $OUT/wind && $CXX -O2 -ffp-contract=off -DTEST -Ifirmware/third_party/mutable -Itests/host \
     -o $OUT/wind/wind_ref tests/host/wind_ref.cc firmware/third_party/mutable/plaits/dsp/engine2/virtual_analog_vcf_engine.cc \
     firmware/third_party/mutable/plaits/dsp/engine/fm_engine.cc firmware/third_party/mutable/plaits/resources.cc \
-    firmware/third_party/mutable/stmlib/dsp/units.cc && $OUT/wind/wind_ref $OUT/wind/ref.f32 && \
-    $OUT/wind/wind_ref $OUT/wind/ref_fm.f32 fm && \
+    firmware/third_party/mutable/plaits/dsp/engine2/six_op_engine.cc firmware/third_party/mutable/plaits/dsp/fm/algorithms.cc \
+    firmware/third_party/mutable/plaits/dsp/fm/dx_units.cc firmware/third_party/mutable/plaits/dsp/engine/grain_engine.cc \
+    firmware/third_party/mutable/plaits/dsp/engine/waveshaping_engine.cc firmware/third_party/mutable/plaits/dsp/engine/virtual_analog_engine.cc \
+    firmware/third_party/mutable/plaits/dsp/engine/swarm_engine.cc firmware/third_party/mutable/stmlib/utils/random.cc \
+    firmware/third_party/mutable/stmlib/dsp/units.cc && \
+    for e in 0 1 2 3 4 5 6; do $OUT/wind/wind_ref $OUT/wind/ref_\$e.f32 \$e || exit 1; done && \
     $CC -O2 -ffp-contract=off -std=c99 -Wall -Wextra -Wdouble-promotion -Werror -Ifirmware/src -Itests/host \
     -o $OUT/wind/wind_voice_test tests/host/wind_voice_test.c \$(sh tools/wind_cxx.sh $CXX $OUT/wind -Werror) && \
-    $OUT/wind/wind_voice_test $OUT/wind/ref.f32 $OUT/wind/ref_fm.f32 $OUT/wind"
+    $OUT/wind/wind_voice_test $OUT/wind $OUT/wind"
 # wind control (MIDI, the note stack, breath, bite, glide), the matrix and the instrument; no libm
 run wind-ctl sh -c "$CC -O2 -ffp-contract=off -std=c99 -Wall -Wextra -Wdouble-promotion -Werror -Ifirmware/src \
     -o $OUT/wind/wind_ctl_test tests/host/wind_ctl_test.c firmware/src/wind/wind_ctl.c firmware/src/wind/wind_matrix.c \
@@ -69,7 +73,7 @@ fi
 run host-build sh host/build_host.sh
 if command -v emcc >/dev/null 2>&1; then
     run emu sh -c "sh web/emu/build.sh >/dev/null 2>&1 && node tests/host/emu_test.mjs build/emu/windsynth.wasm"
-    run wind-wasm node tests/host/wind_wasm_test.mjs build/emu/windsynth.wasm $OUT/wind/wind_sweep.f32
+    run wind-wasm node tests/host/wind_wasm_test.mjs build/emu/windsynth.wasm $OUT/wind/wind_sweep_0.f32
     CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
     [ -x "$CHROME" ] || CHROME="$(command -v google-chrome || command -v chromium || true)"
     # the installer as the page ships it, against a simulated FM-1

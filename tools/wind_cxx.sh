@@ -11,6 +11,14 @@ mkdir -p "$OUT"
 for u in firmware/src/wind/wind_voice.cc \
          firmware/third_party/mutable/plaits/dsp/engine2/virtual_analog_vcf_engine.cc \
          firmware/third_party/mutable/plaits/dsp/engine/fm_engine.cc \
+         firmware/third_party/mutable/plaits/dsp/engine2/six_op_engine.cc \
+         firmware/third_party/mutable/plaits/dsp/fm/algorithms.cc \
+         firmware/third_party/mutable/plaits/dsp/fm/dx_units.cc \
+         firmware/third_party/mutable/plaits/dsp/engine/grain_engine.cc \
+         firmware/third_party/mutable/plaits/dsp/engine/waveshaping_engine.cc \
+         firmware/third_party/mutable/plaits/dsp/engine/virtual_analog_engine.cc \
+         firmware/third_party/mutable/plaits/dsp/engine/swarm_engine.cc \
+         firmware/third_party/mutable/stmlib/utils/random.cc \
          firmware/third_party/mutable/plaits/resources.cc \
          firmware/third_party/mutable/stmlib/dsp/units.cc; do
     o="$OUT/$(basename "$u" .cc).o"

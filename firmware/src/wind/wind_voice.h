@@ -17,12 +17,17 @@ typedef struct {            /* control state, per 64-frame block */
     float timbre, morph, harmonics;  /* the engine's own: FM uses all three (index, feedback, ratio) */
 } wind_frame_t;
 
-enum { WV_CLASSIC, WV_FM, WV_NENGINE }; /* 0: Plaits VA-VCF; 1: Plaits 2-op FM, into our filter */
+/* Plaits' engines: VA-VCF; then, into our filter, 2-op FM, 6-op FM (DX7 patches), granular formant,
+ * waveshaping, virtual analog (two oscillators) and swarm (8 sawtooths). Add new ones at the end. */
+enum { WV_CLASSIC, WV_FM, WV_SIXOP, WV_GRAIN, WV_SHAPE, WV_VA, WV_SWARM, WV_NENGINE };
+#define WV_DX_NPATCH 96                 /* 6-op: Plaits' three banks of 32 */
 enum { WV_SLOPE_12, WV_SLOPE_24 };      /* VA-VCF's filter: 12 dB/oct (LP) or 24 dB/oct (LP>LP) */
 
 void wv_init(void);
 void wv_engine(uint32_t id);
 float wv_fm_ratio(float harmonics);    /* the FM engine's modulator ratio for a HARMONICS value */
+void wv_dx_patch(uint32_t patch);      /* 6-op: the patch, 0..95 */
+void wv_dx_name(uint32_t patch, char *name);   /* ...its name, as the DX7 has it (11 bytes) */
 void wv_slope(uint32_t slope);
 void wv_env(float attack_s, float release_s);  /* the gate envelope: rise time, fall to -40 dB */
 /* frames stereo frames, 24-bit in int32, the same signal on L and R */

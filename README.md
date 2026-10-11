@@ -6,7 +6,7 @@ It runs in the browser first, as the firmware's own C code compiled to WebAssemb
 FM-1 itself.
 
 > **Status: in development (0.0.x).** It plays: notes, breath, bite and glide from any windsynth
-> drive a Plaits voice (Classic or FM), with 64 presets, a reverb and a delay, in the browser and on
+> drive a Plaits voice (seven engines), with 64 presets, a reverb and a delay, in the browser and on
 > the FM-1. Nothing is released yet. The plan is in [docs/PLAN.md](docs/PLAN.md).
 
 ![Full breath on A3](docs/img/wind_voice.png) ![The Breath page](docs/img/wind_breath.png) ![Mod 1: breath to cutoff](docs/img/wind_mod.png)
@@ -34,17 +34,34 @@ step through every page.
 
 | Button | Page | Knobs |
 | --- | --- | --- |
-| HOME | Voice | Cutoff, Resonance, Morph (Classic: the waveform, a saw up to 25, a square at 50, then a pulse that narrows and widens again, with a sub-octave below 20 and above 80; FM: the feedback, none at 50), Slope (12 or 24 dB) |
-| HOME again | Engine | Engine (Classic or FM; also the ALGORITHM knob), Ratio (FM's modulator, 0.5 to 16 times the note), Index (how much FM) |
+| HOME | Voice | Cutoff, Resonance, Morph (named for what it does on the engine; Classic: the waveform, a saw up to 25, a square at 50, then a pulse that narrows and widens again, with a sub-octave below 20 and above 80; FM: the feedback, none at 50), Slope (12 or 24 dB) |
+| HOME again | Engine | Engine (also the ALGORITHM knob), then the engine's two own knobs (Classic has none). See the engines below. |
 | ENV | Breath | Source (a CC, or aftertouch), Curve, Attack, Release |
 | LFO | Pitch | Bend range, Glide source, Glide time, Glide mode (always or legato) |
 | LFO again | Pitch 2 | CC depth: the glide time the glide CC reaches at full (400 ms by default, up to 2 s) |
-| SEL | Mod 1–4 (press again for the next) | Source (breath, bite, mod wheel, pressure, velocity), Destination (cutoff, resonance, amp, morph, timbre: FM's index), Amount (−100 to +100) |
+| SEL | Mod 1–4 (press again for the next) | Source (breath, bite, mod wheel, pressure, velocity), Destination (cutoff, resonance, amp, morph, timbre: the Engine page's second knob, FM's Index), Amount (−100 to +100) |
 | SEQ | Keys | Key breath, Octave |
 | GLO | Setup | Transpose, Tune, MIDI channel (Omni by default), Theme (Light or Dark); the version |
 | FX | Reverb | Type (Cloud, Hall, Plate, Room, Shimmer), Mix, Decay (0.2 s to 60 s), Tone |
 | FX again | Reverb 2 | Pre-delay (up to 500 ms), Size, Mod (how much the reverb moves; on Shimmer, Shimmer: how much of the tail climbs), Low end (the bass's decay, shorter or longer) |
 | FX again | Delay | Mode (Digital, Tape, Analog, Ping-pong), Mix, Time (20 ms to 2 s; Ping-pong to 1.1 s), Feedback |
+
+The engines are Plaits' own, played by breath. Classic has its own filter, and every other engine goes
+through one like it, so breath on cutoff works the same way on all of them. Their knobs take the
+engine's names.
+
+| Engine | Engine page | Morph (Voice page) |
+|---|---|---|
+| Classic | (none) | the waveform |
+| FM | Ratio (the modulator, 0.5 to 16 times the note), Index | Feedback |
+| 6-op | Patch (96 DX7 patches, by name; BRASS 6 BC to start), Bright (the modulators' level) | Env (the envelopes' speed; 50 as the patch has it) |
+| Formant | Ratio (between the two formants), Formant | Width |
+| Waveshape | Shape (the shaper's curve), Fold | Asym (asymmetry) |
+| VA | Detune (between the two oscillators), Square (pulse width, then sync) | Saw (triangle to saw) |
+| Swarm | Spread (pitch scatter of its 8 saws), Density | Overlap |
+
+6-op starts its envelopes at the start of each breath, not each note, so a slurred phrase stays one
+gesture.
 
 **OCT−** / **OCT+** move the panel's keys by octaves.
 
@@ -88,6 +105,7 @@ you save).
 - 0.0.7: a reverb (Cloud, Hall, Plate, Room, Shimmer) and a delay (Digital, Tape, Analog, Ping-pong).
 - 0.0.8: CC depth, the longest glide the glide CC reaches.
 - 0.0.9: Shimmer rebuilt: the tail climbs in octaves, with a Shimmer amount.
+- 0.0.10: five more Plaits engines: 6-op FM (96 DX7 patches), Formant, Waveshape, VA and Swarm.
 
 ## Building and testing
 

@@ -47,6 +47,14 @@ O2_UNITS = ["wind/wind_ctl.c", "wind/wind_matrix.c", "wind/wind_app.c", "wind/wi
 WIND_UNITS = ["src/wind/wind_voice.cc",
               "third_party/mutable/plaits/dsp/engine2/virtual_analog_vcf_engine.cc",
               "third_party/mutable/plaits/dsp/engine/fm_engine.cc",
+              "third_party/mutable/plaits/dsp/engine2/six_op_engine.cc",
+              "third_party/mutable/plaits/dsp/fm/algorithms.cc",
+              "third_party/mutable/plaits/dsp/fm/dx_units.cc",
+              "third_party/mutable/plaits/dsp/engine/grain_engine.cc",
+              "third_party/mutable/plaits/dsp/engine/waveshaping_engine.cc",
+              "third_party/mutable/plaits/dsp/engine/virtual_analog_engine.cc",
+              "third_party/mutable/plaits/dsp/engine/swarm_engine.cc",
+              "third_party/mutable/stmlib/utils/random.cc",
               "third_party/mutable/plaits/resources.cc",
               "third_party/mutable/stmlib/dsp/units.cc"]
 # (-fdata-sections: --gc-sections keeps only the Plaits tables an engine reads, not all of resources.cc)

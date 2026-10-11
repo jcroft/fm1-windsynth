@@ -23,7 +23,8 @@
  *                                (WHAT: view dirty store_writes preset edited parN gate top (the note sounding)
  *                                 note (x100) breath cutoff res amp morph timbre level (x100) litkeys (bits)
  *                                 lumaY (brightness 0..255 of the screen at x 2, row Y: the theme)
- *                                 peak_db_max peak_db_min)
+ *                                 peak_db_max peak_db_min; text, "_" a space: msg0 msg1 (the message's
+ *                                 lines) knob1..knob4 (a knob's name on this page, "-" none))
  *   reboot                       re-run boot from the simulated flash (persistence test)
  *   oldproject F                 rewrite the saved project as format F saved it (its values, then its preset)
  */
@@ -345,6 +346,26 @@ static int key_of(const char *s) { return atoi(s) % NKEYS; }
 static int expect(const char *what, const char *val)
 {
     int got;
+    if (!strncmp(what, "msg", 3) || !strncmp(what, "knob", 4)) {   /* text, "_" for a space */
+        char want[64];                            /* msg0, msg1: the message's lines; knobN: knob N's name */
+        const char *s;
+        int i, k;
+        for (i = 0; val[i] && i < 63; i++)
+            want[i] = val[i] == '_' ? ' ' : val[i];
+        want[i] = 0;
+        if (what[0] == 'm') {
+            s = ui.msg[atoi(what + 3) & 1];
+        } else {
+            k = knob_of((atoi(what + 4) - 1) & 3);
+            s = k == K_NONE ? "-" : wa_param_name(k);
+        }
+        if (strcmp(s, want)) {
+            printf("FAIL expect %s \"%s\", got \"%s\"\n", what, want, s);
+            return 1;
+        }
+        printf("  ok %s \"%s\"\n", what, s);
+        return 0;
+    }
     if (!strcmp(what, "view"))
         got = ui.view;
     else if (!strcmp(what, "dirty"))

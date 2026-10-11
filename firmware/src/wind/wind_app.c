@@ -24,9 +24,35 @@ static const wa_param_t PARAMS[P_NPARAMS] = {
     {"Mode", 0, WF_DL_NMODE - 1, WF_DL_DIGITAL}, {"Mix", 0, 100, 0}, {"Time", 20, WF_TIME_MAX_MS, 350},
     {"Feedback", 0, 100, 35}, {"CC depth", 0, 2000, 400},
     {"Shimmer", 0, 100, 50},
+    {"Patch", 0, WV_DX_NPATCH - 1, 94},    /* 6-op: BRASS 6 BC (bank 3), one that holds while you blow */
 };
 
 const wa_param_t *wa_param_info(int i) { return &PARAMS[(unsigned)i < P_NPARAMS ? i : 0]; }
+
+const char *const WA_ENGINE_NAME[WV_NENGINE] = {"Classic", "FM", "6-op", "Formant", "Waveshape", "VA", "Swarm"};
+static int engine;                     /* the engine playing: its knobs' names */
+
+/* What HARMONICS (Ratio), TIMBRE (Index) and MORPH do on each engine, after Plaits' manual. Classic has
+ * no Ratio or Index (the Engine page hides them). */
+static const char *const ENGINE_KNOB[WV_NENGINE][3] = {
+    {"Ratio", "Index", "Morph"},          /* Classic */
+    {"Ratio", "Index", "Feedback"},       /* FM: the modulator's ratio, the FM index, feedback */
+    {"Patch", "Bright", "Env"},           /* 6-op: the modulators' level, the envelopes' time */
+    {"Ratio", "Formant", "Width"},        /* granular formant: the two formants' ratio, the first, their width */
+    {"Shape", "Fold", "Asym"},            /* waveshaping: the shaper's curve, the folder, the asymmetry */
+    {"Detune", "Square", "Saw"},          /* virtual analog: the two oscillators' detune and shapes */
+    {"Spread", "Density", "Overlap"},     /* swarm: pitch randomness, grain density and duration */
+};
+
+const char *wa_param_name(int i)
+{
+    switch (i) {
+    case P_RATIO: return ENGINE_KNOB[engine][0];
+    case P_INDEX: return ENGINE_KNOB[engine][1];
+    case P_MORPH: return ENGINE_KNOB[engine][2];
+    default: return wa_param_info(i)->name;
+    }
+}
 
 /* the controller's and the room's settings: breath source and curve, the glide CC, the panel keys and
  * Setup. A preset is the rest, the sound. */
@@ -147,16 +173,20 @@ void wa_param_text(int i, int v, char *b)
             put_u(b, (uint32_t)v);
         return;
     case P_THEME: copy_s(b, v ? "Dark" : "Light"); return;
-    case P_ENGINE: copy_s(b, v == WV_FM ? "FM" : "Classic"); return;
-    case P_RATIO: {                                      /* the modulator's ratio: "1.00", "3.50" */
-        uint32_t r = (uint32_t)(wv_fm_ratio((float)v * 0.01f) * 100.0f + 0.5f);
-        b = put_u(b, r / 100u);
-        *b++ = '.';
-        *b++ = (char)('0' + r / 10u % 10u);
-        *b++ = (char)('0' + r % 10u);
-        *b = 0;
+    case P_ENGINE: copy_s(b, WA_ENGINE_NAME[(unsigned)v < WV_NENGINE ? v : 0]); return;
+    case P_DXPATCH: wv_dx_name((uint32_t)v, b); return;
+    case P_RATIO:                                        /* FM's: the modulator's ratio, "1.00", "3.50" */
+        if (engine == WV_FM) {                                      /* the modulator's ratio: "1.00", "3.50" */
+            uint32_t r = (uint32_t)(wv_fm_ratio((float)v * 0.01f) * 100.0f + 0.5f);
+            b = put_u(b, r / 100u);
+            *b++ = '.';
+            *b++ = (char)('0' + r / 10u % 10u);
+            *b++ = (char)('0' + r % 10u);
+            *b = 0;
+        } else {
+            put_u(b, (uint32_t)v);
+        }
         return;
-    }
     default: put_i(b, v, 0); return;
     }
 }
@@ -214,7 +244,11 @@ void wa_set(int k, int v)
     case P_MORPH: base[WM_DST_MORPH] = (float)v * 0.01f; break;
     case P_INDEX: base[WM_DST_TIMBRE] = (float)v * 0.01f; break;
     case P_RATIO: ratio = (float)v * 0.01f; break;
-    case P_ENGINE: wv_engine((uint32_t)v); break;
+    case P_ENGINE:
+        engine = (unsigned)v < WV_NENGINE ? v : WV_CLASSIC;
+        wv_engine((uint32_t)engine);
+        break;
+    case P_DXPATCH: wv_dx_patch((uint32_t)v); break;
     case P_RVTYPE: wf_cfg.rv_type = (uint8_t)v; break;
     case P_RVMIX: wf_cfg.rv_mix = (float)v * 0.01f; break;
     case P_RVDECAY: wf_cfg.rv_decay = (float)v * 0.01f; break;

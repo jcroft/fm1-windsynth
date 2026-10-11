@@ -171,7 +171,7 @@ kbd { font: 600 .85em ui-monospace, Menlo, monospace; background: var(--card); b
   <div>
     <h2>Pages</h2>
     <ul>
-      <li><b>HOME</b> Voice: cutoff, resonance, morph (Classic's waveform, FM's feedback), filter slope. Press again for Engine: Classic or FM (or turn <b>ALGORITHM</b>), FM's ratio and index.</li>
+      <li><b>HOME</b> Voice: cutoff, resonance, morph (Classic's waveform, FM's feedback), filter slope. Press again for Engine: Classic, FM, 6-op, Formant, Waveshape, VA or Swarm (or turn <b>ALGORITHM</b>), and the engine's own two knobs, named for what they do (6-op's first picks one of 96 DX7 patches).</li>
       <li><b>ENV</b> Breath: source, curve, attack, release.</li>
       <li><b>LFO</b> Pitch: bend range, glide source, glide time, glide always or legato only. Again for Pitch 2: CC depth, the longest glide the glide CC reaches (400 ms by default, up to 2 s).</li>
       <li><b>SEL</b> Mod 1&ndash;4 (press again for the next): source (breath, bite, mod wheel, pressure, velocity), destination (cutoff, resonance, amp, morph, timbre: FM's index), amount. Mod 1 is Breath → Cutoff.</li>
@@ -295,7 +295,7 @@ function hit(c, cls) {
 const TIP = { FX: "Reverb, Reverb 2, then Delay", SEL: "Mod 1 to 4: source, destination, amount", ENV: "Breath page: source, curve, attack, release",
   LFO: "Pitch page: bend range, glide; again: CC depth", EDIT: "Every page in turn", GLO: "Setup page: transpose, tune, MIDI channel, theme",
   HOME: "Voice page: cutoff, resonance, morph, slope; again: Engine", SAVE: "Save the sound to a preset (hold: the init sound)", SEQ: "Keys page: key breath, octave",
-  "OCT-": "Octave down (the panel's keys)", "OCT+": "Octave up (the panel's keys)", SELECT: "Page", ALGORITHM: "Engine: Classic or FM", PRESETS: "Preset (1 to 64)", MASTER: "Volume" };
+  "OCT-": "Octave down (the panel's keys)", "OCT+": "Octave up (the panel's keys)", SELECT: "Page", ALGORITHM: "Engine: Classic, FM, 6-op, Formant, Waveshape, VA, Swarm", PRESETS: "Preset (1 to 64)", MASTER: "Volume" };
 for (const [n, c] of [...Object.entries(buttons), ...Object.entries(knobs)]) if (TIP[n]) c.g.setAttribute("aria-description", TIP[n]);
 for (const k of Object.values(knobs)) hit(k, "knob");
 for (const b of Object.values(buttons)) hit(b);
