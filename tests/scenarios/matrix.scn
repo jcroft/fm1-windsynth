@@ -2,7 +2,7 @@
 wait 200
 tap SEL
 tap SEL
-expect view 5
+expect view 6
 spin K1 1
 spin K2 2
 expect par15 1

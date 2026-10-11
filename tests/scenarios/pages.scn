@@ -12,29 +12,33 @@ shot breath_page.png
 tap LFO
 expect view 3
 shot pitch_page.png
-tap SEL
+tap LFO
 expect view 4
-shot mod1_page.png
+wait 50
+shot pitch2_page.png
 tap SEL
 expect view 5
+shot mod1_page.png
+tap SEL
+expect view 6
 tap SEL
 tap SEL
-expect view 7
-tap SEL
-expect view 4
-tap SEQ
 expect view 8
-tap GLO
+tap SEL
+expect view 5
+tap SEQ
 expect view 9
+tap GLO
+expect view 10
 shot setup_page.png
 tap EDIT
-expect view 10
-tap FX
 expect view 11
 tap FX
 expect view 12
 tap FX
-expect view 10
+expect view 13
+tap FX
+expect view 11
 tap FX
 tap FX
 tap EDIT
@@ -42,6 +46,6 @@ expect view 0
 turn SELECT 3
 expect view 3
 turn SELECT -4
-expect view 12
+expect view 13
 tap HOME
 expect view 0

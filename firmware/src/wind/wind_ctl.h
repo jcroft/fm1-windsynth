@@ -25,6 +25,7 @@ typedef struct {
     uint8_t bend_range;                /* semitones each way */
     uint8_t glide_src;                 /* CC 0..127, or WC_SRC_OFF */
     uint8_t glide;                     /* glide time 0..100 (0: none, 100: 2 s) */
+    uint8_t glide_depth;               /* the glide time the glide CC reaches at 127 (0..100) */
     uint8_t glide_always;              /* 0: legato notes only */
     int8_t transpose;                  /* semitones */
     int16_t tune;                      /* cents */

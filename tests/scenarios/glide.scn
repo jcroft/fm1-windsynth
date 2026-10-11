@@ -32,3 +32,15 @@ expect note >5300
 expect note <5500
 midi 80 3C 00
 wait 100
+# Pitch 2: CC depth, the longest glide the CC reaches; CC5 at full then gives that, not 2 s
+tap LFO
+expect view 4
+expect par45 100
+spin K1 -50
+expect par45 50
+midi B0 05 7F
+wait 40
+expect par10 50
+midi B0 05 40
+wait 40
+expect par10 25

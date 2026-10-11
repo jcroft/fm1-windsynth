@@ -4,6 +4,12 @@ A release is a push to `main` that changes `VERSION` to a version with no tag ye
 release build, tags the commit `vX.Y.Z` and publishes the GitHub Release with that version's notes,
 taken from its section below. Add the section in the same pull request as the `VERSION` change.
 
+## 0.0.8
+
+- **Glide CC depth.** Press LFO twice for Pitch 2. CC depth sets the glide time CC5 (or your glide
+  CC) reaches at full, so the whole CC range can cover, say, no glide to 200 ms. It's 2 s by default,
+  as before, and it's your rig's setting, so presets don't change it.
+
 ## 0.0.7
 
 - **Reverb and delay**, on the new FX pages (press FX, then again for more). Both are stereo, the
