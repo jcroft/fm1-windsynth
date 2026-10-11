@@ -12,5 +12,5 @@ mkdir -p build/gen build/host
 WIND=$(sh tools/wind_cxx.sh "${CXX:-c++}" build/host/wind)
 $CC -O2 -ffp-contract=off -std=c99 -Wall -Wextra -Wno-unused-function -Wno-unused-parameter \
     -DOM_HOST -Ifirmware/src -Ibuild/gen -o build/host/windsynth_host host/windsynth_host.c \
-    firmware/src/wind/wind_ctl.c firmware/src/wind/wind_matrix.c firmware/src/wind/wind_app.c $WIND -lm
+    firmware/src/wind/wind_ctl.c firmware/src/wind/wind_matrix.c firmware/src/wind/wind_app.c firmware/src/wind/wind_fx.c $WIND -lm
 echo "host: build/host/windsynth_host"

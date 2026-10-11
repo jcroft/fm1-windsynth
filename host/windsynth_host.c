@@ -25,6 +25,7 @@
  *                                 lumaY (brightness 0..255 of the screen at x 2, row Y: the theme)
  *                                 peak_db_max peak_db_min)
  *   reboot                       re-run boot from the simulated flash (persistence test)
+ *   oldproject F                 rewrite the saved project as format F saved it (its values, then its preset)
  */
 #define OM_HOST 1
 #ifndef _POSIX_C_SOURCE
@@ -522,6 +523,17 @@ int main(int argc, char **argv)
         else if (!strcmp(cmd, "reboot")) {
             memset(&proj, 0, sizeof proj);
             boot();
+        } else if (!strcmp(cmd, "oldproject")) {   /* the layout an older version wrote: fewer values */
+            int f = atoi(a), n = PROJ_NPAR_OF((uint32_t)f);
+            project_t old = proj;
+            uint8_t *o = store[OBJ_PROJ];
+            memset(o, 0, PLAT_STORE_MAX);
+            memcpy(o, &old.magic, 4);
+            memcpy(o + 4, &f, 4);
+            memcpy(o + 8, old.par, (size_t)n * 2u);
+            o[8 + 2 * n] = old.preset;
+            store_len[OBJ_PROJ] = 8 + 2 * n + 32;
+            store_have[OBJ_PROJ] = 1;
         } else if (!strcmp(cmd, "echo"))
             printf("%s", line + 5);
         else {

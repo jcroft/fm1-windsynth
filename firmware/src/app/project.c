@@ -17,11 +17,13 @@ void project_defaults(void)
  * project has no room for, or one whose range has changed) takes its default; the rest are kept. */
 static int project_valid(int bytes)
 {
-    int i, have = (bytes - 8) / 2;               /* the values the saved project holds */
+    int i, have = (bytes - 8) / 2, at;           /* the values the saved project holds */
     if (proj.magic != PROJ_MAGIC || proj.format < 1u || proj.format > PROJ_FORMAT)
         return 0;
     if (have > PROJ_NPAR_OF(proj.format))        /* (its spare bytes, zeros, are not settings) */
         have = PROJ_NPAR_OF(proj.format);
+    at = 8 + 2 * PROJ_NPAR_OF(proj.format);      /* the preset follows its format's values */
+    proj.preset = at < bytes ? ((const uint8_t *)&proj)[at] : 0u;
     proj.format = PROJ_FORMAT;
     if (proj.preset >= NPRESETS)
         proj.preset = 0;

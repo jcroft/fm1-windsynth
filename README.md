@@ -6,8 +6,8 @@ It runs in the browser first, as the firmware's own C code compiled to WebAssemb
 FM-1 itself.
 
 > **Status: in development (0.0.x).** It plays: notes, breath, bite and glide from any windsynth
-> drive one Plaits voice (the VA-VCF engine), in the browser and on the FM-1. More engines and
-> presets come next. Nothing is released yet. The plan is in [docs/PLAN.md](docs/PLAN.md).
+> drive a Plaits voice (Classic or FM), with 64 presets, a reverb and a delay, in the browser and on
+> the FM-1. Nothing is released yet. The plan is in [docs/PLAN.md](docs/PLAN.md).
 
 ![Full breath on A3](docs/img/wind_voice.png) ![The Breath page](docs/img/wind_breath.png) ![Mod 1: breath to cutoff](docs/img/wind_mod.png)
 
@@ -41,8 +41,25 @@ step through every page.
 | SEL | Mod 1–4 (press again for the next) | Source (breath, bite, mod wheel, pressure, velocity), Destination (cutoff, resonance, amp, morph, timbre: FM's index), Amount (−100 to +100) |
 | SEQ | Keys | Key breath, Octave |
 | GLO | Setup | Transpose, Tune, MIDI channel (Omni by default), Theme (Light or Dark); the version |
+| FX | Reverb | Type (Cloud, Hall, Plate, Room, Shimmer), Mix, Decay (0.2 s to 60 s), Tone |
+| FX again | Reverb 2 | Pre-delay (up to 500 ms), Size, Mod (how much the reverb moves), Low end (the bass's decay, shorter or longer) |
+| FX again | Delay | Mode (Digital, Tape, Analog, Ping-pong), Mix, Time (20 ms to 2 s; Ping-pong to 1.1 s), Feedback |
 
 **OCT−** / **OCT+** move the panel's keys by octaves.
+
+## Effects
+
+The delay feeds the reverb, and both are stereo out. Mix works the same on each: at 0 the effect is
+off, at 50 you hear the dry sound and the effect at full level, and at 100 only the effect. Both start
+at 0, so the init sound is dry, and a preset keeps its effects.
+
+The reverb is one tank with five voicings. **Cloud** is the big ambient one, after Strymon's BigSky
+Cloud: a long chain of moving diffusers in front of a large loop, so notes bloom rather than echo.
+**Hall**, **Plate** and **Room** are smaller and plainer, and **Shimmer** is Cloud with an octave-up
+pitch shifter in the loop. Decay shows the reverb time. The delay's **Tape** mode wobbles and darkens
+its repeats, **Analog** is darker still, and **Ping-pong** echoes left at Time and right at twice it.
+Time changes glide, like a tape echo. Feedback at 100 repeats for ever, saturating instead of
+growing.
 
 ## Presets
 
@@ -66,6 +83,7 @@ you save).
 - 0.0.4: the init sound is a single saw with breath on the cutoff only.
 - 0.0.5: 64 presets, picked with PRESETS and saved with SAVE.
 - 0.0.6: a second engine, Plaits' 2-op FM, through the same filter so breath works the same way.
+- 0.0.7: a reverb (Cloud, Hall, Plate, Room, Shimmer) and a delay (Digital, Tape, Analog, Ping-pong).
 
 ## Building and testing
 
