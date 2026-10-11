@@ -4,6 +4,19 @@ A release is a push to `main` that changes `VERSION` to a version with no tag ye
 release build, tags the commit `vX.Y.Z` and publishes the GitHub Release with that version's notes,
 taken from its section below. Add the section in the same pull request as the `VERSION` change.
 
+## 0.0.3
+
+- **It plays.** Blow your windsynth into it (USB or the MIDI jack, any channel by default): breath on
+  CC2 opens the filter, the bite bends ±2 semitones, CC5 sets the glide time. Overlapping notes play
+  legato, last note wins. Breath can come from aftertouch or any CC instead, with a curve.
+- **Four Mod slots** send breath, bite, the mod wheel, pressure or velocity to cutoff, resonance, amp
+  or morph. Mod 1 is Breath → Cutoff.
+- **New pages and screen:** Voice, Breath, Pitch, Mod 1–4, Keys and Setup; the screen shows the note,
+  the bite and bars for breath, cutoff and output. The FM-1's keys play too.
+- **The kalimba is gone**, and a saved FiMba project no longer loads (you start from the defaults).
+- **In the browser:** pick which MIDI input plays, drag a Breath slider if you have no windsynth at
+  hand, and watch what the instrument hears and does under the panel.
+
 ## 0.0.2
 
 - **Plaits is inside.** The wind voice is built: Plaits' "Classic" engine (VA-VCF) with its filter,

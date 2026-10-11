@@ -1,0 +1,30 @@
+# A change saves itself when quiet (4 s after it), and comes back after a reboot
+wait 200
+spin K1 30
+expect par0 45
+expect dirty 1
+expect store_writes 0
+wait 2000
+expect store_writes 0
+wait 3000
+expect store_writes 1
+expect dirty 0
+reboot
+wait 200
+expect par0 45
+# not while a note sounds
+spin K2 10
+midi 90 3C 64
+midi B0 02 7F
+wait 6000
+expect store_writes 1
+midi 80 3C 00
+wait 5000
+expect store_writes 2
+# SAVE held: reset to the defaults (SAVE again to confirm)
+press SAVE
+wait 1600
+release SAVE
+tap SAVE
+expect par0 15
+expect par1 20

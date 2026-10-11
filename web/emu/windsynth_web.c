@@ -1,16 +1,16 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
-/* Windsynth in the browser (FoMni's emulator, from X0X's): the host simulator (host/kalimba_host.c: the whole app, UI and instrument,
+/* Windsynth in the browser (FoMni's emulator, from X0X's): the host simulator (host/windsynth_host.c: the whole app, UI and instrument,
  * against a simulated FM-1) compiled to WebAssembly and run in an AudioWorklet. The worklet asks
  * for audio; producing it advances the device's clock one millisecond at a time, which runs the
  * engine every 256 samples (the I2S half buffer) and the UI every 16 ms, as on the FM-1. The page
  * sends input (and MIDI from Web MIDI), and reads the screen, the lights and the saved objects back
  * through these exports.
  *
- *   web/emu/build.sh   ->  build/emu/kalimba.wasm (+ the page) */
+ *   web/emu/build.sh   ->  build/emu/windsynth.wasm (+ the page) */
 #include <stdint.h>
 
 static void web_audio(const int32_t *blk, uint32_t n);
-#include "../../host/kalimba_host.c"
+#include "../../host/windsynth_host.c"
 
 #undef __attribute__
 
@@ -83,3 +83,22 @@ __attribute__((used, visibility("default"))) void web_store_set_len(uint32_t obj
 __attribute__((used, visibility("default"))) uint32_t web_store_writes(void) { return store_writes; }
 __attribute__((used, visibility("default"))) uint32_t web_nobj(void) { return OBJ_NOBJ; }
 __attribute__((used, visibility("default"))) uint32_t web_store_max(void) { return PLAT_STORE_MAX; }
+
+/* the instrument's state for the page's monitor: note, gate, breath, bend, cutoff, res, amp, morph,
+ * level, the sounding note (-1 none) and the MIDI packets received */
+static float state[11];
+__attribute__((used, visibility("default"))) float *web_state(void)
+{
+    state[0] = wa_state.note;
+    state[1] = wa_state.gate;
+    state[2] = wa_state.breath;
+    state[3] = wa_state.bend;
+    state[4] = wa_state.cutoff;
+    state[5] = wa_state.res;
+    state[6] = wa_state.amp;
+    state[7] = wa_state.morph;
+    state[8] = wa_state.level;
+    state[9] = (float)wa_state.top;
+    state[10] = (float)wa_state.midi_seen;
+    return state;
+}

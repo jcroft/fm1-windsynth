@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Windsynth in an AudioWorklet: kalimba.wasm is the whole FM-1 app (web/emu/kalimba_web.c). Each render
+// Windsynth in an AudioWorklet: windsynth.wasm is the whole FM-1 app (web/emu/windsynth_web.c). Each render
 // quantum asks it for 128 frames, which runs the device's clock forward; between quanta the page's
-// input goes in and, about 30 times a second, the screen, the lights and any saved objects go out.
+// input goes in and, about 30 times a second, the screen, the lights, the instrument's state (for the
+// page's monitor) and any saved objects go out.
 
 const clock = globalThis.performance ? () => globalThis.performance.now() : () => Date.now();
 
-class Kalimba extends AudioWorkletProcessor {
+class Windsynth extends AudioWorkletProcessor {
   constructor() {
     super();
     this.ex = null;
@@ -63,7 +64,8 @@ class Kalimba extends AudioWorkletProcessor {
   publish() {
     const ex = this.ex;
     const blits = ex.web_blits();
-    const msg = { type: "frame", buttons: ex.web_lit_buttons() >>> 0, keys: ex.web_lit_keys() >>> 0, dim: ex.web_dim_keys() >>> 0 };
+    const msg = { type: "frame", buttons: ex.web_lit_buttons() >>> 0, keys: ex.web_lit_keys() >>> 0, dim: ex.web_dim_keys() >>> 0,
+                  state: new Float32Array(this.mem.buffer, ex.web_state(), 11).slice() };
     if (this.frames >= 44100) {                       // the share of real time spent running the device
       msg.load = Math.round(100 * this.busy / (this.frames / 44.1));
       this.busy = this.frames = 0;
@@ -104,4 +106,4 @@ class Kalimba extends AudioWorkletProcessor {
   }
 }
 
-registerProcessor("kalimba", Kalimba);
+registerProcessor("windsynth", Windsynth);

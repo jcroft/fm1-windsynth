@@ -1,34 +1,30 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
-/* Windsynth on the host: the whole app (UI, project, engine) against a simulated FM-1 driven by a script.
- * Audio goes to a WAV, the screen to PNGs, the lights to text, MIDI out to a log. The device-only
- * parts (HAL, USB, OTA, flash driver) are replaced by plat.h implemented here. (From FoMni's omni_host,
- * itself from X0X's x0x_host.)
+/* Windsynth on the host: the whole app (UI, project, instrument) against a simulated FM-1 driven by a script.
+ * Audio goes to a WAV, the screen to PNGs, the lights to text. The device-only parts (HAL, USB, OTA,
+ * flash driver) are replaced by plat.h implemented here. (From FiMba's kalimba_host, FoMni's omni_host
+ * and X0X's x0x_host.)
  *
- *   kalimba_host SCRIPT [OUTDIR]
+ *   windsynth_host SCRIPT [OUTDIR]
  *
  * Script, one command per line (# comments):
  *   wait MS                      run the device for MS milliseconds
  *   press BTN | release BTN | tap BTN     (BTN: FX SEL ENV LFO EDIT GLO HOME SAVE ARP SEQ PLAY REC OCT- OCT+)
- *   key K down|up | tapkey K     (K: 0..26 = F3..G5, or w0..w15 white keys, b0..b10 black keys)
- *   strum A B [MS]               white keys A..B pressed in turn (down then up), MS apart (default 25)
- *   (the keys are not velocity sensitive: a key plucks at 100)
+ *   key K down|up | tapkey K     (K: 0..26 = F3..G5)
  *   turn ENC N [MS]              (ENC: SELECT ALGO PRESET K1 K2 K3 K4; N detents, MS apart, default 80)
  *   spin ENC N                   N detents at once, exactly N (no acceleration)
  *   master N                     MASTER pot 0..4096
  *   midi B0 B1 B2                incoming USB MIDI message (hex bytes)
+ *   breath FROM TO MS [CC]       a breath swell: CC (default 2, hex) from FROM to TO (0..127) over MS
  *   wav FILE | wavstop           start / stop recording the output
  *   peakreset                    restart the output peak (expect peak_db_min / peak_db_max)
  *   shot FILE.png                save the screen
  *   leds                         print the lit buttons and keys
  *   expect WHAT VALUE            check state: exit 1 on mismatch; VALUE "<N" / ">N" is a bound
- *                                (WHAT: view dirty frozen store_writes midi_out voices grains hole octshift
- *                                 dropped pat pool pulse ext parN whiteW (cents of white key W) keyK (cents of key K, Keyboard
- *                                 layout) tineC (level x100 of the tine at
- *                                 C cents) lumaY (brightness 0..255 of the screen at x 2, row Y: the theme)
- *                                 dimkey (the key whose LED is dim, -1 none) litkeys (bits)
+ *                                (WHAT: view dirty store_writes parN gate top (the note sounding)
+ *                                 note (x100) breath cutoff res amp morph level (x100) litkeys (bits)
+ *                                 lumaY (brightness 0..255 of the screen at x 2, row Y: the theme)
  *                                 peak_db_max peak_db_min)
  *   reboot                       re-run boot from the simulated flash (persistence test)
- *   oldproject                   put a format 1 project (Material 2) in the simulated flash
  */
 #define OM_HOST 1
 #ifndef _POSIX_C_SOURCE
@@ -144,6 +140,7 @@ uint32_t plat_xruns(void) { return 0; }
 #include "../firmware/src/app/app.h"
 #include "../firmware/src/app/project.c"
 #include "../firmware/src/app/ui.c"
+#include "../firmware/src/wind/wind_voice.h"
 
 /* ---------------------------------------------------------- outputs --- */
 static void png_write(const char *path)
@@ -254,7 +251,7 @@ static void wav_close(void)
     fwrite(&v, 4, 1, wav);
     {
         uint16_t fmt[2] = {1, 2};
-        uint32_t r[2] = {44100, 44100 * 4};
+        uint32_t r[2] = {44118, 44118 * 4};
         uint16_t al[2] = {4, 16};
         fwrite(fmt, 2, 2, wav);
         fwrite(r, 4, 2, wav);
@@ -278,7 +275,7 @@ static double now_ns(void)
 
 static void boot(void)
 {
-    km_init();
+    wa_init();
     project_load();
     project_apply();
     lcd_fill(0, 0, 240, 240, 0);
@@ -293,14 +290,14 @@ static void run_ms(uint32_t ms)
         now_ms++;
         while (audio_due_ms <= (double)now_ms) {      /* 256-frame blocks, as the device renders them */
             double t0 = now_ns(), dt;
-            km_render(blk, 256, master);
+            wa_render(blk, 256, master, plat_midi_in);
 #ifdef OM_WEB
             web_audio(blk, 256);
 #endif
             dt = now_ns() - t0;
             render_ns_total += dt;
-            render_budget_ns_total += 256.0 * 1e9 / 44100.0;
-            cpu_pct = (uint32_t)(100.0 * dt / (256.0 * 1e9 / 44100.0));
+            render_budget_ns_total += 256.0 * 1e9 / WV_SR;
+            cpu_pct = (uint32_t)(100.0 * dt / (256.0 * 1e9 / WV_SR));
             for (k = 0; k < 256; k++) {
                 float l = (float)blk[2 * k] / 8388608.0f, r = (float)blk[2 * k + 1] / 8388608.0f;
                 int16_t s[2];
@@ -315,7 +312,7 @@ static void run_ms(uint32_t ms)
                     wav_frames++;
                 }
             }
-            audio_due_ms += 256.0 * 1000.0 / 44100.0;
+            audio_due_ms += 256.0 * 1000.0 / WV_SR;
         }
         if (now_ms >= ui_due) {
             ui_due = now_ms + 16;
@@ -340,24 +337,7 @@ static int find_name(const char *const *t, int n, const char *s)
     return -1;
 }
 
-static int key_of(const char *s)
-{
-    if (s[0] == 'w')
-        return WHITE_K[atoi(s + 1) & 15];
-    if (s[0] == 'b')
-        return BLACK_K[atoi(s + 1) % 11];
-    return atoi(s);
-}
-
-static int tine(int cents)
-{
-    int v;
-    float l = 0.0f;
-    for (v = 0; v < KM_NVOICE; v++)
-        if (km_voice_cents[v] == cents && km_voice_level[v] > l)
-            l = km_voice_level[v];
-    return (int)(l * 100.0f);
-}
+static int key_of(const char *s) { return atoi(s) % NKEYS; }
 
 static int expect(const char *what, const char *val)
 {
@@ -366,46 +346,29 @@ static int expect(const char *what, const char *val)
         got = ui.view;
     else if (!strcmp(what, "dirty"))
         got = ui.dirty;
-    else if (!strcmp(what, "frozen"))
-        got = ui.frozen + 2 * km_frozen;           /* 3: the UI and the engine agree it is frozen */
     else if (!strcmp(what, "store_writes"))
         got = (int)store_writes;
-    else if (!strcmp(what, "midi_out"))
-        got = (int)midi_out_count;
-    else if (!strcmp(what, "voices")) {
-        int v;
-        for (got = 0, v = 0; v < KM_NVOICE; v++)
-            got += km_voice_cents[v] >= 0;
-    } else if (!strcmp(what, "grains"))
-        got = km_grains_on;
-    else if (!strcmp(what, "hole"))
-        got = (int)(km_hole_open * 100.0f + 0.5f);
-    else if (!strcmp(what, "octshift"))
-        got = ui.oct_shift;
-    else if (!strcmp(what, "dropped"))
-        got = (int)km_dropped;
-    else if (!strcmp(what, "pat"))                /* the pattern: 3 = the UI and the engine agree it runs */
-        got = ui.pat_on + 2 * km_pat_on;
-    else if (!strcmp(what, "pool"))
-        got = ui.pool_n;
-    else if (!strcmp(what, "pulse"))
-        got = km_pat_pulse;
-    else if (!strcmp(what, "ext"))
-        got = km_ext;
-    else if (!strncmp(what, "par", 3))            /* parN: parameter N (kalimba.h P_*) */
+    else if (!strncmp(what, "par", 3))            /* parN: parameter N (wind_app.h P_*) */
         got = proj.par[atoi(what + 3)];
-    else if (!strncmp(what, "white", 5))          /* whiteW: the cents white key W plays now */
-        got = white_cents(atoi(what + 5));
-    else if (!strncmp(what, "key", 3))            /* keyK: the cents key K plays in the Keyboard layout */
-        got = key_cents(atoi(what + 3));
-    else if (!strncmp(what, "tine", 4))           /* tineC: the level x 100 of the tine at C cents */
-        got = tine(atoi(what + 4));
-    else if (!strcmp(what, "dimkey")) {            /* the key whose LED is dim (-1: none) */
-        int q;
-        for (got = -1, q = 0; q < NKEYS; q++)
-            if (dim_keys >> q & 1u)
-                got = q;
-    } else if (!strcmp(what, "litkeys"))         /* the keys lit (bit per key) */
+    else if (!strcmp(what, "gate"))
+        got = wa_state.gate > 0.5f;
+    else if (!strcmp(what, "top"))                /* the note sounding (MIDI number), -1 none yet */
+        got = wa_state.top;
+    else if (!strcmp(what, "note"))               /* the pitch x 100: note, glide, bite, transpose, tune */
+        got = (int)(wa_state.note * 100.0f + (wa_state.note < 0.0f ? -0.5f : 0.5f));
+    else if (!strcmp(what, "breath"))             /* these x 100 */
+        got = (int)(wa_state.breath * 100.0f + 0.5f);
+    else if (!strcmp(what, "cutoff"))
+        got = (int)(wa_state.cutoff * 100.0f + 0.5f);
+    else if (!strcmp(what, "res"))
+        got = (int)(wa_state.res * 100.0f + 0.5f);
+    else if (!strcmp(what, "amp"))
+        got = (int)(wa_state.amp * 100.0f + 0.5f);
+    else if (!strcmp(what, "morph"))
+        got = (int)(wa_state.morph * 100.0f + 0.5f);
+    else if (!strcmp(what, "level"))
+        got = (int)(wa_state.level * 100.0f + 0.5f);
+    else if (!strcmp(what, "litkeys"))            /* the keys lit (bit per key) */
         got = (int)lit_keys;
     else if (!strncmp(what, "luma", 4)) {         /* lumaY: the screen's brightness at (2, Y) */
         uint16_t p = fb[(atoi(what + 4) % 240) * 240 + 2];
@@ -446,7 +409,7 @@ int main(int argc, char **argv)
     const char *dir = argc > 2 ? argv[2] : ".";
     int lineno = 0, fails = 0;
     if (argc < 2) {
-        fprintf(stderr, "usage: kalimba_host SCRIPT [OUTDIR]\n");
+        fprintf(stderr, "usage: windsynth_host SCRIPT [OUTDIR]\n");
         return 2;
     }
     sc = fopen(argv[1], "r");
@@ -458,9 +421,9 @@ int main(int argc, char **argv)
     midi_log = fopen(out, "w");
     boot();
     while (fgets(line, sizeof line, sc)) {
-        char cmd[32] = {0}, a[256] = {0}, b[64] = {0}, c[64] = {0};
+        char cmd[32] = {0}, a[256] = {0}, b[64] = {0}, c[64] = {0}, d[64] = {0};
         lineno++;
-        if (line[0] == '#' || sscanf(line, "%31s %255s %63s %63s", cmd, a, b, c) < 1)
+        if (line[0] == '#' || sscanf(line, "%31s %255s %63s %63s %63s", cmd, a, b, c, d) < 1)
             continue;
         if (!strcmp(cmd, "wait"))
             run_ms((uint32_t)atoi(a));
@@ -491,16 +454,6 @@ int main(int argc, char **argv)
                     held_keys &= ~(1u << k);
                 run_ms(2);
             }
-        } else if (!strcmp(cmd, "strum")) {          /* strum A B [MS]: a finger across the white keys */
-            int x = atoi(a), y = atoi(b), gap = c[0] ? atoi(c) : 25, s = y >= x ? 1 : -1;
-            for (;; x += s) {
-                held_keys |= 1u << WHITE_K[x & 15];
-                run_ms((uint32_t)gap);
-                held_keys &= ~(1u << WHITE_K[x & 15]);
-                if (x == y)
-                    break;
-            }
-            run_ms(2);
         } else if (!strcmp(cmd, "turn")) {
             int e = find_name(ENC_N, NE, a), n = atoi(b), s = n > 0 ? 1 : -1;
             uint32_t gap = c[0] ? (uint32_t)atoi(c) : 80u;
@@ -528,6 +481,14 @@ int main(int argc, char **argv)
             uint32_t s = (uint32_t)strtoul(a, 0, 16), d1 = (uint32_t)strtoul(b, 0, 16), d2 = (uint32_t)strtoul(c, 0, 16);
             uint32_t cin = s >= 0xF0 ? 0x0F : s >> 4;
             min_q[mi_w++ % MQ] = cin | s << 8 | d1 << 16 | d2 << 24;
+        } else if (!strcmp(cmd, "breath")) {         /* breath FROM TO MS [CC]: a swell, one CC a ms */
+            int from = atoi(a), to = atoi(b), ms = atoi(c), i;
+            uint32_t n = d[0] ? (uint32_t)strtoul(d, 0, 16) : 2u;
+            for (i = 1; i <= ms; i++) {
+                uint32_t v = (uint32_t)(from + (to - from) * i / (ms ? ms : 1));
+                min_q[mi_w++ % MQ] = 0x0Bu | 0xB0u << 8 | n << 16 | v << 24;
+                run_ms(1);
+            }
         } else if (!strcmp(cmd, "wav")) {
             snprintf(out, sizeof out, "%s/%s", dir, a);
             wav_open(out);
@@ -544,22 +505,13 @@ int main(int argc, char **argv)
             for (i = 0; i < NB; i++)
                 if (lit_btn >> i & 1u)
                     printf(" %s", BTN_N[i]);
-            printf(" | white ");
-            for (i = 0; i < 16; i++)
-                printf("%c", (lit_keys >> WHITE_K[i] & 1u) ? '#' : (dim_keys >> WHITE_K[i] & 1u) ? '+' : '.');
-            printf(" black ");
-            for (i = 0; i < 11; i++)
-                printf("%c", (lit_keys >> BLACK_K[i] & 1u) ? '#' : (dim_keys >> BLACK_K[i] & 1u) ? '+' : '.');
+            printf(" | keys ");
+            for (i = 0; i < NKEYS; i++)
+                printf("%c", (lit_keys >> i & 1u) ? '#' : '.');
             printf("\n");
         } else if (!strcmp(cmd, "expect"))
             fails += expect(a, b);
-        else if (!strcmp(cmd, "oldproject")) {   /* a format 1 project in the store, as 0.1 saved it */
-            project_defaults();
-            proj.format = 1u;
-            memset(proj.par + PROJ_NPAR_OF(1u), 0, sizeof proj.par - PROJ_NPAR_OF(1u) * sizeof proj.par[0]);
-            proj.par[P_MATERIAL] = 2;
-            plat_store_save(OBJ_PROJ, &proj, 8u + 2u * PROJ_NPAR_OF(1u) + 32u);
-        } else if (!strcmp(cmd, "reboot")) {
+        else if (!strcmp(cmd, "reboot")) {
             memset(&proj, 0, sizeof proj);
             boot();
         } else if (!strcmp(cmd, "echo"))

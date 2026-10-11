@@ -14,13 +14,16 @@ Browser first, then the device. The plan and its milestones (M0 to M5) are in `d
 ## Where things are
 
 - `firmware/src/wind/`: our code. `wind_voice.cc` and `wind_voice.h` (the C seam to the Plaits
-  engines), and `wind_ctl` and `wind_matrix` from M2. `shim/` stands in for libm and the C++ library,
-  so the C++ builds freestanding.
+  engines), `wind_ctl` (MIDI, breath, bite, glide, the note stack), `wind_matrix` (the 4 Mod slots)
+  and `wind_app` (the parameters and the audio block that ties them together). `shim/` stands in
+  for libm and the C++ library, so the C++ builds freestanding.
 - `firmware/third_party/mutable/`: Plaits and stmlib, vendored unmodified and pinned by
   `MANIFEST.sha256`. Never edit them; wrap them in `firmware/src/wind/`.
-- Inherited from the FiMba-1 fork and still in place until replaced: `firmware/src/dsp/kalimba.*`,
-  `firmware/src/app/` (UI, project and panel), `host/`, `web/emu/`, and the platform (`firmware/hal/`,
-  `usb.c`, `ota.c` and so on). Treat FiMba's docs and conventions as reference, not rules.
+- `firmware/src/app/`: the UI (`ui.c`: pages, screen, panel keys), the saved project, the device main.
+  `host/windsynth_host.c` runs the whole app from a script (`tests/scenarios/*.scn`); `web/emu/` is
+  the same compiled to WebAssembly, with the page.
+- Inherited from the FiMba-1 fork: the platform (`firmware/hal/`, `usb.c`, `ota.c` and so on). Treat
+  FiMba's docs and conventions as reference, not rules.
 
 ## Code
 

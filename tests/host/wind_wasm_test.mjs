@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // The wind voice in the browser build: the fixed sweep (wind_sweep.h) rendered by the WebAssembly
 // wind voice must match the host's render of it (wind_voice_test.c), sample for sample.
-//   node tests/host/wind_wasm_test.mjs build/emu/kalimba.wasm build/host/wind/wind_sweep.f32
+//   node tests/host/wind_wasm_test.mjs build/emu/windsynth.wasm build/host/wind/wind_sweep.f32
 import fs from "fs";
 const STEPS = 64, LEN = 960;
 const wasm = fs.readFileSync(process.argv[2]);

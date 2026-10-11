@@ -10,7 +10,7 @@ void project_defaults(void)
     proj.magic = PROJ_MAGIC;
     proj.format = PROJ_FORMAT;
     for (i = 0; i < P_NPARAMS; i++)
-        proj.par[i] = km_param_info(i)->def;
+        proj.par[i] = wa_param_info(i)->def;
 }
 
 /* A project of this format loads. Each value out of its range (a setting this version added, that an older
@@ -24,7 +24,7 @@ static int project_valid(int bytes)
         have = PROJ_NPAR_OF(proj.format);
     proj.format = PROJ_FORMAT;
     for (i = 0; i < P_NPARAMS; i++) {
-        const km_param_t *p = km_param_info(i);
+        const wa_param_t *p = wa_param_info(i);
         if (i >= have || proj.par[i] < p->lo || proj.par[i] > p->hi)
             proj.par[i] = p->def;
     }
@@ -48,5 +48,5 @@ void project_apply(void)
 {
     int i;
     for (i = 0; i < P_NPARAMS; i++)
-        km_set(i, proj.par[i]);
+        wa_set(i, proj.par[i]);
 }

@@ -1,0 +1,24 @@
+# The bite (pitch bend): +-2 semitones by default, then the range set on the Pitch page
+wait 200
+midi 90 45 64
+midi B0 02 7F
+wait 20
+expect note 6900
+midi E0 7F 7F
+wait 10
+expect note 7100
+midi E0 00 00
+wait 10
+expect note 6700
+shot bite_down.png
+midi E0 00 40
+tap LFO
+expect view 2
+spin K1 5
+expect par8 7
+midi E0 7F 7F
+wait 10
+expect note 7600
+midi E0 00 40
+midi 80 45 00
+wait 100

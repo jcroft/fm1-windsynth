@@ -12,7 +12,7 @@ import base64
 import sys
 from pathlib import Path
 
-FETCH = ('fetch("kalimba.wasm").then((r) => { if (!r.ok) throw new Error(`kalimba.wasm: ${r.status}`); '
+FETCH = ('fetch("windsynth.wasm").then((r) => { if (!r.ok) throw new Error(`windsynth.wasm: ${r.status}`); '
          'return r.arrayBuffer(); })')
 ADD = 'ac.audioWorklet.addModule("worklet.js")'
 HEAD = """<!doctype html>
@@ -26,7 +26,7 @@ HEAD = """<!doctype html>
 def main(emu, out):
     emu = Path(emu)
     page = (emu / "index.html").read_text()
-    wasm = base64.b64encode((emu / "kalimba.wasm").read_bytes()).decode()
+    wasm = base64.b64encode((emu / "windsynth.wasm").read_bytes()).decode()
     worklet = (emu / "worklet.js").read_text()
     for needle in (FETCH, ADD):
         if page.count(needle) != 1:

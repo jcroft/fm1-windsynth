@@ -1,0 +1,23 @@
+# Setup: MIDI channel 2 hears channel 2 only; Omni hears all; transpose and tune move the pitch
+wait 200
+tap GLO
+spin K3 2
+expect par28 2
+midi 90 3C 64
+wait 20
+expect gate 0
+midi 91 3C 64
+wait 20
+expect gate 1
+midi 81 3C 00
+wait 20
+expect gate 0
+spin K3 -2
+expect par28 0
+spin K1 12
+spin K2 -50
+midi 93 3C 64
+wait 20
+expect note 7150
+midi 83 3C 00
+wait 100

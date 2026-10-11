@@ -24,7 +24,7 @@ static union {
 } vcf_mem;
 static VirtualAnalogVCFEngine *vcf;
 static uint32_t slope;
-static float env, env_up, env_down;     /* the gate envelope: 5 ms up, 60 ms down */
+static float env, env_up, env_down;     /* the gate envelope: 5 ms up, 60 ms down by default */
 static float dc_x, dc_y;                /* DC blocker state */
 static float vca;                       /* the VCA gain at the end of the last block */
 
@@ -50,8 +50,13 @@ extern "C" void wv_init(void)
     vcf->Reset();
     slope = WV_SLOPE_12;
     env = vca = dc_x = dc_y = 0.0f;
-    env_up = 1.0f / (0.005f * WV_SR);
-    env_down = 1.0f - fm_expf(-1.0f / (0.060f * WV_SR / 4.6f));   /* -40 dB in 60 ms */
+    wv_env(0.005f, 0.060f);
+}
+
+extern "C" void wv_env(float attack_s, float release_s)
+{
+    env_up = 1.0f / ((attack_s > 0.0005f ? attack_s : 0.0005f) * WV_SR);
+    env_down = 1.0f - fm_expf(-4.6f / ((release_s > 0.002f ? release_s : 0.002f) * WV_SR));   /* -40 dB */
 }
 
 extern "C" void wv_engine(uint32_t id) { (void)id; }        /* one engine for now: Classic */

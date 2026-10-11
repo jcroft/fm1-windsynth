@@ -1,0 +1,25 @@
+# Mod 2: breath to Amp at 100: the level follows the breath (dynamics), not just the gate
+wait 200
+tap SEL
+tap SEL
+expect view 4
+spin K1 1
+expect par15 1
+expect par16 2
+spin K3 100
+expect par17 100
+shot mod2_amp.png
+midi 90 39 64
+midi B0 02 00
+wait 100
+expect amp 0
+expect level 0
+breath 0 127 50
+wait 30
+expect amp 100
+expect level >5
+breath 127 64 50
+wait 30
+expect amp 50
+midi 80 39 00
+wait 200

@@ -1,0 +1,8 @@
+# Setup: Theme Dark: a dark screen
+wait 200
+tap GLO
+spin K4 1
+expect par29 1
+wait 50
+expect luma100 <60
+shot dark.png
