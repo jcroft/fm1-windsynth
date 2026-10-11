@@ -1,12 +1,12 @@
 # SPDX-License-Identifier: GPL-3.0-only
-# Test FiMba-1, build the firmware and the browser version, publish them.
+# Test FM-1 Windsynth, build the firmware and the browser version, publish them.
 #
 #   pull request      the full test suite; the firmware package built and checked; both kept with the
-#                     run as downloads ("fimba-firmware", "FiMba-1-web")
+#                     run as downloads ("windsynth-firmware", "Windsynth-web")
 #   push to main      the same, then the browser version published to
-#                     https://jadamsowers.github.io/fm1-fimba/, with the latest release's firmware
+#                     https://jcroft.github.io/fm1-windsynth/, with the latest release's firmware
 #                     beside it for the page's installer (firmware/latest.json)
-#   a new VERSION     a push to main whose VERSION has no tag yet is a release: a release build
+#   a new VERSION     a push to main whose VERSION has no tag yet is a release (0.0.x never is): a release build
 #                     (identity FM-1_8XXYYZZ, version on the splash and the Setup page), the commit
 #                     tagged vX.Y.Z and published as a GitHub Release with the .fwsc, the one-file web
 #                     app and its CHANGELOG.md section, and the site published with that firmware in its
@@ -44,6 +44,8 @@ jobs:
         run: |
           ver=$(tr -d ' \r\n' < VERSION)
           echo "$ver" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$' || { echo "::error::VERSION is '$ver', not X.Y.Z"; exit 1; }
+          # 0.0.x is development: nothing is tagged or released until VERSION moves past it
+          case "$ver" in 0.0.*) echo "$ver is a development version: no release"; exit 0;; esac
           if git ls-remote --exit-code --tags origin "refs/tags/v$ver" >/dev/null; then
             echo "v$ver is released: nothing to release"
             exit 0
@@ -80,14 +82,14 @@ jobs:
           [ -n "$RELEASE" ] && export OM_VERSION="$RELEASE"
           sh web/emu/build.sh
           mkdir -p site
-          cp build/emu/FiMba-1.html site/index.html
+          cp build/emu/Windsynth.html site/index.html
           touch site/.nojekyll
 
       - name: Keep the web app with the run
         uses: actions/upload-artifact@v7
         with:
-          name: FiMba-1-web
-          path: build/emu/FiMba-1.html
+          name: Windsynth-web
+          path: build/emu/Windsynth.html
 
       - name: Keep the scenario screenshots and audio
         if: always()
@@ -146,21 +148,21 @@ jobs:
 
       - name: Check the package (every CRC; all but the app byte-identical to FoMni's)
         run: |
-          pkg=$(ls build/fimba*.fwsc | head -1)
-          python3 tools/check_fwsc.py "$pkg" --app build/fimba.bin --ref build/fomni-ref/build/omni.fwsc
+          pkg=$(ls build/windsynth*.fwsc | head -1)
+          python3 tools/check_fwsc.py "$pkg" --app build/windsynth.bin --ref build/fomni-ref/build/omni.fwsc
 
       - name: Update-path and install tests against the package
         run: |
-          [ -f build/fimba.fwsc ] || cp build/fimba-*.fwsc build/fimba.fwsc   # (the tests look for this name)
+          [ -f build/windsynth.fwsc ] || cp build/windsynth-*.fwsc build/windsynth.fwsc   # (the tests look for this name)
           sh tests/run_tests.sh
 
       - name: Keep the package with the run
         uses: actions/upload-artifact@v7
         with:
-          name: fimba-firmware
+          name: windsynth-firmware
           path: |
-            build/fimba*.fwsc
-            build/fimba.bin
+            build/windsynth*.fwsc
+            build/windsynth.bin
 
   pages:
     name: Publish the web app (and its installer's firmware) to GitHub Pages
@@ -201,8 +203,8 @@ jobs:
                   --jq '.[] | select(.isDraft | not) | .tagName' | grep -E '^v[0-9]+\.[0-9]+' | sort -V | tail -1)
           if [ -z "$tag" ]; then echo "no release yet: the installer offers a file chooser only"; exit 0; fi
           mkdir -p site/firmware
-          gh release download "$tag" --repo "$GITHUB_REPOSITORY" --pattern 'fimba-*.fwsc' --dir site/firmware
-          file=$(cd site/firmware && ls fimba-*.fwsc | head -1)
+          gh release download "$tag" --repo "$GITHUB_REPOSITORY" --pattern 'windsynth-*.fwsc' --dir site/firmware
+          file=$(cd site/firmware && ls windsynth-*.fwsc | head -1)
           python3 - "$tag" "$file" <<'PY'
           import json, sys
           sys.path.insert(0, "tools")
@@ -244,5 +246,5 @@ jobs:
           { echo "### What's new in $VER"; echo
             awk -v v="$VER" '$0 == "## " v {f = 1; next} /^## / {f = 0} f' CHANGELOG.md | sed '/./,$!d'
             echo; sed "s/VERSION/$VER/g" .github/release-notes.md; } > notes.md
-          gh release create "v$VER" --target "$GITHUB_SHA" --title "FiMba-1 $VER (beta)" --notes-file notes.md \
-            --prerelease dist/fimba-firmware/fimba-"$VER".fwsc dist/FiMba-1-web/FiMba-1.html
+          gh release create "v$VER" --target "$GITHUB_SHA" --title "Windsynth $VER (beta)" --notes-file notes.md \
+            --prerelease dist/windsynth-firmware/windsynth-"$VER".fwsc dist/Windsynth-web/Windsynth.html

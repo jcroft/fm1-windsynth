@@ -1,11 +1,12 @@
-# FiMba-1: working on an issue or a feature
+# FM-1 Windsynth: working on an issue or a feature
 
 The steps for every GitHub issue or new feature, from the first look to the release.
 
 ## 1. Understand it
 
 - `gh issue view N --json title,body,comments` (plain `gh issue view` can print nothing here).
-- Find the code: the instrument and its music are `firmware/src/dsp/kalimba.{c,h}`; the panel and
+- The plan is `docs/PLAN.md` (milestones M0 to M5). The wind code goes in `firmware/src/wind/`.
+- Find the code: the inherited FiMba instrument and its music are `firmware/src/dsp/kalimba.{c,h}`; the panel and
   the screen are `firmware/src/app/ui.c`. The host simulator and the web app build the same sources.
 - When the request leaves a real choice open (behaviour, naming, the default), ask before building.
 
@@ -37,6 +38,8 @@ The steps for every GitHub issue or new feature, from the first look to the rele
 
 ## 5. Version and changelog (in the same PR)
 
+- While `VERSION` is `0.0.x` the project is in development: CI builds and tests, but nothing is
+  tagged or released. The first real release moves `VERSION` past `0.0.x`.
 - Bump `VERSION`: the patch number for fixes and small features, the minor number for bigger ones.
 - Add a `## X.Y.Z` section at the top of `CHANGELOG.md`, written for players, in the style of the
   existing ones. It becomes the release notes. A PR with a new `VERSION` and no section fails CI.
@@ -60,9 +63,9 @@ The steps for every GitHub issue or new feature, from the first look to the rele
 
 - Merging to `main` with a new `VERSION` releases it, all in that one run: the release build, the tag
   `vX.Y.Z`, the GitHub Release with the CHANGELOG section, and the site at
-  https://jadamsowers.github.io/fm1-fimba/ with the new firmware in its installer.
+  https://jcroft.github.io/fm1-windsynth/ with the new firmware in its installer.
 - Never push tags by hand, never create releases with `gh release create`, and never re-run the
   Pages job. GitHub Pages keeps only the first deployment of a commit, and a tag pushed by a run
   starts no other run.
 - Afterwards, check: `gh release view vX.Y.Z`, and
-  `curl -s https://jadamsowers.github.io/fm1-fimba/firmware/latest.json` shows the new version.
+  `curl -s https://jcroft.github.io/fm1-windsynth/firmware/latest.json` shows the new version.

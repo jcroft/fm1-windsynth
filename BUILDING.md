@@ -1,12 +1,12 @@
-# Building FiMba-1
+# Building FM-1 Windsynth
 
 The build makes three files in `build/`:
 
 | File | What |
 | --- | --- |
-| `fimba.bin` | the firmware app |
+| `windsynth.bin` | the firmware app |
 | `loader/ota.bin` | the update loader |
-| `fimba.fwsc` | the installable package (app + loader) |
+| `windsynth.fwsc` | the installable package (app + loader) |
 
 ## Prerequisites (macOS)
 
@@ -66,7 +66,7 @@ On Linux x86-64 the toolchain runs natively and Docker is not needed.
 `JIELI_TOOLCHAIN` and `AC79_SDK` override the default locations
 (`~/.jieli/toolchain`, `~/fw-AC79_AIoT_SDK`).
 
-`./build.sh --release 0.1` makes a release build; the package is `build/fimba-0.1.fwsc`.
+`./build.sh --release 0.1` makes a release build; the package is `build/windsynth-0.1.fwsc`.
 
 On macOS with podman instead of Docker, put a `docker` script that runs `exec podman "$@"` first
 on your PATH. `OM_JOBS` (default 4) limits parallel compiles: a podman machine drops
@@ -88,7 +88,7 @@ Runs, on the build machine: the maths library against libm; the instrument
 (`tests/host/kalimba_test.c`, linked without libm as on the device: scales and layouts, every
 material's pitch to a few cents, decay order, damping and the pedal, one voice per tine, rolls, the
 delay's echo times, grains and freeze, the hole and the buzzers); flash storage; Felucca's update-path
-tests against `build/fimba.fwsc` (when it exists); and the whole app in the simulator
+tests against `build/windsynth.fwsc` (when it exists); and the whole app in the simulator
 (`tests/scenarios/*.kal`), with its screenshots and audio in `build/scenarios/`. One WAV per tine
 material lands in `build/host/materials/`.
 
@@ -101,7 +101,7 @@ of `host/kalimba_host.c`).
 From the command line (with the `requirements.txt` packages):
 
 ```
-python3 tools/fm1_install.py build/fimba.fwsc
+python3 tools/fm1_install.py build/windsynth.fwsc
 python3 tools/fm1_install.py --info          # identity of the connected FM-1
 ```
 
@@ -130,7 +130,7 @@ The check, against FoMni's own package built with the same toolchain:
 ```
 git clone --depth 1 https://github.com/charlesvestal/fm1-fomni build/fomni-ref
 (cd build/fomni-ref && ./build.sh)
-python3 tools/check_fwsc.py build/fimba.fwsc --app build/fimba.bin --ref build/fomni-ref/build/omni.fwsc
+python3 tools/check_fwsc.py build/windsynth.fwsc --app build/windsynth.bin --ref build/fomni-ref/build/omni.fwsc
 ```
 
 `tests/run_tests.sh` runs it too, whenever `build/fomni-ref` is there.

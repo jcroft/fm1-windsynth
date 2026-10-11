@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
-/* FiMba-1 UI: the panel and the screen. Part of the unity build (after gfx.c and project.c); the host
+/* Windsynth UI: the panel and the screen. Part of the unity build (after gfx.c and project.c); the host
  * simulator includes it too. (The frame of it, knobs, bands and autosave, is FoMni's ui.c.)
  *
  *   Layout Tine    the white keys are the tines in the kalimba's V (Scale, Key); the black keys follow
