@@ -3,7 +3,7 @@
  *   the engine: the fixed sweep (wind_sweep.h) against upstream Plaits (wind_ref), within 1 LSB
  *   the voice: silent with the gate shut, sounding with it open, in tune at the FM-1's rate,
  *              the gate's attack and release, cutoff brightening, L = R, no NaN, bounded peaks
- * and build/host/wind_sweep.f32 (the sweep, for wind_wasm_test.mjs) and wind_demo.wav, to listen to.
+ * and build/host/wind_sweep_N.f32 (each engine's sweep; VA-VCF's, 0, for wind_wasm_test.mjs) and wind_demo.wav, to listen to.
  *   wind_voice_test <reference.f32> <OUTDIR> */
 #include <stdio.h>
 #include <string.h>
@@ -93,14 +93,20 @@ static void wav_write(const char *path, uint32_t n)
     fclose(f);
 }
 
-static void test_sweep(uint32_t engine, const char *refpath, const char *dir)
+static const char *const ENGINE_NAME[WV_NENGINE] = {"VA-VCF", "FM", "6-op", "Formant", "Waveshaping", "VA",
+                                                    "Swarm"};
+
+/* engine's sweep against upstream Plaits' (refdir/ref_N.f32, from wind_ref) */
+static void test_sweep(uint32_t engine, const char *refdir, const char *dir)
 {
-    FILE *f = fopen(refpath, "rb");
+    FILE *f;
     char path[512];
     float worst = 0.0f;
     int s, worst_at = 0;
     uint32_t i;
-    CHECK(f && fread(ref, sizeof ref, 1, f) == 1, "no reference sweep in %s", refpath);
+    snprintf(path, sizeof path, "%s/ref_%u.f32", refdir, (unsigned)engine);
+    f = fopen(path, "rb");
+    CHECK(f && fread(ref, sizeof ref, 1, f) == 1, "no reference sweep in %s", path);
     if (f)
         fclose(f);
     wv_init();
@@ -116,11 +122,11 @@ static void test_sweep(uint32_t engine, const char *refpath, const char *dir)
             worst_at = (int)i;
         }
     }
-    CHECK(worst <= 1.0f / 32768.0f, "%s sweep differs from upstream Plaits by %g at sample %d",
-          engine == WV_FM ? "FM" : "VA-VCF", (double)worst, worst_at);
-    printf("  %s sweep: %d samples, worst difference from upstream %g\n", engine == WV_FM ? "FM" : "VA-VCF",
+    CHECK(worst <= 1.0f / 32768.0f, "%s sweep differs from upstream Plaits by %g at sample %d", ENGINE_NAME[engine],
+          (double)worst, worst_at);
+    printf("  %s sweep: %d samples, worst difference from upstream %g\n", ENGINE_NAME[engine],
            SWEEP_STEPS * SWEEP_LEN, (double)worst);
-    snprintf(path, sizeof path, engine == WV_FM ? "%s/wind_sweep_fm.f32" : "%s/wind_sweep.f32", dir);
+    snprintf(path, sizeof path, "%s/wind_sweep_%u.f32", dir, (unsigned)engine);
     f = fopen(path, "wb");
     if (f) {
         fwrite(sweep, sizeof sweep, 1, f);
@@ -298,13 +304,14 @@ static void test_fm(void)
 
 int main(int argc, char **argv)
 {
-    if (argc < 4) {
-        printf("usage: wind_voice_test <reference.f32> <reference_fm.f32> <OUTDIR>\n");
+    uint32_t e;
+    if (argc < 3) {
+        printf("usage: wind_voice_test <REFDIR> <OUTDIR>   (REFDIR: ref_0.f32 .. from wind_ref)\n");
         return 2;
     }
-    test_sweep(WV_CLASSIC, argv[1], argv[3]);
-    test_sweep(WV_FM, argv[2], argv[3]);
-    test_voice(argv[3]);
+    for (e = 0; e < WV_NENGINE; e++)
+        test_sweep(e, argv[1], argv[2]);
+    test_voice(argv[2]);
     test_saw();
     test_fm();
     if (fails)

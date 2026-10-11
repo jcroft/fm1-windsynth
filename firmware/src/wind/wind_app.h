@@ -28,6 +28,7 @@ enum {
     P_DLMODE, P_DLMIX, P_DLTIME, P_DLFB,             /* Delay page */
     P_GDEPTH,                                        /* Pitch 2 page (0.0.8) */
     P_RVSHIM,                                        /* Reverb 2, in Mod's place on Shimmer (0.0.9) */
+    P_DXPATCH,                                       /* Engine page, in Ratio's place on 6-op (0.0.10) */
     P_NPARAMS
 };
 typedef struct {
@@ -35,11 +36,13 @@ typedef struct {
     int16_t lo, hi, def;
 } wa_param_t;
 const wa_param_t *wa_param_info(int i);
+const char *wa_param_name(int i);      /* its name as the screen shows it: the engine's own for Ratio, Index, Morph */
 int wa_param_global(int i);            /* 1: the rig's, not the sound's (kept out of presets) */
 void wa_param_text(int i, int v, char *buf);   /* the value as the screen shows it (12 bytes) */
 
 enum { THEME_LIGHT, THEME_DARK, THEME_N };
 extern const char *const WA_NOTE_NAME[12];
+extern const char *const WA_ENGINE_NAME[];   /* (WV_NENGINE) */
 
 void wa_init(void);
 void wa_set(int k, int v);             /* a parameter's value to the instrument */

@@ -85,11 +85,18 @@ static struct {
     uint8_t key_note[NKEYS];           /* the note each held key plays (released as it was) */
 } ui;
 
-/* a knob's value on this page: Reverb 2's Mod is Shimmer's amount while the type is Shimmer */
+/* a knob's value on this page: Reverb 2's Mod is Shimmer's amount while the type is Shimmer; the Engine
+ * page's Ratio is 6-op's patch, and Classic has no Ratio or Index */
 static int knob_of(int i)
 {
     int k = VIEW_KNOB[ui.view][i];
-    return k == P_RVMOD && proj.par[P_RVTYPE] == WF_RV_SHIMMER ? P_RVSHIM : k;
+    if (k == P_RVMOD && proj.par[P_RVTYPE] == WF_RV_SHIMMER)
+        return P_RVSHIM;
+    if ((k == P_RATIO || k == P_INDEX) && proj.par[P_ENGINE] == WV_CLASSIC)
+        return K_NONE;
+    if (k == P_RATIO && proj.par[P_ENGINE] == WV_SIXOP)
+        return P_DXPATCH;
+    return k;
 }
 
 static void say(const char *a, const char *b)
@@ -135,7 +142,7 @@ static void say_param(int k)
 {
     char t[16];
     wa_param_text(k, proj.par[k], t);
-    say(wa_param_info(k)->name, t);
+    say(wa_param_name(k), t);
 }
 
 static void knob_set(int k, int v)
@@ -170,6 +177,8 @@ static void turn(int role, int k, int32_t e)
         return;
     p = wa_param_info(k);
     knob_set(k, proj.par[k] + accel(role, e, p->hi - p->lo));
+    if (k == P_DXPATCH)                /* (the knob shows its number: the name, in full, here) */
+        say_param(k);
 }
 
 /* ------------------------------------------------------------- keys --- */
@@ -542,7 +551,8 @@ static void draw_main(void)
 
 static void draw_knobs(void)
 {
-    uint32_t h = hash(2166136261u, ui.view | (uint32_t)ui.touched << 8 | (uint32_t)proj.par[P_THEME] << 16), i;
+    uint32_t h = hash(2166136261u, ui.view | (uint32_t)ui.touched << 8 | (uint32_t)proj.par[P_THEME] << 16 |
+                                       (uint32_t)proj.par[P_ENGINE] << 20), i;
     int now_touch = plat_ms() < ui.touch_until;
     for (i = 0; i < 4; i++) {
         int k = knob_of((int)i);
@@ -566,8 +576,11 @@ static void draw_knobs(void)
         lo = wa_param_info(k)->lo;
         hi = wa_param_info(k)->hi;
         v = proj.par[k];
-        text_c(cx, 6, &FONT_XS, wa_param_info(k)->name, hot ? K_TEXT : K_DIM);
-        wa_param_text(k, v, t);
+        text_c(cx, 6, &FONT_XS, wa_param_name(k), hot ? K_TEXT : K_DIM);
+        if (k == P_DXPATCH)
+            itoa_u((uint32_t)v + 1u, t);
+        else
+            wa_param_text(k, v, t);
         {   /* the value: big, unless it has lower case (the big face has none) or is long */
             const char *q = t;
             int lower = 0;

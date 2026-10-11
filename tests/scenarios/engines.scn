@@ -1,0 +1,89 @@
+# The engines, one step of ALGORITHM each: each names its knobs after what they do on it (Plaits'
+# manual), and plays; breath still opens our filter. 6-op's Ratio is its patch, by the DX7's name.
+wait 200
+tap HOME
+expect view 1
+expect par30 0
+# Classic: no Ratio or Index
+expect knob2 -
+expect knob3 -
+midi 90 39 64
+breath 0 127 50
+wait 50
+expect level >5
+spin ALGO 1
+expect msg1 FM
+expect knob2 Ratio
+expect knob3 Index
+spin ALGO 1
+expect par30 2
+expect msg1 6-op
+expect knob2 Patch
+expect knob3 Bright
+# the patch: its number on the knob, its name in the message; BRASS 6 BC (95 of 96) to start with
+expect par47 94
+spin K2 1
+expect par47 95
+expect msg0 Patch
+expect msg1 BR_TRUMPET
+spin K2 1
+expect par47 95
+spin K2 -1
+expect msg1 BRASS_6_BC
+breath 127 127 200
+wait 100
+shot sixop.png
+expect level >5
+spin ALGO 1
+expect msg1 Formant
+expect knob2 Ratio
+expect knob3 Formant
+wait 100
+expect level >5
+spin ALGO 1
+expect msg1 Waveshape
+expect knob2 Shape
+expect knob3 Fold
+wait 100
+expect level >5
+spin ALGO 1
+expect msg1 VA
+expect knob2 Detune
+expect knob3 Square
+wait 100
+expect level >5
+spin ALGO 1
+expect par30 6
+expect msg1 Swarm
+expect knob2 Spread
+expect knob3 Density
+wait 100
+expect level >5
+shot swarm.png
+# the end of the list
+spin ALGO 1
+expect par30 6
+# Morph on the Voice page takes the engine's name too
+tap HOME
+expect view 0
+expect knob3 Overlap
+# breath to cutoff still works on every engine
+breath 127 10 50
+wait 60
+breath 10 10 10
+expect cutoff <30
+midi 80 39 00
+wait 200
+# the patch stays with the sound across a restart
+tap HOME
+spin ALGO -1
+spin ALGO -1
+spin ALGO -1
+spin ALGO -1
+expect par30 2
+spin K2 -5
+wait 5000
+reboot
+wait 200
+expect par30 2
+expect par47 89
