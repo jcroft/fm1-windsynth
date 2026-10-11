@@ -54,6 +54,8 @@ The build makes three files in `build/`:
   ```
 
 - Node.js (optional, for the web tests).
+- A C and C++ compiler for the host tests (`cc`, `c++`; `CC` and `CXX` override them). The wind voice
+  is C++ built freestanding, so it links with the C compiler and needs no C++ library.
 
 On Linux x86-64 the toolchain runs natively and Docker is not needed.
 
@@ -91,6 +93,14 @@ delay's echo times, grains and freeze, the hole and the buzzers); flash storage;
 tests against `build/windsynth.fwsc` (when it exists); and the whole app in the simulator
 (`tests/scenarios/*.kal`), with its screenshots and audio in `build/scenarios/`. One WAV per tine
 material lands in `build/host/materials/`.
+
+The wind voice has its own checks: `tools/check_vendor.py` (the vendored Plaits and stmlib files match
+their hashes); `tests/host/wind_voice_test.c`, against `tests/host/wind_ref.cc` (upstream Plaits' own
+desktop build): the same sweep of notes and settings must match sample for sample, A4 must measure
+440 Hz at the FM-1's rate, and the gate, release and cutoff must behave, with
+`build/host/wind/wind_demo.wav` to listen to; and `tests/host/wind_wasm_test.mjs`, the same sweep in
+the WebAssembly build. `tools/build.py` links the voice into the firmware and fails on any C++ runtime
+need, a static constructor or a double.
 
 `host/build_host.sh` builds the simulator alone (`gen_font.py` needs Pillow; `PYTHON=` picks the
 interpreter); `build/host/kalimba_host SCRIPT OUTDIR` runs one script (the command list is at the top

@@ -9,10 +9,13 @@ cd "$(dirname "$0")/../.."
 PY="${PYTHON:-python3}"
 mkdir -p build/gen build/emu
 [ -f build/gen/felucca_font.h ] || "$PY" tools/gen_font.py build/gen/felucca_font.h >/dev/null
+# the wind voice (C++), freestanding as on the device; its exports are for tests/host/wind_wasm_test.mjs
+WIND=$(sh tools/wind_cxx.sh em++ build/emu/wind)
 emcc -O2 -ffp-contract=off -std=gnu99 -Wall -Wno-unused-function -Wno-unused-parameter -Wno-unused-variable \
     -DOM_HOST -DOM_WEB "-DOM_VERSION=\"$(printf %s "${OM_VERSION:-DEV}" | tr a-z A-Z)\"" -Ifirmware/src -Ifirmware/src/dsp -Ibuild/gen \
     --no-entry -sSTANDALONE_WASM -sSTACK_SIZE=1048576 -sINITIAL_MEMORY=33554432 -sFILESYSTEM=0 \
-    -o build/emu/kalimba.wasm web/emu/kalimba_web.c firmware/src/dsp/kalimba.c
+    -Wl,--export=wv_init -Wl,--export=wv_render_raw \
+    -o build/emu/kalimba.wasm web/emu/kalimba_web.c firmware/src/dsp/kalimba.c $WIND
 cp web/emu/worklet.js build/emu/
 "$PY" web/emu/inline_lib.py web/emu/index.html build/emu/index.html   # the installer's modules, inlined
 echo "emu: build/emu ($(wc -c < build/emu/kalimba.wasm) B wasm)"

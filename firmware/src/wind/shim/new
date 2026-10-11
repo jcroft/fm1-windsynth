@@ -1,0 +1,7 @@
+/* SPDX-License-Identifier: GPL-3.0-only */
+/* <new>: placement new only. The engines are built in static storage by wv_init, so no
+ * constructor or destructor needs the C++ runtime (.init_array, __cxa_atexit). */
+#pragma once
+#include <stddef.h>
+
+inline void *operator new(size_t, void *p) { return p; }

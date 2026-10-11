@@ -5,8 +5,9 @@ Custom firmware that turns the **M-VAVE FM-1** into a synthesizer for **any MIDI
 It runs in the browser first, as the firmware's own C code compiled to WebAssembly, and then on the
 FM-1 itself.
 
-> **Status: in development (0.0.x).** This is the starting point: a fork of FiMba-1 that still plays
-> FiMba's kalimba while the wind voice is built. Nothing is released yet. The plan is in
+> **Status: in development (0.0.x).** A fork of FiMba-1 that still plays FiMba's kalimba while the
+> wind voice is built. The voice (Plaits' VA-VCF engine) is in, tested against upstream Plaits, and
+> gets wired to breath and bite next. Nothing is released yet. The plan is in
 > [docs/PLAN.md](docs/PLAN.md).
 
 ## The controls (planned defaults)

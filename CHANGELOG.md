@@ -4,6 +4,13 @@ A release is a push to `main` that changes `VERSION` to a version with no tag ye
 release build, tags the commit `vX.Y.Z` and publishes the GitHub Release with that version's notes,
 taken from its section below. Add the section in the same pull request as the `VERSION` change.
 
+## 0.0.2
+
+- **Plaits is inside.** The wind voice is built: Plaits' "Classic" engine (VA-VCF) with its filter,
+  a gate envelope, VCA and soft clip, in tune at the FM-1's sample rate. It renders exactly as
+  upstream Plaits does, in the browser too, and the device build links it. You can't play it yet:
+  the next step (M2) connects it to your windsynth's breath, bite and keys.
+
 ## 0.0.1
 
 - **FM-1 Windsynth starts here**, as a fork of FiMba-1 0.6.0. It still plays FiMba's kalimba while

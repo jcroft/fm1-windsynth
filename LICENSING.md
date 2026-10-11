@@ -23,6 +23,8 @@ complete corresponding source under the same licence.
 | --- | --- | --- |
 | Barlow Semi Condensed (The Barlow Project Authors), the UI face | SIL OFL 1.1 | `assets/fonts/BarlowSemiCondensed-*.ttf`, `assets/fonts/Barlow-OFL.txt` |
 | Terminus (Dimitar Toshkov Zhekov), an alternative font set | SIL OFL 1.1 | `assets/fonts/ter-u*.bdf`, `assets/fonts/Terminus-LICENSE.txt` |
+| The wind voice: `firmware/src/wind/`, `tools/wind_cxx.sh`, `tools/check_vendor.py`, `tests/host/wind_*` | FM-1 Windsynth | GPL-3.0-only |
+| Plaits and stmlib, a subset, unmodified: `firmware/third_party/mutable/` (provenance and hashes in its `README.md`) | [Mutable Instruments](https://github.com/pichenettes/eurorack), Copyright Emilie Gillet | MIT (`firmware/third_party/mutable/LICENSE`) |
 | JieLi AC79 SDK: `uboot.boot`, `cfg_tool.bin`, `eq_cfg_hw.bin` are read from your SDK checkout at build time and placed in the package; no SDK files are in this tree | Apache-2.0 | <https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK> |
 
 ## Trademarks
