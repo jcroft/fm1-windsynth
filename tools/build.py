@@ -42,6 +42,16 @@ CFLAGS = ["-Os", "-ffunction-sections", "-fno-builtin", "-Wall", "-Wno-unused-fu
 FPU = ["-mcpu=r3", "-mfprev1", "-ffp-contract=off"]
 # the instrument: a separate unit at -O2
 O2_UNITS = ["dsp/kalimba.c"]
+# the wind voice: C++, freestanding (no exceptions, RTTI, static constructors or libm: firmware/src/wind/
+# shim), so it links with no C++ runtime. The host and web builds use the same (tools/wind_cxx.sh)
+WIND_UNITS = ["src/wind/wind_voice.cc",
+              "third_party/mutable/plaits/dsp/engine2/virtual_analog_vcf_engine.cc",
+              "third_party/mutable/stmlib/dsp/units.cc"]
+WIND_CXXFLAGS = ["-x", "c++", "-std=c++11", "-O2", "-ffunction-sections", "-ffreestanding", "-fno-exceptions",
+                 "-fno-rtti", "-fno-threadsafe-statics", "-fno-use-cxa-atexit", "-DTEST", "-Wall",
+                 "-Ifirmware/src/wind/shim", "-Ifirmware/third_party/mutable", "-Ifirmware/src"]
+# kept in the image although nothing calls it yet (M2 does), so every check here covers it
+WIND_KEEP = ["wv_init", "wv_engine", "wv_slope", "wv_render"]
 LINE = re.compile(r"^\s*([0-9a-f]+):\s+((?:[0-9a-f]{2} )+)\s*\t(.*)$")
 
 # SDK files of AC79NN_SDK_V1.2.1_2023-12-13 (the tested version)
@@ -217,11 +227,21 @@ def build_app():
         o = OUT / "o2" / (u.replace("/", "_")[:-2] + ".o")
         units.append(("cc", *o2, "-c", FW / "src" / u, "-o", o))
         objs.append(o)
+    (OUT / "wind").mkdir(parents=True, exist_ok=True)
+    for u in WIND_UNITS:
+        o = OUT / "wind" / (Path(u).stem + ".o")
+        units.append(("cc", *WIND_CXXFLAGS, *FPU, "-c", FW / u, "-o", o))
+        objs.append(o)
     tc_all(*units)
+    # a static constructor would never run (crt0 calls none, and --gc-sections drops it silently)
+    for o, h in zip(objs, tc_all(*[("common/bin/objdump", "-h", o) for o in objs])):
+        if re.search(r"\s\.(?:init_array|ctors|preinit_array)", h):
+            raise SystemExit(f"{o.name}: a static constructor (.ctors / .init_array); crt0 runs none")
     elf = OUT / "windsynth.elf"
     # unreferenced functions (each in its own section: -ffunction-sections) are dropped: the DSP keeps
     # mono reference paths for the host tests that the firmware no longer calls
-    tc("pi32v2/bin/ld", "--gc-sections", "-e", "_start", "-T", FW / "app.ld", *objs, "-o", elf)
+    keep = [a for k in WIND_KEEP for a in ("-u", k)]
+    tc("pi32v2/bin/ld", "--gc-sections", "-e", "_start", *keep, "-T", FW / "app.ld", *objs, "-o", elf)
     for sect in ("text.bin", "data.bin", "ramtext.bin"):
         (OUT / sect).unlink(missing_ok=True)
     *_, syms, dis, rt = tc_all(("common/bin/objcopy", "-O", "binary", "-j", ".text", elf, OUT / "text.bin"),
@@ -271,6 +291,11 @@ def check(img, syms, dis, rt):
             val = (int(v[0]) & 0xFFFFFFFF) if v[0] else int(v[1], 16) & 0xFFFFFFFF
             if 0xFFC00000 <= val < 0xFFD00000:
                 errors.append(f"reference to ROM address {val:#010x}")
+    missing = [k for k in WIND_KEEP if not re.search(r"\s" + k + r"$", syms, re.M)]
+    if missing:
+        errors.append(f"wind voice not linked: {missing}")
+    else:
+        notes.append("wind voice linked, no C++ runtime")
     if len(img) > APP_SLOT:
         errors.append(f"image {len(img)} B exceeds the app slot")
     # the FPU is single precision; a soft-double routine in the image means a double crept in
@@ -323,7 +348,7 @@ def mmio_check():
             break
         regs |= more
     errors = []
-    for f in sorted([*(FW / "src").rglob("*.[ch]"), *(FW / "loader").glob("*.c")]):
+    for f in sorted([*(FW / "src").rglob("*.[ch]"), *(FW / "src").rglob("*.cc"), *(FW / "loader").glob("*.c")]):
         for no, ln in enumerate(strip(f.read_text()).splitlines(), 1):
             where = f"{f.relative_to(FW)}:{no}"
             for rx, what in ((MMIO_LIT, "register/window address"), (MMIO_CAST, "volatile pointer cast"),

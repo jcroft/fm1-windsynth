@@ -8,7 +8,9 @@ CC="${CC:-cc}"
 PY="${PYTHON:-python3}"
 mkdir -p build/gen build/host
 [ -f build/gen/felucca_font.h ] || "$PY" tools/gen_font.py build/gen/felucca_font.h >/dev/null
+# the wind voice (C++), freestanding as on the device: it links with $CC, no C++ runtime
+WIND=$(sh tools/wind_cxx.sh "${CXX:-c++}" build/host/wind)
 $CC -O2 -ffp-contract=off -std=c99 -Wall -Wextra -Wno-unused-function -Wno-unused-parameter \
     -DOM_HOST -Ifirmware/src -Ifirmware/src/dsp -Ibuild/gen -o build/host/kalimba_host host/kalimba_host.c \
-    firmware/src/dsp/kalimba.c -lm
+    firmware/src/dsp/kalimba.c $WIND -lm
 echo "host: build/host/kalimba_host"

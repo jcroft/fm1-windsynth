@@ -28,6 +28,16 @@ run trs sh -c "$CC -O2 -w -Ifirmware/src -Ifirmware/hal -o $OUT/trs_test tests/h
 # no -lm: a libm call that crept into the engine fails to link here, as it would on the device
 run kalimba sh -c "$CC -O2 -ffp-contract=off -std=c99 -Wall -Wextra -Wdouble-promotion -Werror -DOM_HOST -Ifirmware/src/dsp \
     -o $OUT/kalimba_test tests/host/kalimba_test.c firmware/src/dsp/kalimba.c && $OUT/kalimba_test $OUT/materials"
+# the wind voice: upstream Plaits renders the reference sweep (its own desktop build); ours, freestanding
+# and linked by $CC with no -lm or C++ runtime as on the device, must match it and play in tune
+CXX="${CXX:-c++}"
+run wind sh -c "mkdir -p $OUT/wind && $CXX -O2 -ffp-contract=off -DTEST -Ifirmware/third_party/mutable -Itests/host \
+    -o $OUT/wind/wind_ref tests/host/wind_ref.cc firmware/third_party/mutable/plaits/dsp/engine2/virtual_analog_vcf_engine.cc \
+    firmware/third_party/mutable/stmlib/dsp/units.cc && $OUT/wind/wind_ref $OUT/wind/ref.f32 && \
+    $CC -O2 -ffp-contract=off -std=c99 -Wall -Wextra -Wdouble-promotion -Werror -Ifirmware/src -Itests/host \
+    -o $OUT/wind/wind_voice_test tests/host/wind_voice_test.c \$(sh tools/wind_cxx.sh $CXX $OUT/wind -Werror) && \
+    $OUT/wind/wind_voice_test $OUT/wind/ref.f32 $OUT/wind"
+run vendor python3 tools/check_vendor.py
 run storage sh -c "$CC -O2 -o $OUT/storage_test tests/storage_test.c && $OUT/storage_test"
 # the update path, against the firmware package (Felucca's tests; needs ./build.sh)
 if [ -f build/windsynth.fwsc ]; then
@@ -51,6 +61,7 @@ fi
 run host-build sh host/build_host.sh
 if command -v emcc >/dev/null 2>&1; then
     run emu sh -c "sh web/emu/build.sh >/dev/null 2>&1 && node tests/host/emu_test.mjs build/emu/kalimba.wasm"
+    run wind-wasm node tests/host/wind_wasm_test.mjs build/emu/kalimba.wasm $OUT/wind/wind_sweep.f32
     CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
     [ -x "$CHROME" ] || CHROME="$(command -v google-chrome || command -v chromium || true)"
     # the installer as the page ships it, against a simulated FM-1

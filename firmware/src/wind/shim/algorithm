@@ -1,0 +1,8 @@
+/* SPDX-License-Identifier: GPL-3.0-only */
+/* <algorithm> for the vendored code: only std::min and std::max are used */
+#pragma once
+
+namespace std {
+template<class T> inline const T& min(const T& a, const T& b) { return b < a ? b : a; }
+template<class T> inline const T& max(const T& a, const T& b) { return a < b ? b : a; }
+}

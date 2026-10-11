@@ -1,0 +1,4 @@
+/* SPDX-License-Identifier: GPL-3.0-only */
+/* <cmath> for the vendored code: see math.h */
+#pragma once
+#include "math.h"
