@@ -23,6 +23,8 @@ static int project_valid(int bytes)
     if (have > PROJ_NPAR_OF(proj.format))        /* (its spare bytes, zeros, are not settings) */
         have = PROJ_NPAR_OF(proj.format);
     proj.format = PROJ_FORMAT;
+    if (proj.preset >= NPRESETS)
+        proj.preset = 0;
     for (i = 0; i < P_NPARAMS; i++) {
         const wa_param_t *p = wa_param_info(i);
         if (i >= have || proj.par[i] < p->lo || proj.par[i] > p->hi)
@@ -36,9 +38,12 @@ int project_load(void)
     int n;
     memset(&proj, 0, sizeof proj);
     n = plat_store_load(OBJ_PROJ, &proj, sizeof proj);
-    if (n >= 8 && project_valid(n))
+    if (n >= 8 && project_valid(n)) {
+        preset_peek();
         return 0;
+    }
     project_defaults();
+    preset_peek();
     return -1;
 }
 
@@ -49,4 +54,99 @@ void project_apply(void)
     int i;
     for (i = 0; i < P_NPARAMS; i++)
         wa_set(i, proj.par[i]);
+}
+
+/* ------------------------------------------------------------ presets --- */
+#define BANK_MAGIC 0x4B4E4257u           /* "WBNK" */
+#define BANK_N 16                        /* presets per bank object */
+typedef struct {
+    uint32_t magic;
+    uint16_t format, npar;               /* npar: the values each preset holds (P_NPARAMS when saved) */
+    struct {
+        char name[12];                   /* (unused yet: zeros) */
+        int16_t par[PRESET_NPAR];
+    } p[BANK_N];
+} bank_t;
+typedef char bank_fits[sizeof(bank_t) <= PLAT_STORE_MAX ? 1 : -1];
+
+static bank_t bank;
+static int bank_at = -1;                 /* the bank in `bank`, -1 none */
+static int16_t snd[P_NPARAMS];           /* the project's preset as stored: what "edited" compares with */
+
+/* one bank into `bank`: from flash, or (never saved, or not ours) every preset the init sound */
+static void bank_read(int b)
+{
+    int n, i, k;
+    if (bank_at == b)
+        return;
+    memset(&bank, 0, sizeof bank);
+    n = plat_store_load(OBJ_BANK0 + (uint32_t)b, &bank, sizeof bank);
+    if (n < 8 || bank.magic != BANK_MAGIC || bank.npar > PRESET_NPAR) {
+        memset(&bank, 0, sizeof bank);
+        bank.npar = 0;
+    }
+    for (i = 0; i < BANK_N; i++)          /* what a preset lacks (newer settings), or holds out of range: defaults */
+        for (k = 0; k < P_NPARAMS; k++) {
+            const wa_param_t *p = wa_param_info(k);
+            if (k >= bank.npar || bank.p[i].par[k] < p->lo || bank.p[i].par[k] > p->hi)
+                bank.p[i].par[k] = p->def;
+        }
+    bank.magic = BANK_MAGIC;
+    bank.format = 1;
+    bank.npar = P_NPARAMS;
+    bank_at = b;
+}
+
+static const int16_t *preset_par(int slot)
+{
+    bank_read(slot / BANK_N);
+    return bank.p[slot % BANK_N].par;
+}
+
+/* the project's preset, as stored, for preset_edited() (boot: the project names it) */
+void preset_peek(void)
+{
+    memcpy(snd, preset_par(proj.preset), sizeof snd);
+}
+
+void preset_load(int slot)
+{
+    const int16_t *par;
+    int k;
+    slot = slot < 0 ? 0 : slot >= NPRESETS ? NPRESETS - 1 : slot;
+    par = preset_par(slot);
+    proj.preset = (uint8_t)slot;
+    for (k = 0; k < P_NPARAMS; k++)
+        if (!wa_param_global(k) && proj.par[k] != par[k]) {
+            proj.par[k] = par[k];
+            wa_set(k, par[k]);
+        }
+    memcpy(snd, par, sizeof snd);
+}
+
+int preset_store(int slot)
+{
+    int k;
+    if (slot < 0 || slot >= NPRESETS)
+        return -1;
+    bank_read(slot / BANK_N);
+    for (k = 0; k < P_NPARAMS; k++)
+        bank.p[slot % BANK_N].par[k] = wa_param_global(k) ? wa_param_info(k)->def : proj.par[k];
+    if (plat_store_save(OBJ_BANK0 + (uint32_t)(slot / BANK_N), &bank, sizeof bank) != 0) {
+        bank_at = -1;                    /* (re-read: what flash holds) */
+        return -1;
+    }
+    proj.preset = (uint8_t)slot;
+    memcpy(snd, bank.p[slot % BANK_N].par, sizeof snd);
+    return 0;
+}
+
+/* Glide is left out: the glide CC moves it as you play */
+int preset_edited(void)
+{
+    int k;
+    for (k = 0; k < P_NPARAMS; k++)
+        if (!wa_param_global(k) && k != P_GLIDE && proj.par[k] != snd[k])
+            return 1;
+    return 0;
 }

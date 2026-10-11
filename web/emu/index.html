@@ -164,7 +164,8 @@ kbd { font: 600 .85em ui-monospace, Menlo, monospace; background: var(--card); b
       <li>Connect MIDI and pick your windsynth (or <b>All inputs</b>). Notes play the voice; <b>breath</b> (CC2 by default, or aftertouch or another CC on the Breath page) opens the filter, and with a Mod slot set to Amp, the volume.</li>
       <li>The <b>bite</b> (pitch bend) bends ±2 semitones by default (Pitch page). <b>Glide</b> follows CC5 by default; another CC, or none, on the Pitch page.</li>
       <li>Last note wins: overlapping notes play legato, without a new attack, and letting one go returns to the one still held.</li>
-      <li>The FM-1's own keys play from F3, every key its printed note, as if blown at the Keys page's <b>Key breath</b>. <b>OCT−</b> / <b>OCT+</b> shift them; <b>PRESETS</b> transposes everything.</li>
+      <li>The FM-1's own keys play from F3, every key its printed note, as if blown at the Keys page's <b>Key breath</b>. <b>OCT−</b> / <b>OCT+</b> shift them.</li>
+      <li><b>PRESETS</b> picks one of 64 presets (all the init sound to start); the header shows it, with a * once you change the sound. <b>SAVE</b> asks "SAVE TO P12": turn PRESETS for another slot, then SAVE again. A preset holds the sound; breath source and curve, the glide CC, Keys and Setup stay as they are.</li>
     </ul>
   </div>
   <div>
@@ -175,7 +176,7 @@ kbd { font: 600 .85em ui-monospace, Menlo, monospace; background: var(--card); b
       <li><b>LFO</b> Pitch: bend range, glide source, glide time, glide always or legato only.</li>
       <li><b>SEL</b> Mod 1&ndash;4 (press again for the next): source (breath, bite, mod wheel, pressure, velocity), destination (cutoff, resonance, amp, morph), amount. Mod 1 is Breath → Cutoff.</li>
       <li><b>SEQ</b> Keys: key breath and octave. <b>GLO</b> Setup: transpose, tune, MIDI channel (Omni by default) and the <b>Theme</b>; the header shows the version.</li>
-      <li><b>EDIT</b> and the <b>SELECT</b> knob step through every page; the four knobs set its four values. <b>SAVE</b> saves (it also saves by itself); hold it for 1.5 s to reset the sound (SAVE again to confirm). Setup is kept.</li>
+      <li><b>EDIT</b> and the <b>SELECT</b> knob step through every page; the four knobs set its four values. What you play is kept by itself. Hold <b>SAVE</b> for 1.5 s for the init sound (SAVE again to confirm).</li>
     </ul>
   </div>
   <div>
@@ -189,7 +190,7 @@ kbd { font: 600 .85em ui-monospace, Menlo, monospace; background: var(--card); b
   </div>
   <div>
     <h2>What this is</h2>
-    <p>The firmware's UI and instrument compiled to WebAssembly, running at the FM-1's rate: what you hear is what the FM-1 plays. The voice is Mutable Instruments' Plaits, unmodified. The strip under the panel shows what the instrument hears and does. SAVE keeps your settings in this browser. The emulator is FoMni's, by way of X0X and FiMba.</p>
+    <p>The firmware's UI and instrument compiled to WebAssembly, running at the FM-1's rate: what you hear is what the FM-1 plays. The voice is Mutable Instruments' Plaits, unmodified. The strip under the panel shows what the instrument hears and does. Presets and settings are kept in this browser. The emulator is FoMni's, by way of X0X and FiMba.</p>
   </div>
 </section>
 </main>
@@ -292,8 +293,8 @@ function hit(c, cls) {
 // what each control does, on hover (the Pages list below says the same)
 const TIP = { SEL: "Mod 1 to 4: source, destination, amount", ENV: "Breath page: source, curve, attack, release",
   LFO: "Pitch page: bend range, glide", EDIT: "Every page in turn", GLO: "Setup page: transpose, tune, MIDI channel, theme",
-  HOME: "Voice page: cutoff, resonance, morph, slope", SAVE: "Save (hold: reset to the defaults)", SEQ: "Keys page: key breath, octave",
-  "OCT-": "Octave down (the panel's keys)", "OCT+": "Octave up (the panel's keys)", SELECT: "Page", PRESETS: "Transpose", MASTER: "Volume" };
+  HOME: "Voice page: cutoff, resonance, morph, slope", SAVE: "Save the sound to a preset (hold: the init sound)", SEQ: "Keys page: key breath, octave",
+  "OCT-": "Octave down (the panel's keys)", "OCT+": "Octave up (the panel's keys)", SELECT: "Page", PRESETS: "Preset (1 to 64)", MASTER: "Volume" };
 for (const [n, c] of [...Object.entries(buttons), ...Object.entries(knobs)]) if (TIP[n]) c.g.setAttribute("aria-description", TIP[n]);
 for (const k of Object.values(knobs)) hit(k, "knob");
 for (const b of Object.values(buttons)) hit(b);

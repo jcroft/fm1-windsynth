@@ -21,6 +21,19 @@ static const wa_param_t PARAMS[P_NPARAMS] = {
 
 const wa_param_t *wa_param_info(int i) { return &PARAMS[(unsigned)i < P_NPARAMS ? i : 0]; }
 
+/* the controller's and the room's settings: breath source and curve, the glide CC, the panel keys and
+ * Setup. A preset is the rest, the sound. */
+int wa_param_global(int i)
+{
+    switch (i) {
+    case P_BSRC: case P_CURVE: case P_GSRC: case P_KEYBREATH: case P_OCTAVE:
+    case P_TRANSPOSE: case P_TUNE: case P_MIDICH: case P_THEME:
+        return 1;
+    default:
+        return 0;
+    }
+}
+
 static void copy_s(char *d, const char *s)
 {
     while ((*d++ = *s++))

@@ -7,10 +7,11 @@
  *   HOME ENV LFO SEL SEQ GLO   the pages (pressed again: the button's next page): HOME Voice, ENV
  *                 Breath, LFO Pitch, SEL Mod 1-4, SEQ Keys, GLO Setup. EDIT and SELECT step through
  *                 them all.
- *   KNOB 1-4      the page's values      PRESETS transpose      OCT- / OCT+ the panel keys' octave
+ *   KNOB 1-4      the page's values      PRESETS the preset (1-64)      OCT- / OCT+ the panel keys' octave
  *   the keys      play notes (F3 up, chromatic), with Key breath standing in for a breath controller
- *   SAVE          saves (it also saves by itself, a few seconds after a change, when quiet); held 1.5 s:
- *                 reset to the defaults (SAVE again to confirm)
+ *   SAVE          the sound into a preset: "SAVE TO P12", PRESETS picks another, SAVE again saves; held
+ *                 1.5 s: the init sound (SAVE again to confirm). What you play is kept by itself, a few
+ *                 seconds after a change, when quiet, with the preset it came from.
  *
  * MIDI never passes through here: wind_app reads it in the audio interrupt, every 1.45 ms. */
 
@@ -30,8 +31,9 @@ static const uint8_t VIEW_KNOB[NVIEWS][4] = {
     {P_KEYBREATH, P_OCTAVE, K_NONE, K_NONE},
     {P_TRANSPOSE, P_TUNE, P_MIDICH, P_THEME},
 };
-#define SAVE_HOLD_MS 1500u             /* SAVE held this long: reset to the defaults? (a tap: save) */
+#define SAVE_HOLD_MS 1500u             /* SAVE held this long: the init sound? (a tap: save to a preset) */
 #define RESET_ASK_MS 5000u             /* ...asked this long: SAVE again resets, anything else keeps */
+#define SAVE_ASK_MS 8000u              /* "SAVE TO": this long without a turn or a press, and it's off */
 #define KEY_F3 53                      /* the lowest key's MIDI note */
 
 /* the screen's colours (Setup: Theme): Light and Dark */
@@ -70,6 +72,8 @@ static struct {
     uint32_t sig[3];
     uint32_t save_t;                   /* when SAVE went down (held: reset to the defaults?) */
     uint32_t reset_ask;                /* until when "RESET?" waits for SAVE (0: not asking) */
+    uint32_t save_ask;                 /* until when "SAVE TO" waits for SAVE (0: not asking) */
+    uint8_t save_slot;                 /* ...and the preset it would save to */
     uint32_t midi_seen;                /* wa_state.midi_seen at the last frame (activity) */
     uint8_t key_note[NKEYS];           /* the note each held key plays (released as it was) */
 } ui;
@@ -174,21 +178,36 @@ static void set_view(int v)
     ui.touched = -1;
 }
 
-/* back to the defaults: every sound setting. The Setup page (transpose, tune, MIDI channel, theme) is
- * about the rig and the room, not the sound: it stays. Saved as any change is. */
+/* "P12" */
+static void preset_name(int slot, char *t)
+{
+    t[0] = 'P';
+    t[1] = (char)('0' + (slot + 1) / 10);
+    t[2] = (char)('0' + (slot + 1) % 10);
+    t[3] = 0;
+}
+
+/* back to the init sound: every sound setting. The rig's (breath source and curve, the glide CC, the
+ * keys, Setup) stays, and so does the preset it would be saved to. Kept as any change is. */
 static void reset_defaults(void)
 {
-    static const uint8_t KEEP[4] = {P_TRANSPOSE, P_TUNE, P_MIDICH, P_THEME};
-    int16_t keep[4];
-    int i;
-    for (i = 0; i < 4; i++)
-        keep[i] = proj.par[KEEP[i]];
-    project_defaults();
-    for (i = 0; i < 4; i++)
-        proj.par[KEEP[i]] = keep[i];
-    project_apply();
+    int k;
+    for (k = 0; k < P_NPARAMS; k++)
+        if (!wa_param_global(k))
+            knob_set(k, wa_param_info(k)->def);
     mark_dirty();
-    say("RESET", "TO DEFAULTS");
+    say("INIT", "SOUND");
+}
+
+static void save_ask(int on)
+{
+    char t[4];
+    ui.save_ask = on ? plat_ms() + SAVE_ASK_MS : 0u;
+    if (on) {
+        preset_name(ui.save_slot, t);
+        say("SAVE TO", t);
+        ui.msg_until = ui.save_ask;
+    }
 }
 
 static void reset_ask(int on)
@@ -205,6 +224,19 @@ static void reset_ask(int on)
 static void button(int b)
 {
     int v;
+    if (ui.save_ask) {                              /* "SAVE TO": SAVE saves, any other button doesn't */
+        char t[4];
+        save_ask(0);
+        preset_name(ui.save_slot, t);
+        if (b != B_SAVE)
+            say("NOT SAVED", 0);
+        else if (preset_store(ui.save_slot) == 0) {
+            mark_dirty();                           /* (the project now names this preset) */
+            say("SAVED", t);
+        } else
+            say("NOT SAVED", "FLASH ERROR");
+        return;
+    }
     if (ui.reset_ask) {                             /* "RESET?": SAVE resets, any other button keeps */
         ui.reset_ask = 0u;
         if (b == B_SAVE)
@@ -233,12 +265,8 @@ static void button(int b)
         say_param(P_OCTAVE);
         break;
     case B_SAVE:
-        if (project_save() == 0) {
-            ui.dirty = 0;
-            say("SAVED", 0);
-        } else {
-            say("NOT SAVED", "FLASH ERROR");
-        }
+        ui.save_slot = proj.preset;
+        save_ask(1);
         break;
     default: break;
     }
@@ -262,13 +290,17 @@ static void input(void)
             button((int)i);
         }
     }
-    if ((btn >> B_SAVE & 1u) && !(ui.btn_used >> B_SAVE & 1u) && !ui.reset_ask &&
+    if ((btn >> B_SAVE & 1u) && !(ui.btn_used >> B_SAVE & 1u) && !ui.reset_ask && !ui.save_ask &&
         plat_ms() - ui.save_t >= SAVE_HOLD_MS) {
         reset_ask(1);                                /* SAVE held: ask (no save on release) */
         ui.btn_used |= 1u << B_SAVE;
     }
     if (ui.reset_ask && (int32_t)(plat_ms() - ui.reset_ask) >= 0)
         reset_ask(0);                                /* not answered: kept */
+    if (ui.save_ask && (int32_t)(plat_ms() - ui.save_ask) >= 0) {
+        save_ask(0);                                 /* not answered: not saved */
+        say("NOT SAVED", 0);
+    }
     ch = keys ^ ui.keys;
     if (ui.reset_ask && (ch & keys))                 /* a key while "RESET?" asks: kept (and it plays) */
         reset_ask(0);
@@ -293,9 +325,19 @@ static void input(void)
     }
     if ((e = plat_enc(EN_SELECT)) != 0)
         set_view((ui.view + (e > 0 ? 1 : NVIEWS - 1)) % NVIEWS);
-    if ((e = plat_enc(EN_PRESET)) != 0) {
-        knob_set(P_TRANSPOSE, proj.par[P_TRANSPOSE] + (e > 0 ? 1 : -1));
-        say_param(P_TRANSPOSE);
+    if ((e = plat_enc(EN_PRESET)) != 0) {           /* the preset; while "SAVE TO" asks, where to */
+        int s = (ui.save_ask ? ui.save_slot : proj.preset) + (int)e;
+        s = s < 0 ? 0 : s >= NPRESETS ? NPRESETS - 1 : s;
+        if (ui.save_ask) {
+            ui.save_slot = (uint8_t)s;
+            save_ask(1);
+        } else if (s != proj.preset) {
+            char t[4];
+            preset_load(s);
+            mark_dirty();
+            preset_name(s, t);
+            say("PRESET", t);
+        }
     }
     plat_enc(EN_ALGO);                               /* (the engine, when there is more than one) */
     for (i = 0; i < 4; i++)
@@ -343,10 +385,11 @@ static void text_c(int32_t cx, int32_t y, const felucca_font_t *f, const char *s
 static void draw_header(void)
 {
     char t[24];
-    int msg = plat_ms() < ui.msg_until, midi = wa_state.midi_seen != 0u;
+    int msg = plat_ms() < ui.msg_until, midi = wa_state.midi_seen != 0u, edited = preset_edited();
     uint32_t h = hash(hash(2166136261u, ui.view | (uint32_t)proj.par[P_THEME] << 8 | (uint32_t)ui.dirty << 10 |
                                             (uint32_t)msg << 11 | (uint32_t)midi << 12),
-                      (uint32_t)proj.par[P_MIDICH] | (uint32_t)(proj.par[P_TRANSPOSE] + 24) << 8);
+                      (uint32_t)proj.par[P_MIDICH] | (uint32_t)(proj.par[P_TRANSPOSE] + 24) << 8 |
+                          (uint32_t)proj.preset << 16 | (uint32_t)edited << 24);
     if (msg)
         h = hash(hash(h, (uint32_t)ui.msg[0][0] << 8 | ui.msg[0][1]), ui.msg_until);
     if (ui.view == V_SETUP)
@@ -387,6 +430,11 @@ static void draw_header(void)
             cv_text(x, 6, &FONT_S, v, midi ? K_TEXT : K_DIM);
             x -= text_w(&FONT_S, "MIDI ");
             cv_text(x, 6, &FONT_S, "MIDI ", K_DIM);
+            preset_name(proj.preset, v);             /* the preset: "P12", "P12*" when the sound has changed */
+            if (edited)
+                v[3] = '*', v[4] = 0;
+            x -= text_w(&FONT_B, v) + 10;
+            cv_text(x, 5, &FONT_B, v, K_TEXT);
         }
         x = 18 + text_w(&FONT_B, VIEW_NAME[ui.view]);
         {   /* the button's pages, when it has more than one: a dot each, this one filled */

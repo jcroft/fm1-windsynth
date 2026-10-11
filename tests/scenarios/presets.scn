@@ -1,0 +1,63 @@
+# Presets: 64 slots, all the init sound until saved. PRESETS picks one; SAVE, then SAVE again, saves the
+# sound into one ("SAVE TO", PRESETS picks where); the rig's settings stay out of them.
+wait 200
+expect preset 1
+expect edited 0
+spin PRESET 63
+expect preset 64
+expect par0 15
+expect par2 25
+spin PRESET -63
+expect preset 1
+# a change: the sound is no longer its preset's
+spin K1 30
+expect par0 45
+expect edited 1
+wait 1400
+shot edited.png
+# SAVE, then anything else: not saved
+tap SAVE
+tap HOME
+expect store_writes 0
+expect edited 1
+# SAVE, PRESETS to P03, SAVE: saved there, and the project follows it
+tap SAVE
+spin PRESET 2
+wait 100
+shot save_to.png
+tap SAVE
+expect preset 3
+expect edited 0
+expect store_writes 1
+# P02 is still the init sound; the rig (Setup: transpose) stays as it is across presets
+tap GLO
+spin K1 5
+expect par26 5
+spin PRESET -1
+expect preset 2
+expect par0 15
+expect par26 5
+spin PRESET 1
+expect preset 3
+expect par0 45
+expect par26 5
+expect edited 0
+# kept across a restart: the preset, its sound, and nothing changed
+wait 5000
+reboot
+wait 200
+expect preset 3
+expect par0 45
+expect edited 0
+# SAVE held: the init sound, still on P03 (now changed from it)
+press SAVE
+wait 1600
+release SAVE
+tap SAVE
+expect par0 15
+expect preset 3
+expect edited 1
+spin PRESET -1
+spin PRESET 1
+expect par0 45
+expect edited 0

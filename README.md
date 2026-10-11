@@ -41,9 +41,20 @@ step through every page.
 | SEQ | Keys | Key breath, Octave |
 | GLO | Setup | Transpose, Tune, MIDI channel (Omni by default), Theme (Light or Dark); the version |
 
-**OCT−** / **OCT+** move the panel's keys by octaves; **PRESETS** transposes. Settings save
-themselves a few seconds after you stop playing (**SAVE** saves now). Hold **SAVE** for 1.5 s, then
-press it again, to reset the sound to its defaults; the Setup page stays as it is.
+**OCT−** / **OCT+** move the panel's keys by octaves.
+
+## Presets
+
+There are 64 presets, P01 to P64, and every one starts as the init sound. Turn **PRESETS** to play
+another; the header shows which, with a `*` once you've changed its sound. To keep a sound, press
+**SAVE**: the header asks "SAVE TO P12". Turn **PRESETS** to pick another slot if you like, then
+press **SAVE** again (any other button leaves the presets alone). What you're playing, edits
+included, is also kept by itself a few seconds after you stop, so it comes back after a restart.
+
+A preset holds the sound: the Voice, Pitch and Mod pages, and Attack and Release. Your rig's settings
+stay put when you change presets: breath source and curve, the glide CC, the Keys page and Setup.
+Hold **SAVE** for 1.5 s, then press it again, for the init sound (the preset slot is untouched until
+you save).
 
 ## In rough order
 
@@ -52,6 +63,7 @@ press it again, to reset the sound to its defaults; the Setup page stays as it i
 - 0.0.3: playable: breath, bite, glide and the mod matrix, from any windsynth, with its own pages and
   screen. The kalimba is gone. The browser version picks a MIDI input and shows what it hears.
 - 0.0.4: the init sound is a single saw with breath on the cutoff only.
+- 0.0.5: 64 presets, picked with PRESETS and saved with SAVE.
 
 ## Building and testing
 

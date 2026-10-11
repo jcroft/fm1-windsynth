@@ -74,11 +74,16 @@ __attribute__((used, visibility("default"))) uint32_t web_cpu(void) { return cpu
 
 /* saved objects: the page keeps them (localStorage) and gives them back before boot */
 __attribute__((used, visibility("default"))) uint8_t *web_store(uint32_t obj) { return obj < OBJ_NOBJ ? store[obj] : 0; }
-__attribute__((used, visibility("default"))) int web_store_len(uint32_t obj) { return obj < OBJ_NOBJ ? store_len[obj] : -1; }
+__attribute__((used, visibility("default"))) int web_store_len(uint32_t obj)
+{
+    return obj < OBJ_NOBJ && store_have[obj] ? store_len[obj] : -1;
+}
 __attribute__((used, visibility("default"))) void web_store_set_len(uint32_t obj, int n)
 {
-    if (obj < OBJ_NOBJ)
-        store_len[obj] = n < 0 ? -1 : n > (int)PLAT_STORE_MAX ? (int)PLAT_STORE_MAX : n;
+    if (obj < OBJ_NOBJ) {
+        store_have[obj] = n >= 0;
+        store_len[obj] = n < 0 ? 0 : n > (int)PLAT_STORE_MAX ? (int)PLAT_STORE_MAX : n;
+    }
 }
 __attribute__((used, visibility("default"))) uint32_t web_store_writes(void) { return store_writes; }
 __attribute__((used, visibility("default"))) uint32_t web_nobj(void) { return OBJ_NOBJ; }

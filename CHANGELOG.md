@@ -4,6 +4,16 @@ A release is a push to `main` that changes `VERSION` to a version with no tag ye
 release build, tags the commit `vX.Y.Z` and publishes the GitHub Release with that version's notes,
 taken from its section below. Add the section in the same pull request as the `VERSION` change.
 
+## 0.0.5
+
+- **64 presets.** Turn PRESETS to pick one (P01 to P64; each starts as the init sound). Press SAVE,
+  turn PRESETS if you want another slot, and press SAVE again to keep the sound there. The header shows
+  the preset, with a `*` when you've changed it. A preset holds the sound; breath source and curve,
+  the glide CC, the Keys page and Setup are your rig's and stay as they are.
+- PRESETS no longer transposes: Transpose is on the Setup page.
+- Holding SAVE now gives the init sound, and keeps the rig's settings (breath source and curve, glide
+  CC, Keys) as well as Setup.
+
 ## 0.0.4
 
 - **The init sound is one saw**, with breath on the cutoff and nothing else: Morph starts at 25
