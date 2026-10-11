@@ -61,3 +61,18 @@ spin PRESET -1
 spin PRESET 1
 expect par0 45
 expect edited 0
+# a project an older version saved (fewer values) comes back on its preset, its new values the defaults
+spin PRESET 4
+expect preset 7
+tap FX
+spin K2 40
+expect par34 40
+oldproject 1
+reboot
+wait 200
+expect preset 7
+expect par34 0
+oldproject 2
+reboot
+wait 200
+expect preset 7

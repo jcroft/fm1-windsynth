@@ -22,7 +22,10 @@ enum {
     P_M4SRC, P_M4DST, P_M4AMT,
     P_KEYBREATH, P_OCTAVE,                           /* Keys page (the panel's keys) */
     P_TRANSPOSE, P_TUNE, P_MIDICH, P_THEME,          /* Setup page */
-    P_ENGINE, P_RATIO, P_INDEX,                      /* Engine page (0.0.5) */
+    P_ENGINE, P_RATIO, P_INDEX,                      /* Engine page (0.0.6) */
+    P_RVTYPE, P_RVMIX, P_RVDECAY, P_RVTONE,          /* Reverb page (0.0.7) */
+    P_RVPRE, P_RVSIZE, P_RVMOD, P_RVLOW,             /* Reverb 2 page */
+    P_DLMODE, P_DLMIX, P_DLTIME, P_DLFB,             /* Delay page */
     P_NPARAMS
 };
 typedef struct {

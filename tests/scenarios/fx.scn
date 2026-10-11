@@ -1,0 +1,44 @@
+# The effects: FX opens Reverb, then Reverb 2, then Delay. Both start at Mix 0 (the init sound is dry);
+# with the reverb's Mix up, a note keeps sounding after it stops, and Mix back at 0 is dry again.
+wait 200
+tap FX
+expect view 10
+expect par33 0
+expect par34 0
+expect par35 50
+spin K2 40
+expect par34 40
+wait 50
+shot reverb_page.png
+tap FX
+expect view 11
+wait 50
+shot reverb2_page.png
+tap FX
+expect view 12
+spin K1 3
+expect par41 3
+spin K2 30
+expect par42 30
+wait 50
+shot delay_page.png
+tap FX
+expect view 10
+# a note, then its tail
+midi 90 45 64
+breath 0 127 50
+wait 300
+midi 80 45 00
+breath 127 0 20
+wait 400
+expect gate 0
+expect level >1
+# dry again: the voice's own release, then silence
+spin K2 -40
+expect par34 0
+tap FX
+tap FX
+spin K2 -30
+expect par42 0
+wait 600
+expect level 0

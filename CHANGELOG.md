@@ -4,6 +4,18 @@ A release is a push to `main` that changes `VERSION` to a version with no tag ye
 release build, tags the commit `vX.Y.Z` and publishes the GitHub Release with that version's notes,
 taken from its section below. Add the section in the same pull request as the `VERSION` change.
 
+## 0.0.7
+
+- **Reverb and delay**, on the new FX pages (press FX, then again for more). Both are stereo, the
+  delay feeds the reverb, and both start at Mix 0, so the init sound stays dry. A preset keeps its
+  effects.
+- **Reverb**: five types on one tank. Cloud is the big, blooming ambient one, after BigSky's Cloud;
+  Hall, Plate and Room are smaller; Shimmer is Cloud with an octave-up shimmer. Mix, Decay (0.2 s to
+  60 s), Tone, then Pre-delay, Size, Mod and Low end on Reverb 2.
+- **Delay**: Digital, Tape (wow, flutter, darker repeats), Analog (darker still) or Ping-pong (left
+  at Time, right at twice it). Mix, Time (20 ms to 2 s) and Feedback; Time changes glide.
+- A project saved by 0.0.5 now comes back on its preset. 0.0.6 opened those on P01.
+
 ## 0.0.6
 
 - **A second engine: FM.** Plaits' 2-operator FM, with its sub-oscillator left out, through the same

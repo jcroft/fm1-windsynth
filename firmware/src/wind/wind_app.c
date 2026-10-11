@@ -3,6 +3,7 @@
 #include "wind_app.h"
 #include "wind_ctl.h"
 #include "wind_voice.h"
+#include "wind_fx.h"
 #include "../dsp/fastmath.h"
 
 const char *const WA_NOTE_NAME[12] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
@@ -18,6 +19,10 @@ static const wa_param_t PARAMS[P_NPARAMS] = {
     {"Key brth", 0, 100, 100}, {"Octave", -3, 3, 0},
     {"Transpose", -24, 24, 0}, {"Tune", -100, 100, 0}, {"MIDI ch", 0, 16, 0}, {"Theme", 0, THEME_N - 1, 0},
     {"Engine", 0, WV_NENGINE - 1, WV_CLASSIC}, {"Ratio", 0, 100, 24}, {"Index", 0, 100, 40},
+    {"Type", 0, WF_RV_NTYPE - 1, WF_RV_CLOUD}, {"Mix", 0, 100, 0}, {"Decay", 0, 100, 50}, {"Tone", 0, 100, 60},
+    {"Pre-delay", 0, WF_PRE_MAX_MS, 20}, {"Size", 0, 100, 50}, {"Mod", 0, 100, 50}, {"Low end", -50, 50, 0},
+    {"Mode", 0, WF_DL_NMODE - 1, WF_DL_DIGITAL}, {"Mix", 0, 100, 0}, {"Time", 20, WF_TIME_MAX_MS, 350},
+    {"Feedback", 0, 100, 35},
 };
 
 const wa_param_t *wa_param_info(int i) { return &PARAMS[(unsigned)i < P_NPARAMS ? i : 0]; }
@@ -94,7 +99,21 @@ void wa_param_text(int i, int v, char *b)
     case P_SLOPE: copy_s(b, v ? "24dB" : "12dB"); return;
     case P_BSRC: put_src(b, v, "Press"); return;
     case P_GSRC: put_src(b, v, "Off"); return;
-    case P_ATTACK: case P_RELEASE: put_ms(b, v); return;
+    case P_ATTACK: case P_RELEASE: case P_RVPRE: case P_DLTIME: put_ms(b, v); return;
+    case P_RVTYPE: copy_s(b, WF_RV_NAME[(unsigned)v < WF_RV_NTYPE ? v : 0]); return;
+    case P_DLMODE: copy_s(b, WF_DL_NAME[(unsigned)v < WF_DL_NMODE ? v : 0]); return;
+    case P_RVDECAY: {                                    /* the reverb time: "0.8s", "3.5s", "17s" */
+        uint32_t t = (uint32_t)(wf_decay_s((float)v * 0.01f) * 10.0f + 0.5f);
+        if (t < 100u) {
+            b = put_u(b, t / 10u);
+            *b++ = '.';
+            b = put_u(b, t % 10u);
+        } else {
+            b = put_u(b, (t + 5u) / 10u);
+        }
+        copy_s(b, "s");
+        return;
+    }
     case P_GLIDE:
         if (!v)
             copy_s(b, "Off");
@@ -110,6 +129,7 @@ void wa_param_text(int i, int v, char *b)
         copy_s(b, WM_DST_NAME[(unsigned)v < WM_NDST ? v : 0]);
         return;
     case P_M1AMT: case P_M2AMT: case P_M3AMT: case P_M4AMT: case P_CURVE: case P_OCTAVE: case P_TRANSPOSE:
+    case P_RVLOW:
         put_i(b, v, 1);
         return;
     case P_TUNE: copy_s(put_i(b, v, 1), "c"); return;
@@ -164,6 +184,7 @@ void wa_init(void)
     int i;
     wc_init();
     wv_init();
+    wf_init();
     for (i = 0; i < P_NPARAMS; i++)
         wa_set(i, PARAMS[i].def);
     wa_state.top = -1;
@@ -187,6 +208,18 @@ void wa_set(int k, int v)
     case P_INDEX: base[WM_DST_TIMBRE] = (float)v * 0.01f; break;
     case P_RATIO: ratio = (float)v * 0.01f; break;
     case P_ENGINE: wv_engine((uint32_t)v); break;
+    case P_RVTYPE: wf_cfg.rv_type = (uint8_t)v; break;
+    case P_RVMIX: wf_cfg.rv_mix = (float)v * 0.01f; break;
+    case P_RVDECAY: wf_cfg.rv_decay = (float)v * 0.01f; break;
+    case P_RVTONE: wf_cfg.rv_tone = (float)v * 0.01f; break;
+    case P_RVPRE: wf_cfg.rv_pre_ms = (float)v; break;
+    case P_RVSIZE: wf_cfg.rv_size = (float)v * 0.01f; break;
+    case P_RVMOD: wf_cfg.rv_mod = (float)v * 0.01f; break;
+    case P_RVLOW: wf_cfg.rv_low = (float)v * 0.02f; break;
+    case P_DLMODE: wf_cfg.dl_mode = (uint8_t)v; break;
+    case P_DLMIX: wf_cfg.dl_mix = (float)v * 0.01f; break;
+    case P_DLTIME: wf_cfg.dl_ms = (float)v; break;
+    case P_DLFB: wf_cfg.dl_fb = (float)v * 0.01f; break;
     case P_SLOPE: wv_slope(v ? WV_SLOPE_24 : WV_SLOPE_12); break;
     case P_BSRC: wc_cfg.breath_src = (uint8_t)v; break;
     case P_CURVE: wc_cfg.breath_curve = (int8_t)v; break;
@@ -251,9 +284,12 @@ void wa_render(int32_t *out, uint32_t n, uint32_t gain_q12, int (*midi_in)(uint3
         f.timbre = m[WM_DST_TIMBRE];
         f.harmonics = ratio;
         wv_render(&f, out, k);
+        wf_process(out, k);
         for (i = 0; i < k; i++) {
-            float a = fm_fabsf((float)out[2 * i] * (1.0f / 8388608.0f));
+            float a = fm_fabsf((float)out[2 * i] * (1.0f / 8388608.0f)),
+                  b = fm_fabsf((float)out[2 * i + 1] * (1.0f / 8388608.0f));
             pk = a > pk ? a : pk;
+            pk = b > pk ? b : pk;
         }
         wa_state.note = c.note;
         wa_state.gate = c.gate;
