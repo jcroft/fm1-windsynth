@@ -76,3 +76,12 @@ oldproject 2
 reboot
 wait 200
 expect preset 7
+# 0.0.8 kept CC depth as a Glide value (50: 0.5 s); it comes back as 500 ms
+tap LFO
+tap LFO
+spin K1 -350
+expect par45 50
+oldproject 4
+reboot
+wait 200
+expect par45 500

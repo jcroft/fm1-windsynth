@@ -4,6 +4,16 @@ A release is a push to `main` that changes `VERSION` to a version with no tag ye
 release build, tags the commit `vX.Y.Z` and publishes the GitHub Release with that version's notes,
 taken from its section below. Add the section in the same pull request as the `VERSION` change.
 
+## 0.0.9
+
+- **Shimmer, rebuilt** toward Valhalla Shimmer and BigSky's. The whole tail now goes through a
+  cleaner octave-up shifter (longer, smoother grains) and back into the reverb's input, so it blooms
+  and climbs an octave at a time, high-passed so the low end stays clear. On Reverb 2, the Mod knob
+  becomes **Shimmer** while the type is Shimmer: how much climbs (50 by default; near the top it
+  sustains on its own).
+- **CC depth starts at 400 ms** (it was 2 s) and is set in milliseconds, up to 2 s. A depth you set in
+  0.0.8 comes back as the same time.
+
 ## 0.0.8
 
 - **Glide CC depth.** Press LFO twice for Pitch 2. CC depth sets the glide time CC5 (or your glide

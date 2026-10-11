@@ -6,7 +6,9 @@
  *            ring of four blocks (a modulated allpass, an allpass, a delay, damping and a low-end
  *            control), after Griesinger and Dattorro, as Mutable's Clouds and Rings reverbs are, widened
  *            to four blocks. Cloud: eight long, moving input diffusers into a big ring, after Strymon's
- *            description of BigSky's Cloud. Shimmer: Cloud with an octave-up pitch shifter in the ring.
+ *            description of BigSky's Cloud. Shimmer: Cloud whose tail goes through an octave-up pitch
+ *            shifter and back into its input, so it climbs an octave at a time (as BigSky's and
+ *            Valhalla's shimmers do), high-passed so the bass stays clear.
  *   Delay    one mono line: Digital, Tape (wow and flutter, darker, saturating), Analog (darker still)
  *            or Ping-pong (left at the time, right at twice it). Time changes glide.
  *
@@ -32,6 +34,7 @@ typedef struct {
     float rv_mix, rv_decay, rv_tone, rv_size, rv_mod;   /* 0..1 */
     float rv_low;                      /* -1..1: the bass decays faster .. slower than the rest */
     float rv_pre_ms;
+    float rv_shim;                     /* 0..1: how much of the tail climbs an octave (Shimmer) */
     uint8_t dl_mode;
     float dl_mix, dl_fb;               /* 0..1 */
     float dl_ms;

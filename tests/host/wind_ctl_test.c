@@ -162,6 +162,7 @@ static void test_bend(void)
 static void test_glide(void)
 {
     wc_init();
+    wc_cfg.glide_depth = 2000;                        /* CC depth 2 s (the default is 400 ms) */
     wc_midi(0xB0, 5, 127);                            /* CC5: the glide time, 2 s at full */
     CHECK(wc_take_glide_cc() == 100 && wc_cfg.glide == 100, "CC5 127: glide %d", wc_cfg.glide);
     CHECK(wc_take_glide_cc() == -1, "glide CC taken twice");
@@ -189,12 +190,15 @@ static void test_glide(void)
     run(250);
     CHECK(NEAR(o.note, 54.0f, 0.1f), "always: %g after 250 ms", (double)o.note);
     wc_midi(0x80, 60, 0);
-    wc_cfg.glide_depth = 40;                          /* the depth: CC5 at full reaches it */
+    wc_cfg.glide_depth = 320;                         /* the depth: CC5 at full reaches 320 ms (Glide 40) */
     wc_midi(0xB0, 5, 127);
     CHECK(wc_cfg.glide == 40 && wc_take_glide_cc() == 40, "CC5 127 at depth 40: glide %d", wc_cfg.glide);
     wc_midi(0xB0, 5, 64);
     CHECK(wc_cfg.glide == 20, "CC5 64 at depth 40: glide %d", wc_cfg.glide);
-    wc_cfg.glide_depth = 100;
+    wc_cfg.glide_depth = 400;                         /* the default: 400 ms at full */
+    wc_midi(0xB0, 5, 127);
+    CHECK(wc_cfg.glide == 45, "CC5 127 at the default depth: glide %d", wc_cfg.glide);
+    wc_cfg.glide_depth = 2000;
     wc_midi(0xB0, 5, 64);
     wc_take_glide_cc();
     wc_cfg.glide_src = WC_SRC_OFF;                    /* no glide CC */
@@ -337,7 +341,8 @@ static void test_app(void)
     CHECK(fm_fabsf(cents(f, 440.0f) + 200.0f) < 1.0f, "bite down: %g Hz", (double)f);
     midi(0xE0, 0x00, 0x40);
 
-    /* CC5 sets the glide; the next legato note slides */
+    /* CC5 sets the glide; the next legato note slides (CC depth 2 s: CC5 64 is Glide 50) */
+    wa_set(P_GDEPTH, 2000);
     midi(0xB0, 5, 64);
     play(64);
     CHECK(wa_take_glide() == 50, "CC5 not seen by the app");

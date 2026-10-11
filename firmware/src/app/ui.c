@@ -85,6 +85,13 @@ static struct {
     uint8_t key_note[NKEYS];           /* the note each held key plays (released as it was) */
 } ui;
 
+/* a knob's value on this page: Reverb 2's Mod is Shimmer's amount while the type is Shimmer */
+static int knob_of(int i)
+{
+    int k = VIEW_KNOB[ui.view][i];
+    return k == P_RVMOD && proj.par[P_RVTYPE] == WF_RV_SHIMMER ? P_RVSHIM : k;
+}
+
 static void say(const char *a, const char *b)
 {
     uint32_t i;
@@ -352,7 +359,7 @@ static void input(void)
     }
     for (i = 0; i < 4; i++)
         if ((e = plat_enc(EN_K1 + (int)i)) != 0) {
-            turn(EN_K1 + (int)i, VIEW_KNOB[ui.view][i], e);
+            turn(EN_K1 + (int)i, knob_of((int)i), e);
             ui.touched = (int8_t)i;
             ui.touch_until = plat_ms() + 1200u;
             ui.act_t = plat_ms();
@@ -538,7 +545,7 @@ static void draw_knobs(void)
     uint32_t h = hash(2166136261u, ui.view | (uint32_t)ui.touched << 8 | (uint32_t)proj.par[P_THEME] << 16), i;
     int now_touch = plat_ms() < ui.touch_until;
     for (i = 0; i < 4; i++) {
-        int k = VIEW_KNOB[ui.view][i];
+        int k = knob_of((int)i);
         h = hash(h, k == K_NONE ? 0xFFFFu : (uint32_t)(uint16_t)proj.par[k] | (uint32_t)k << 16);
     }
     h = hash(h, (uint32_t)now_touch);
@@ -548,7 +555,7 @@ static void draw_knobs(void)
     cv_begin(240, KNB_H, K_BG);
     cv_round(4, 2, 232, KNB_H - 6, 6, K_PANEL);
     for (i = 0; i < 4; i++) {
-        int k = VIEW_KNOB[ui.view][i], lo, hi, v;
+        int k = knob_of((int)i), lo, hi, v;
         int32_t x = (int32_t)i * 60, cx = x + 30, bw;
         int hot = now_touch && ui.touched == (int)i;
         char t[16];

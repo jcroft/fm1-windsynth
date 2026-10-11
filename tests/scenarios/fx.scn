@@ -42,3 +42,25 @@ spin K2 -30
 expect par42 0
 wait 600
 expect level 0
+# Shimmer: on Reverb 2, Mod's knob is the shimmer's amount
+tap FX
+expect view 11
+spin K1 4
+expect par33 4
+tap FX
+expect view 12
+spin K3 30
+expect par46 80
+expect par39 50
+wait 50
+shot shimmer_page.png
+tap FX
+tap FX
+expect view 11
+spin K1 -4
+expect par33 0
+tap FX
+expect view 12
+spin K3 -10
+expect par39 40
+expect par46 80

@@ -35,7 +35,7 @@ void wc_init(void)
     wc_cfg.bend_range = 2;
     wc_cfg.glide_src = 5;
     wc_cfg.glide = 0;
-    wc_cfg.glide_depth = 100;
+    wc_cfg.glide_depth = 400;
     wc_cfg.glide_always = 0;
     wc_cfg.transpose = 0;
     wc_cfg.tune = 0;
@@ -120,7 +120,10 @@ static void cc(uint32_t n, uint32_t v)
         set_breath();
     }
     if (n == wc_cfg.glide_src) {
-        wc_cfg.glide = (uint8_t)((v * wc_cfg.glide_depth + 63u) / 127u);   /* 127: the depth */
+        /* 127: the depth (glide's time is its value squared: 100 is 2 s) */
+        float g = 100.0f * fm_sqrtf((float)wc_cfg.glide_depth * (1.0f / (GLIDE_MAX_S * 1000.0f))) * (float)v *
+                  (1.0f / 127.0f);
+        wc_cfg.glide = (uint8_t)(g + 0.5f);
         w.glide_cc = wc_cfg.glide;
     }
     if (n == 1u)

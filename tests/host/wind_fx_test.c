@@ -5,7 +5,7 @@
  *   lines        the reverb's lines at their longest fit its buffer
  *   reverb       every Type: the tail's decay matches the Decay knob's time, left and right differ, and
  *                it stays bounded at the longest Decay with Size moving
- *   shimmer      an octave above the note, where Cloud has next to nothing
+ *   shimmer      an octave above the note, where Cloud has next to nothing, and more with more Shimmer
  *   delay        the echo lands at Time, the next one at Feedback x it; Ping-pong: left at Time, right
  *                at twice it; Tape: its echo is darker than Digital's */
 #include <stdio.h>
@@ -108,6 +108,7 @@ static void test_reverb(void)
         wf_cfg.rv_decay = 0.45f;
         wf_cfg.rv_tone = 1.0f;          /* (no damping: the time is the ring's gain alone) */
         wf_cfg.rv_pre_ms = 0.0f;
+        wf_cfg.rv_shim = 0.0f;          /* (Shimmer's octaves sustain it past the tank's own time) */
         want = wf_decay_s(0.45f);
         fill_click(2 * SR);
         run(2 * SR);
@@ -133,6 +134,7 @@ static void test_reverb(void)
         wf_cfg.rv_decay = 1.0f;
         wf_cfg.rv_mod = 1.0f;
         wf_cfg.rv_low = 1.0f;
+        wf_cfg.rv_shim = 1.0f;
         for (i = 0; i < 4 * SR; i++) {
             r = r * 1664525u + 1013904223u;
             buf[2 * i] = buf[2 * i + 1] = (int32_t)r >> 10;
@@ -150,8 +152,7 @@ static void test_reverb(void)
         }
         snprintf(m, sizeof m, "%s at the longest Decay: bounded (peak %.2f), still ringing (%.3f)", WF_RV_NAME[t],
                  pk, rms(5 * SR, SR / 2, 0));
-        /* (Shimmer's tail climbs an octave a turn, out through the damping: it rings shorter) */
-        check(!bad && pk < 0.99f && rms(5 * SR, SR / 2, 0) > (t == WF_RV_SHIMMER ? 0.002f : 0.01f), m);
+        check(!bad && pk < 0.99f && rms(5 * SR, SR / 2, 0) > 0.01f, m);
     }
 }
 
@@ -175,13 +176,14 @@ static float tone_at(uint32_t from, uint32_t len, float f)
 
 static void test_shimmer(void)
 {
-    float o[2], f[2];
-    char m[160];
+    float o[3], f[3];
+    char m[200];
     int k;
-    for (k = 0; k < 2; k++) {
+    for (k = 0; k < 3; k++) {          /* Cloud; Shimmer; Shimmer turned down */
         uint32_t i, n = 3 * SR;
         defaults();
         wf_cfg.rv_type = k ? WF_RV_SHIMMER : WF_RV_CLOUD;
+        wf_cfg.rv_shim = k == 2 ? 0.15f : 0.5f;
         wf_cfg.rv_mix = 1.0f;
         wf_cfg.rv_decay = 0.6f;
         wf_cfg.rv_mod = 0.0f;
@@ -191,8 +193,9 @@ static void test_shimmer(void)
         o[k] = tone_at(2 * SR, SR / 2, 660.0f);
         f[k] = tone_at(2 * SR, SR / 2, 330.0f);
     }
-    snprintf(m, sizeof m, "Shimmer: an octave up, %.4f against Cloud's %.4f (the note: %.3f, %.3f)", o[1], o[0], f[1], f[0]);
-    check(o[1] > 4.0f * o[0] && o[1] > 0.05f * f[1], m);
+    snprintf(m, sizeof m, "Shimmer: an octave up, %.4f against Cloud's %.4f (the note: %.3f, %.3f); turned down %.4f",
+             o[1], o[0], f[1], f[0], o[2]);
+    check(o[1] > 4.0f * o[0] && o[1] > 0.25f * f[1] && o[1] > 1.5f * o[2], m);
 }
 
 static uint32_t peak_near(uint32_t c, int ch)   /* the loudest sample within 5 ms of c */

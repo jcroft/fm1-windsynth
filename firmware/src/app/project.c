@@ -24,6 +24,8 @@ static int project_valid(int bytes)
         have = PROJ_NPAR_OF(proj.format);
     at = 8 + 2 * PROJ_NPAR_OF(proj.format);      /* the preset follows its format's values */
     proj.preset = at < bytes ? ((const uint8_t *)&proj)[at] : 0u;
+    if (proj.format == 4u && have > P_GDEPTH)    /* 0.0.8 kept CC depth as a Glide value: now it's ms */
+        proj.par[P_GDEPTH] = (int16_t)((proj.par[P_GDEPTH] * proj.par[P_GDEPTH] * 2000 + 5000) / 10000);
     proj.format = PROJ_FORMAT;
     if (proj.preset >= NPRESETS)
         proj.preset = 0;
