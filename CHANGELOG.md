@@ -4,6 +4,15 @@ A release is a push to `main` that changes `VERSION` to a version with no tag ye
 release build, tags the commit `vX.Y.Z` and publishes the GitHub Release with that version's notes,
 taken from its section below. Add the section in the same pull request as the `VERSION` change.
 
+## 0.0.6
+
+- **A second engine: FM.** Plaits' 2-operator FM, with its sub-oscillator left out, through the same
+  filter as Classic, so breath opens it the same way. Pick it on the new Engine page (press HOME
+  twice) or with the ALGORITHM knob. Ratio sets the modulator (0.5 to 16 times the note), Index how
+  much FM, and Morph on the Voice page is its feedback (none at 50). A preset keeps its engine.
+- **A new Mod destination, Timbre:** the engine's own timbre, FM's index. Breath to Timbre makes FM
+  brighten as you blow harder. Classic has no timbre of its own, so there it does nothing.
+
 ## 0.0.5
 
 - **64 presets.** Turn PRESETS to pick one (P01 to P64; each starts as the init sound). Press SAVE,

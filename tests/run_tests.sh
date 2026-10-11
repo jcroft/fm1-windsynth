@@ -30,10 +30,12 @@ run trs sh -c "$CC -O2 -w -Ifirmware/src -Ifirmware/hal -o $OUT/trs_test tests/h
 CXX="${CXX:-c++}"
 run wind sh -c "mkdir -p $OUT/wind && $CXX -O2 -ffp-contract=off -DTEST -Ifirmware/third_party/mutable -Itests/host \
     -o $OUT/wind/wind_ref tests/host/wind_ref.cc firmware/third_party/mutable/plaits/dsp/engine2/virtual_analog_vcf_engine.cc \
+    firmware/third_party/mutable/plaits/dsp/engine/fm_engine.cc firmware/third_party/mutable/plaits/resources.cc \
     firmware/third_party/mutable/stmlib/dsp/units.cc && $OUT/wind/wind_ref $OUT/wind/ref.f32 && \
+    $OUT/wind/wind_ref $OUT/wind/ref_fm.f32 fm && \
     $CC -O2 -ffp-contract=off -std=c99 -Wall -Wextra -Wdouble-promotion -Werror -Ifirmware/src -Itests/host \
     -o $OUT/wind/wind_voice_test tests/host/wind_voice_test.c \$(sh tools/wind_cxx.sh $CXX $OUT/wind -Werror) && \
-    $OUT/wind/wind_voice_test $OUT/wind/ref.f32 $OUT/wind"
+    $OUT/wind/wind_voice_test $OUT/wind/ref.f32 $OUT/wind/ref_fm.f32 $OUT/wind"
 # wind control (MIDI, the note stack, breath, bite, glide), the matrix and the instrument; no libm
 run wind-ctl sh -c "$CC -O2 -ffp-contract=off -std=c99 -Wall -Wextra -Wdouble-promotion -Werror -Ifirmware/src \
     -o $OUT/wind/wind_ctl_test tests/host/wind_ctl_test.c firmware/src/wind/wind_ctl.c firmware/src/wind/wind_matrix.c \

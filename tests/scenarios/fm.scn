@@ -1,0 +1,40 @@
+# The FM engine: on the Engine page (HOME again) or with ALGORITHM. Breath still opens our filter on
+# it, and a Mod slot can send breath to its index (Timbre).
+wait 200
+tap HOME
+expect view 1
+spin K1 1
+expect par30 1
+expect par31 24
+expect par32 40
+wait 100
+shot fm_engine.png
+spin ALGO -1
+expect par30 0
+spin ALGO 1
+expect par30 1
+midi 90 39 64
+breath 0 127 50
+wait 50
+expect gate 1
+expect cutoff 90
+expect timbre 40
+expect level >5
+peakreset
+breath 127 10 50
+wait 60
+breath 10 10 10
+expect cutoff <30
+# Mod 2: breath to Timbre (FM's index)
+tap SEL
+tap SEL
+expect view 5
+spin K1 1
+spin K2 4
+spin K3 50
+expect par16 4
+breath 10 127 50
+wait 30
+expect timbre 90
+midi 80 39 00
+wait 200

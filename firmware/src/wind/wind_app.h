@@ -22,6 +22,7 @@ enum {
     P_M4SRC, P_M4DST, P_M4AMT,
     P_KEYBREATH, P_OCTAVE,                           /* Keys page (the panel's keys) */
     P_TRANSPOSE, P_TUNE, P_MIDICH, P_THEME,          /* Setup page */
+    P_ENGINE, P_RATIO, P_INDEX,                      /* Engine page (0.0.5) */
     P_NPARAMS
 };
 typedef struct {
@@ -48,6 +49,7 @@ int wa_take_glide(void);               /* the Glide value a CC last set (0..100)
 typedef struct {
     float note, gate, breath, bend;    /* wind_ctl's */
     float cutoff, res, amp, morph;     /* after the matrix */
+    float timbre;
     float level;                       /* the output's peak in the last block, 0..1 */
     int top;                           /* the note sounding (MIDI number), -1 none yet */
     uint32_t midi_seen;                /* packets received */
