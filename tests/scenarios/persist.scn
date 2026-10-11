@@ -27,4 +27,4 @@ wait 1600
 release SAVE
 tap SAVE
 expect par0 15
-expect par1 20
+expect par1 0

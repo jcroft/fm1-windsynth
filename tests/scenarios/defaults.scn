@@ -9,6 +9,12 @@ expect par8 2
 expect par9 5
 expect par12 1
 expect par14 75
+# the init sound: one saw (Morph 25), no resonance, breath to cutoff and nothing else
+expect par1 0
+expect par2 25
+expect par15 0
+expect par18 0
+expect par21 0
 expect dirty 0
 expect luma100 >200
 shot boot.png

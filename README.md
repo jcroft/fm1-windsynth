@@ -34,7 +34,7 @@ step through every page.
 
 | Button | Page | Knobs |
 | --- | --- | --- |
-| HOME | Voice | Cutoff, Resonance, Morph (the engine's tone), Slope (12 or 24 dB) |
+| HOME | Voice | Cutoff, Resonance, Morph (the waveform: a saw up to 25, a square at 50, then a pulse that narrows and widens again; a sub-octave fades in below 20 and above 80), Slope (12 or 24 dB) |
 | ENV | Breath | Source (a CC, or aftertouch), Curve, Attack, Release |
 | LFO | Pitch | Bend range, Glide source, Glide time, Glide mode (always or legato) |
 | SEL | Mod 1–4 (press again for the next) | Source (breath, bite, mod wheel, pressure, velocity), Destination (cutoff, resonance, amp, morph), Amount (−100 to +100) |
@@ -51,6 +51,7 @@ press it again, to reset the sound to its defaults; the Setup page stays as it i
 - 0.0.2: Plaits' VA-VCF voice inside, bit-exact with upstream Plaits.
 - 0.0.3: playable: breath, bite, glide and the mod matrix, from any windsynth, with its own pages and
   screen. The kalimba is gone. The browser version picks a MIDI input and shows what it hears.
+- 0.0.4: the init sound is a single saw with breath on the cutoff only.
 
 ## Building and testing
 
