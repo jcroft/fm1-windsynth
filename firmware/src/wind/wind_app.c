@@ -23,6 +23,7 @@ static const wa_param_t PARAMS[P_NPARAMS] = {
     {"Pre-delay", 0, WF_PRE_MAX_MS, 20}, {"Size", 0, 100, 50}, {"Mod", 0, 100, 50}, {"Low end", -50, 50, 0},
     {"Mode", 0, WF_DL_NMODE - 1, WF_DL_DIGITAL}, {"Mix", 0, 100, 0}, {"Time", 20, WF_TIME_MAX_MS, 350},
     {"Feedback", 0, 100, 35}, {"CC depth", 0, 100, 100},
+    {"Shimmer", 0, 100, 50},
 };
 
 const wa_param_t *wa_param_info(int i) { return &PARAMS[(unsigned)i < P_NPARAMS ? i : 0]; }
@@ -216,6 +217,7 @@ void wa_set(int k, int v)
     case P_RVSIZE: wf_cfg.rv_size = (float)v * 0.01f; break;
     case P_RVMOD: wf_cfg.rv_mod = (float)v * 0.01f; break;
     case P_RVLOW: wf_cfg.rv_low = (float)v * 0.02f; break;
+    case P_RVSHIM: wf_cfg.rv_shim = (float)v * 0.01f; break;
     case P_DLMODE: wf_cfg.dl_mode = (uint8_t)v; break;
     case P_DLMIX: wf_cfg.dl_mix = (float)v * 0.01f; break;
     case P_DLTIME: wf_cfg.dl_ms = (float)v; break;

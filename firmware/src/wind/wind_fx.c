@@ -24,8 +24,8 @@
 #define RV_Q 8192.0f                    /* 16-bit, +-4 full scale */
 #define DL_N 49152u                     /* 2.23 s of delay */
 #define DL_Q 16384.0f                   /* +-2 */
-#define SH_N 2048u                      /* the shimmer's pitch shifter */
-#define SH_W 1024.0f                    /* ...its grain, 46 ms */
+#define SH_N 4096u                      /* the shimmer's pitch shifter */
+#define SH_W 2048.0f                    /* ...its grain, 93 ms */
 #define SMAX 1.5f                       /* the longest Size: a Type's own size x 1.5 */
 #define MARGIN 64u                      /* room for a line's modulation (and its interpolation) */
 
@@ -52,7 +52,7 @@ static const float LEN[L_N] = {
 #define PRE_MAX ((uint32_t)(WF_PRE_MAX_MS * SR2 / 1000.0f) + 4u)
 
 /* a Type: its size, input allpasses and their coefficient, the ring's two allpass coefficients, how
- * much the Mod knob moves the input and the ring, and the shimmer's share of the ring */
+ * much the Mod knob moves the input and the ring, and whether the tail climbs in octaves (Shimmer) */
 typedef struct {
     float size;
     uint32_t nin;
@@ -63,7 +63,7 @@ static const rv_type_t TYPES[WF_RV_NTYPE] = {
     {0.80f, 4, 0.70f, 0.65f, 0.50f, 0.3f, 0.5f, 0.0f},     /* Hall */
     {0.50f, 4, 0.75f, 0.70f, 0.50f, 0.0f, 0.5f, 0.0f},     /* Plate */
     {0.28f, 2, 0.60f, 0.50f, 0.40f, 0.0f, 0.3f, 0.0f},     /* Room */
-    {1.00f, 8, 0.70f, 0.70f, 0.55f, 0.8f, 0.4f, 0.45f},    /* Shimmer */
+    {1.00f, 8, 0.70f, 0.70f, 0.55f, 0.8f, 0.4f, 1.0f},     /* Shimmer */
 };
 
 static uint32_t rv_base[L_N], rv_span, rv_wp;
@@ -71,12 +71,18 @@ static float rv_size = 1.0f, rv_pre;   /* gliding: the Size scale, the pre-delay
 static float rv_lp[4], rv_low[4], rv_in_lp;
 static float lfo_c[2], lfo_s[2];       /* two quadrature LFOs: the input's, the ring's */
 static uint32_t sh_w;
-static float sh_ph;
+static float sh_ph, sh_hp, sh_fb;      /* the shifter's grain; its input's high-pass; what it feeds back */
 
 static int16_t q16(float v)
 {
     v = v > 32767.0f ? 32767.0f : v < -32767.0f ? -32767.0f : v;
     return (int16_t)(v < 0.0f ? v - 0.5f : v + 0.5f);
+}
+
+static float sat(float x)               /* a soft clip: x below about 0.5, 1 at 3 */
+{
+    x = x > 3.0f ? 3.0f : x < -3.0f ? -3.0f : x;
+    return x * (27.0f + x * x) / (27.0f + 9.0f * x * x);
 }
 
 static float rv_rd(int l, float d)     /* line l, d samples back */
@@ -98,10 +104,11 @@ static float rv_ap(int l, float d, float k, float x)
     return z - k * w;
 }
 
-/* the shimmer: two grains reading back at twice the speed, an octave up, crossfaded */
+/* the shimmer's shifter: two 93 ms grains reading back at twice the speed, an octave up, crossfaded
+ * with raised-cosine windows (each fades in as the other fades out) */
 static float shimmer(float x)
 {
-    float p2 = sh_ph + 0.5f, y = 0.0f;
+    float p2 = sh_ph + 0.5f, y = 0.0f, c = fm_cosf(FM_TWO_PI * sh_ph);
     int g;
     sh_buf[sh_w & (SH_N - 1u)] = x;
     p2 = p2 >= 1.0f ? p2 - 1.0f : p2;
@@ -112,9 +119,9 @@ static float shimmer(float x)
         f = d - (float)i;
         a = sh_buf[j & (SH_N - 1u)];
         b = sh_buf[(j - 1u) & (SH_N - 1u)];
-        y += (a + f * (b - a)) * (1.0f - fm_fabsf(2.0f * p - 1.0f));
+        y += (a + f * (b - a)) * (g ? 0.5f + 0.5f * c : 0.5f - 0.5f * c);
     }
-    y *= 1.2247f;                       /* sqrt(3/2): the two grains' power, as a rule unrelated, back to 1 */
+    y *= 1.155f;                        /* the two grains' power, as a rule unrelated, back to about 1 */
     sh_w++;
     sh_ph -= 1.0f / SH_W;
     if (sh_ph < 0.0f)
@@ -127,7 +134,7 @@ float wf_decay_s(float decay) { return 0.2f * fm_exp2f(decay * 8.2288f); }   /* 
 /* per block: everything the knobs set, for the samples of the block */
 typedef struct {
     const rv_type_t *t;
-    float len[L_N], g[4], glow[4], damp, low_a, in_a, din, dring, pre, wc[2], ws[2];
+    float len[L_N], g[4], glow[4], damp, low_a, in_a, din, dring, pre, wc[2], ws[2], shg, sh_a;
 } rv_k_t;
 
 static void rv_block(rv_k_t *k)
@@ -148,11 +155,14 @@ static void rv_block(rv_k_t *k)
         k->glow[i] = fm_exp2f(-9.9658f * l / (rt * lowm * SR2));
     }
     /* Tone: the ring's damping, 1 kHz .. 10 kHz, open at the top */
-    fc = 1000.0f * fm_exp2f(wf_cfg.rv_tone * 3.3219f);
+    fc = 1000.0f * fm_exp2f(wf_cfg.rv_tone * 3.3219f) * (t->shimmer > 0.0f ? 1.6f : 1.0f);  /* (room to climb) */
     k->damp = wf_cfg.rv_tone >= 0.995f ? 1.0f : 1.0f - fm_expf(-FM_TWO_PI * fc / SR2);
     fc = fc * 1.5f;
     k->in_a = fc >= 10000.0f ? 1.0f : 1.0f - fm_expf(-FM_TWO_PI * fc / SR2);
     k->low_a = 1.0f - fm_expf(-FM_TWO_PI * 250.0f / SR2);
+    /* Shimmer: the octave fed back into the input, high-passed so the low end stays clear */
+    k->shg = t->shimmer * wf_cfg.rv_shim * 4.0f;
+    k->sh_a = 1.0f - fm_expf(-FM_TWO_PI * 400.0f / SR2);
     /* Mod: the input diffusers by up to 25 samples, the ring by up to 12; faster above 70 */
     k->din = t->mod_in * mod * 25.0f;
     k->dring = t->mod_ring * mod * 12.0f;
@@ -189,7 +199,7 @@ static void rv_sample(const rv_k_t *k, float x, float *l, float *r)
     rv_wr(L_PRE, x);
     x = rv_rd(L_PRE, k->pre);
     rv_in_lp += k->in_a * (x - rv_in_lp);
-    x = rv_in_lp;
+    x = rv_in_lp + sh_fb;
     for (i = 0; i < t->nin; i++)
         x = rv_ap(L_IN + (int)i, k->len[L_IN + i] + k->din * ph[0][i & 3u], t->kin, x);
     /* the ring: each block's delay out, damped, its bass kept longer or shorter */
@@ -199,8 +209,6 @@ static void rv_sample(const rv_k_t *k, float x, float *l, float *r)
         rv_low[i] += k->low_a * (rv_lp[i] - rv_low[i]);
         fb[i] = k->g[i] * rv_lp[i] + (k->glow[i] - k->g[i]) * rv_low[i];
     }
-    if (t->shimmer > 0.0f)
-        fb[3] += (shimmer(fb[3]) - fb[3]) * t->shimmer;
     for (i = 0; i < 4; i++) {
         float y = fb[(i + 3u) & 3u] + ((i & 1u) ? 0.0f : x);   /* the input into blocks 0 and 2 */
         y = rv_ap(L_AP1 + (int)i, k->len[L_AP1 + i] + k->dring * ph[1][i], -t->k1, y);
@@ -210,6 +218,13 @@ static void rv_sample(const rv_k_t *k, float x, float *l, float *r)
     }
     *l = 0.6f * (d[0] + 0.6f * a[1]);
     *r = 0.6f * (d[2] + 0.6f * a[3]);
+    if (k->shg > 0.0f) {                /* the tail, an octave up, back into the input: it climbs */
+        float y = 0.5f * (*l + *r);
+        sh_hp += k->sh_a * (y - sh_hp);
+        sh_fb = 0.25f * sat(shimmer(y - sh_hp) * k->shg * 4.0f);   /* (held under 0.25: it can't run away) */
+    } else {
+        sh_fb = 0.0f;
+    }
     rv_wp--;
 }
 
@@ -222,7 +237,7 @@ static void rv_clear(void)
         sh_buf[i] = 0.0f;
     for (i = 0; i < 4; i++)
         rv_lp[i] = rv_low[i] = 0.0f;
-    rv_in_lp = 0.0f;
+    rv_in_lp = sh_hp = sh_fb = 0.0f;
 }
 
 uint32_t wf_reverb_span(void) { return rv_span; }
@@ -248,12 +263,6 @@ typedef struct {
     float t, slew, lp_a, hp_a, fb, wow_w, flut_w;
     int ping;
 } dl_k_t;
-
-static float sat(float x)               /* a soft clip: x below about 0.5, 1 at 3 */
-{
-    x = x > 3.0f ? 3.0f : x < -3.0f ? -3.0f : x;
-    return x * (27.0f + x * x) / (27.0f + 9.0f * x * x);
-}
 
 static void dl_block(dl_k_t *k)
 {
@@ -365,6 +374,7 @@ void wf_init(void)
     wf_cfg.rv_size = 0.5f;
     wf_cfg.rv_mod = 0.5f;
     wf_cfg.rv_low = 0.0f;
+    wf_cfg.rv_shim = 0.5f;
     wf_cfg.rv_pre_ms = 20.0f;
     wf_cfg.dl_mode = WF_DL_DIGITAL;
     wf_cfg.dl_fb = 0.35f;
@@ -465,6 +475,7 @@ void wf_process(int32_t *lr, uint32_t n)
         for (i = 0; i < 4; i++)
             rv_lp[i] = fm_flush(rv_lp[i]), rv_low[i] = fm_flush(rv_low[i]);
         rv_in_lp = fm_flush(rv_in_lp);
+        sh_hp = fm_flush(sh_hp);
     }
     if (dw == 0.0f && g_dw == 0.0f)
         dl_on = 0;

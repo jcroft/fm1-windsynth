@@ -43,7 +43,7 @@ step through every page.
 | SEQ | Keys | Key breath, Octave |
 | GLO | Setup | Transpose, Tune, MIDI channel (Omni by default), Theme (Light or Dark); the version |
 | FX | Reverb | Type (Cloud, Hall, Plate, Room, Shimmer), Mix, Decay (0.2 s to 60 s), Tone |
-| FX again | Reverb 2 | Pre-delay (up to 500 ms), Size, Mod (how much the reverb moves), Low end (the bass's decay, shorter or longer) |
+| FX again | Reverb 2 | Pre-delay (up to 500 ms), Size, Mod (how much the reverb moves; on Shimmer, Shimmer: how much of the tail climbs), Low end (the bass's decay, shorter or longer) |
 | FX again | Delay | Mode (Digital, Tape, Analog, Ping-pong), Mix, Time (20 ms to 2 s; Ping-pong to 1.1 s), Feedback |
 
 **OCT−** / **OCT+** move the panel's keys by octaves.
@@ -56,8 +56,9 @@ at 0, so the init sound is dry, and a preset keeps its effects.
 
 The reverb is one tank with five voicings. **Cloud** is the big ambient one, after Strymon's BigSky
 Cloud: a long chain of moving diffusers in front of a large loop, so notes bloom rather than echo.
-**Hall**, **Plate** and **Room** are smaller and plainer, and **Shimmer** is Cloud with an octave-up
-pitch shifter in the loop. Decay shows the reverb time. The delay's **Tape** mode wobbles and darkens
+**Hall**, **Plate** and **Room** are smaller and plainer. **Shimmer** is Cloud whose tail goes through
+an octave-up pitch shifter and back into its input, so it climbs an octave at a time, as Valhalla's
+and BigSky's shimmers do; on Reverb 2 its Mod knob becomes Shimmer, how much climbs. Decay shows the reverb time. The delay's **Tape** mode wobbles and darkens
 its repeats, **Analog** is darker still, and **Ping-pong** echoes left at Time and right at twice it.
 Time changes glide, like a tape echo. Feedback at 100 repeats for ever, saturating instead of
 growing.
@@ -86,6 +87,7 @@ you save).
 - 0.0.6: a second engine, Plaits' 2-op FM, through the same filter so breath works the same way.
 - 0.0.7: a reverb (Cloud, Hall, Plate, Room, Shimmer) and a delay (Digital, Tape, Analog, Ping-pong).
 - 0.0.8: CC depth, the longest glide the glide CC reaches.
+- 0.0.9: Shimmer rebuilt: the tail climbs in octaves, with a Shimmer amount.
 
 ## Building and testing
 
