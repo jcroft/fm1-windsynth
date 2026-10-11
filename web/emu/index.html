@@ -53,6 +53,18 @@ a { color: var(--accent); }
 kbd { font: 600 .85em ui-monospace, Menlo, monospace; background: var(--card); border: 1px solid var(--rule); border-radius: 4px; padding: 0 .3em; color: var(--ink); }
 .midi { color: var(--muted); }
 .midi b { color: var(--teal); font-weight: 600; }
+/* the monitor: what the instrument hears and does */
+.mon { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(13rem, 100%), 1fr)); gap: .5rem 1.2rem; margin: .9rem 0 0;
+       padding: .7rem .9rem; background: var(--card); border: 1px solid var(--rule); border-radius: 12px; font-size: .9rem; }
+.mon div { display: grid; grid-template-columns: 4.2rem 1fr; align-items: center; gap: .5rem; color: var(--muted); }
+.mon .m { height: .5rem; background: var(--rule); border-radius: 4px; overflow: hidden; position: relative; }
+.mon .m i { position: absolute; inset: 0 auto 0 0; width: 0; background: var(--teal); }
+.mon .m.c i { left: 50%; background: var(--accent); }
+.mon .v { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+.mon .dot { display: inline-block; width: .6rem; height: .6rem; border-radius: 50%; background: var(--rule); vertical-align: middle; }
+.mon .dot.on { background: var(--teal); }
+.bar select, .bar input[type=range] { font: inherit; color: var(--ink); background: var(--card); border: 1px solid var(--rule); border-radius: 8px; }
+.bar label { display: inline-flex; gap: .4rem; align-items: center; }
 /* the installer */
 .install { margin: 1.8rem 0 0; padding: 1.1rem 1.2rem 1.2rem; background: var(--card); border: 1px solid var(--rule); border-radius: 14px; }
 .install h2 { font: 700 1.35rem "Barlow Semi Condensed", "Barlow", sans-serif; margin: 0 0 .5rem; }
@@ -77,7 +89,7 @@ kbd { font: 600 .85em ui-monospace, Menlo, monospace; background: var(--card); b
 <main>
 <header>
   <h1>Windsynth</h1>
-  <p>a thumb piano firmware for the M-VAVE FM-1, running in the browser from the same C code</p>
+  <p>a synth for MIDI wind controllers on the M-VAVE FM-1, with Plaits voices, running in the browser from the same code</p>
   <nav><a href="https://github.com/jcroft/fm1-windsynth">Source and manual</a></nav>
 </header>
 
@@ -91,9 +103,22 @@ kbd { font: 600 .85em ui-monospace, Menlo, monospace; background: var(--card); b
 <div class="bar">
   <span id="status">Off. Sound starts when you switch it on.</span>
   <span class="cpu" id="cpu"></span>
-  <button id="midi" type="button" title="Play it from a MIDI keyboard (Chrome or Edge)">Connect MIDI</button>
+  <button id="midi" type="button" title="Play it from your windsynth or any MIDI controller (Chrome or Edge)">Connect MIDI</button>
+  <select id="midiIn" aria-label="MIDI input" hidden></select>
   <span class="midi" id="midistat"></span>
+  <label title="No breath controller? Drag this: it sends breath (CC2), as a windsynth would">Breath <input type="range" id="breath" min="0" max="127" value="0"></label>
   <button id="reset" type="button" title="Forget your sound and settings, and start again from the factory settings">Factory reset</button>
+</div>
+
+<div class="mon" id="mon" aria-label="What the instrument hears and does">
+  <div>Note <span class="v" id="mNote">&ndash;</span></div>
+  <div>MIDI <span><span class="dot" id="mMidi"></span> <span class="v" id="mMidiN">0</span></span></div>
+  <div>Breath <span class="m"><i id="mBreath"></i></span></div>
+  <div>Bite <span class="m c"><i id="mBend"></i></span></div>
+  <div>Cutoff <span class="m"><i id="mCutoff"></i></span></div>
+  <div>Reso <span class="m"><i id="mRes"></i></span></div>
+  <div>Amp <span class="m"><i id="mAmp"></i></span></div>
+  <div>Output <span class="m"><i id="mLevel"></i></span></div>
 </div>
 
 <section class="install" id="install" aria-labelledby="install-h">
@@ -138,22 +163,22 @@ kbd { font: 600 .85em ui-monospace, Menlo, monospace; background: var(--card); b
   <div>
     <h2>Playing</h2>
     <ul>
-      <li><b>Layout</b> (Keys page): <b>Tine</b>, the default, puts the tines on the white keys as on a real kalimba, lowest note (C4) in the middle, the next (D4) to its left and the scale alternating outward. <b>Mirror</b> is the same, flipped: D4 to the right of C4. <b>Keyboard</b> makes every key, white and black, play its printed note from F3 up, with <b>Transpose</b> on the Keys page (or PRESETS).</li>
-      <li><b>Black keys</b> in the Tine layout follow the Keys page's <b>Black</b> setting: <b>Chords</b> (a thumb roll: C Dm Em F G Am Bdim, then CM7 FM7 G7 Am7), <b>Sharps</b> (the white key to the left, a semitone up) or <b>Perform</b> (mute, cover the hole, freeze, octave down / up while held, six materials).</li>
-      <li><b>PLAY</b> freezes the grain cloud. <b>REC</b> mutes every tine. <b>ARP</b>, tapped, starts and stops the mbira pattern over the chord you pick (a chord key, held keys in Keyboard, or held MIDI notes); held, it opens the pattern's settings.</li>
-      <li><b>OCT−</b> / <b>OCT+</b>: octave. <b>SELECT</b> material, <b>ALGORITHM</b> scale, <b>PRESETS</b> key.</li>
+      <li>Connect MIDI and pick your windsynth (or <b>All inputs</b>). Notes play the voice; <b>breath</b> (CC2 by default, or aftertouch or another CC on the Breath page) opens the filter, and with a Mod slot set to Amp, the volume.</li>
+      <li>The <b>bite</b> (pitch bend) bends ±2 semitones by default (Pitch page). <b>Glide</b> follows CC5 by default; another CC, or none, on the Pitch page.</li>
+      <li>Last note wins: overlapping notes play legato, without a new attack, and letting one go returns to the one still held.</li>
+      <li>The FM-1's own keys play from F3, every key its printed note, as if blown at the Keys page's <b>Key breath</b>. <b>OCT−</b> / <b>OCT+</b> shift them; <b>PRESETS</b> transposes everything.</li>
+      <li>No windsynth? Play notes from the keys or a keyboard and drag <b>Breath</b> under the panel.</li>
     </ul>
   </div>
   <div>
     <h2>Pages</h2>
     <ul>
-      <li>Press a page button again for its next page (the dots by the page's name show which).</li>
-      <li><b>HOME</b> Tine: material, hardness, decay, tone → Character: worn, glide, tuning, release.</li>
-      <li><b>ENV</b> Body: box, gourd or board, buzzers, wah, wah rate.</li>
-      <li><b>FX</b> Space: reverb, size, delay, time → Color: tape, lo-fi, chorus, filter.</li>
-      <li><b>LFO</b> Grain: level, size, density, pitch → Spread: spray, feedback, width.</li>
-      <li><b>SEL</b> Keys: layout, then scale, key and black-key mode (Tine) or transpose and octave (Keyboard) → Play: strum, octave.</li>
-      <li><b>SEQ</b> Pattern: pattern, tempo (or hold <b>ARP</b>). <b>GLO</b> Setup: tune, MIDI channel, MIDI out (off by default), and the <b>Theme</b> (Light or Dark); the header shows the version. Hold <b>SAVE</b> for 1.5 s to reset the sound to its defaults (SAVE again to confirm). <b>EDIT</b> steps through every page.</li>
+      <li><b>HOME</b> Voice: cutoff, resonance, morph (the engine's tone), filter slope.</li>
+      <li><b>ENV</b> Breath: source, curve, attack, release.</li>
+      <li><b>LFO</b> Pitch: bend range, glide source, glide time, glide always or legato only.</li>
+      <li><b>SEL</b> Mod 1&ndash;4 (press again for the next): source (breath, bite, mod wheel, pressure, velocity), destination (cutoff, resonance, amp, morph), amount. Mod 1 is Breath → Cutoff.</li>
+      <li><b>SEQ</b> Keys: key breath and octave. <b>GLO</b> Setup: transpose, tune, MIDI channel (Omni by default) and the <b>Theme</b>; the header shows the version.</li>
+      <li><b>EDIT</b> and the <b>SELECT</b> knob step through every page; the four knobs set its four values. <b>SAVE</b> saves (it also saves by itself); hold it for 1.5 s to reset the sound (SAVE again to confirm). Setup is kept.</li>
     </ul>
   </div>
   <div>
@@ -161,17 +186,13 @@ kbd { font: 600 .85em ui-monospace, Menlo, monospace; background: var(--card); b
     <ul>
       <li>Drag a knob up or down, or scroll over it. Click or touch keys and buttons; several fingers work on a touch screen.</li>
       <li>White keys 1–8: <kbd>Q</kbd>–<kbd>I</kbd>, 9–16: <kbd>A</kbd>–<kbd>K</kbd>. Black keys 1–11: <kbd>1</kbd>–<kbd>0</kbd>, <kbd>-</kbd>.</li>
-      <li><kbd>Space</kbd> freeze, <kbd>Enter</kbd> mute, <kbd>Esc</kbd> HOME, <kbd>Z</kbd> / <kbd>X</kbd> OCT− / OCT+, <kbd>↑</kbd> <kbd>↓</kbd> material.</li>
+      <li><kbd>Esc</kbd> HOME, <kbd>Z</kbd> / <kbd>X</kbd> OCT− / OCT+, <kbd>↑</kbd> <kbd>↓</kbd> page.</li>
       <li><kbd>Shift</kbd>-click (or right-click) a button to hold it down.</li>
     </ul>
   </div>
   <div>
-    <h2>MIDI</h2>
-    <p>Connect MIDI to play from a keyboard: notes pluck the tine of that pitch at their velocity, the mod wheel and pressure cover the sound hole, the sustain pedal holds damps, pitch bend bends every ringing tine, program change picks the material. It needs a browser with Web MIDI (Chrome or Edge), and the page may not be allowed to ask for it when shown inside another site.</p>
-  </div>
-  <div>
     <h2>What this is</h2>
-    <p>The firmware's UI and sound engine compiled to WebAssembly, running at the FM-1's 44.1 kHz: what you hear is the physical model the FM-1 would run. SAVE keeps your settings in this browser. The emulator is FoMni's, by way of X0X; the idea comes from <a href="https://www.groove-os.com/">Groove OS</a>.</p>
+    <p>The firmware's UI and instrument compiled to WebAssembly, running at the FM-1's rate: what you hear is what the FM-1 plays. The voice is Mutable Instruments' Plaits, unmodified. The strip under the panel shows what the instrument hears and does. SAVE keeps your settings in this browser. The emulator is FoMni's, by way of X0X and FiMba.</p>
   </div>
 </section>
 </main>
@@ -271,13 +292,11 @@ function hit(c, cls) {
   device.insertBefore(d, document.getElementById("start"));
   c.hit = d;
 }
-// what each control does, on hover (the Buttons list below says the same)
-const TIP = { FX: "Space, then Color: reverb, delay; tape, lo-fi, chorus, filter", SEL: "Keys, then Play: layout, scale, key, black keys; strum",
-  ENV: "Body page: body, buzz, wah", LFO: "Grain, then Spread: the grain cloud; spray, feedback, width", EDIT: "Every page in turn",
-  GLO: "Setup page", HOME: "Tine, then Character: material and pluck; worn, glide, tuning, release", SAVE: "Save (hold: reset to the defaults)",
-  ARP: "Tap: mbira pattern on / off. Hold: its settings", SEQ: "Pattern page: pattern, tempo", PLAY: "Freeze the grains", REC: "Palm mute: damp every tine",
-  "OCT-": "Octave down", "OCT+": "Octave up", SELECT: "Material", ALGORITHM: "Scale", PRESETS: "Key (Tine) or transpose (Keyboard)",
-  MASTER: "Volume" };
+// what each control does, on hover (the Pages list below says the same)
+const TIP = { SEL: "Mod 1 to 4: source, destination, amount", ENV: "Breath page: source, curve, attack, release",
+  LFO: "Pitch page: bend range, glide", EDIT: "Every page in turn", GLO: "Setup page: transpose, tune, MIDI channel, theme",
+  HOME: "Voice page: cutoff, resonance, morph, slope", SAVE: "Save (hold: reset to the defaults)", SEQ: "Keys page: key breath, octave",
+  "OCT-": "Octave down (the panel's keys)", "OCT+": "Octave up (the panel's keys)", SELECT: "Page", PRESETS: "Transpose", MASTER: "Volume" };
 for (const [n, c] of [...Object.entries(buttons), ...Object.entries(knobs)]) if (TIP[n]) c.g.setAttribute("aria-description", TIP[n]);
 for (const k of Object.values(knobs)) hit(k, "knob");
 for (const b of Object.values(buttons)) hit(b);
@@ -398,8 +417,7 @@ const KEYMAP = {};
 "asdfghjk".split("").forEach((c, i) => KEYMAP["Key" + c.toUpperCase()] = { key: WHITE_K[8 + i] });
 "1234567890".split("").forEach((c, i) => KEYMAP["Digit" + c] = { key: BLACK_K[i] });
 KEYMAP.Minus = { key: BLACK_K[10] };
-Object.assign(KEYMAP, { Space: { btn: BTN.PLAY }, Enter: { btn: BTN.REC },
-                        Escape: { btn: BTN.HOME }, KeyZ: { btn: BTN["OCT-"] }, KeyX: { btn: BTN["OCT+"] } });
+Object.assign(KEYMAP, { Escape: { btn: BTN.HOME }, KeyZ: { btn: BTN["OCT-"] }, KeyX: { btn: BTN["OCT+"] } });
 addEventListener("keydown", (e) => {
   if (!node || e.metaKey || e.ctrlKey || e.altKey) return;
   if (e.code === "ArrowUp" || e.code === "ArrowDown") { turn(knobs.SELECT, e.code === "ArrowUp" ? 1 : -1); e.preventDefault(); return; }
@@ -439,8 +457,31 @@ function drawLights(b, k, d) {
   for (const x of Object.values(buttons)) x.g.classList.toggle("lit", !!(b & (1 << x.bit)));
   keys.forEach((x, i) => {
     x.g.classList.toggle("lit", !!(k & (1 << i)));
-    x.g.classList.toggle("dim", !(k & (1 << i)) && !!(d & (1 << i)));   // the middle of the kalimba
+    x.g.classList.toggle("dim", !(k & (1 << i)) && !!(d & (1 << i)));
   });
+}
+
+// ---------------------------------------------------------------- the monitor
+const NOTE = ["C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"];
+const mon = Object.fromEntries(["Note", "Midi", "MidiN", "Breath", "Bend", "Cutoff", "Res", "Amp", "Level"].map((k) => [k, document.getElementById("m" + k)]));
+let midiSeen = 0, midiLit = 0;
+function drawMonitor(st) {
+  const [note, gate, breath, bend, cutoff, res, amp, , level, top, seen] = st;
+  const pct = (v) => `${Math.round(100 * Math.min(1, Math.max(0, v)))}%`;
+  if (top >= 0) {
+    const n = Math.round(note), c = Math.round(100 * (note - n));
+    mon.Note.textContent = `${NOTE[((n % 12) + 12) % 12]}${Math.floor(n / 12) - 1}${c ? ` ${c > 0 ? "+" : ""}${c}¢` : ""}${gate > 0 ? "" : " (off)"}`;
+  }
+  mon.Breath.style.width = pct(breath);
+  const b = Math.max(-1, Math.min(1, bend));
+  mon.Bend.style.left = b < 0 ? `${50 + 50 * b}%` : "50%";
+  mon.Bend.style.width = `${50 * Math.abs(b)}%`;
+  mon.Cutoff.style.width = pct(cutoff);
+  mon.Res.style.width = pct(res);
+  mon.Amp.style.width = pct(amp);
+  mon.Level.style.width = pct(level);
+  if (seen !== midiSeen) { midiSeen = seen; midiLit = 4; mon.MidiN.textContent = seen; }
+  mon.Midi.classList.toggle("on", midiLit > 0 && midiLit--);
 }
 
 // ---------------------------------------------------------------- storage
@@ -467,9 +508,9 @@ async function switchOn() {
   go.textContent = "Starting...";
   try {
     const ac = new AudioContext({ sampleRate: 44100, latencyHint: "interactive" });
-    const [wasm] = await Promise.all([fetch("kalimba.wasm").then((r) => { if (!r.ok) throw new Error(`kalimba.wasm: ${r.status}`); return r.arrayBuffer(); }),
+    const [wasm] = await Promise.all([fetch("windsynth.wasm").then((r) => { if (!r.ok) throw new Error(`windsynth.wasm: ${r.status}`); return r.arrayBuffer(); }),
                                       ac.audioWorklet.addModule("worklet.js")]);
-    node = new AudioWorkletNode(ac, "kalimba", { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2] });
+    node = new AudioWorkletNode(ac, "windsynth", { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2] });
     node.connect(ac.destination);
     const ready = new Promise((res) => {
       node.port.onmessage = (e) => {
@@ -478,6 +519,7 @@ async function switchOn() {
         else if (m.type === "frame") {
           if (m.fb) drawScreen(m.fb);
           drawLights(m.buttons, m.keys, m.dim);
+          if (m.state) drawMonitor(m.state);
           if (m.load !== undefined) cpu.textContent = `The firmware uses ${m.load}% of this computer's time`;
           if (m.store) saveStore(m.store);
         }
@@ -498,19 +540,32 @@ async function switchOn() {
 document.getElementById("go").addEventListener("click", switchOn);
 
 // ---------------------------------------------------------------- Web MIDI in
-const midiStat = document.getElementById("midistat");
+const midiStat = document.getElementById("midistat"), midiIn = document.getElementById("midiIn");
+const MIDI_PICK = "windsynth-emu-midi-in";
 let midiAccess = null;
 function onMidi(e) {
   const d = e.data;
   if (!node || !d || !d.length || d[0] < 0x80 || d[0] >= 0xF0) return;   // channel messages only
   send({ type: "midi", st: d[0], d1: d[1] || 0, d2: d[2] || 0 });
 }
+// the inputs in the picker; the one picked (or every one, for All inputs) plays. The pick is remembered
+// by name, so it holds when the device is unplugged and comes back.
 function listInputs() {
-  const names = [];
-  for (const input of midiAccess.inputs.values()) { input.onmidimessage = onMidi; names.push(input.name); }
-  midiStat.innerHTML = names.length ? `MIDI in: <b></b>` : "No MIDI inputs found. Plug one in; it is picked up when it appears.";
-  if (names.length) midiStat.querySelector("b").textContent = names.join(", ");
+  const inputs = [...midiAccess.inputs.values()];
+  let want = midiIn.value || "";
+  if (!midiIn.options.length) try { want = localStorage.getItem(MIDI_PICK) || ""; } catch {}
+  midiIn.replaceChildren(new Option("All inputs", ""), ...inputs.map((i) => new Option(i.name, i.name)));
+  if (want && !inputs.some((i) => i.name === want)) midiIn.add(new Option(`${want} (not connected)`, want));
+  midiIn.value = want;
+  midiIn.hidden = false;
+  for (const i of inputs) i.onmidimessage = !want || i.name === want ? onMidi : null;
+  midiStat.textContent = inputs.length ? "" : "No MIDI inputs found. Plug one in; it is picked up when it appears.";
 }
+midiIn.addEventListener("change", () => {
+  try { localStorage.setItem(MIDI_PICK, midiIn.value); } catch {}
+  if (node) send({ type: "midi", st: 0xB0, d1: 123, d2: 0 });            // all notes off: nothing left hanging
+  listInputs();
+});
 document.getElementById("midi").addEventListener("click", async () => {
   if (!navigator.requestMIDIAccess) { midiStat.textContent = "This browser has no Web MIDI. Try Chrome or Edge."; return; }
   try {
@@ -522,6 +577,8 @@ document.getElementById("midi").addEventListener("click", async () => {
     midiStat.textContent = "MIDI was refused here (" + (err && err.name || "blocked") + "). Opening the page on its own, outside another site, may allow it.";
   }
 });
+// the on-page breath: CC2 on channel 1, which the default settings (Omni, breath CC2) hear
+document.getElementById("breath").addEventListener("input", (e) => send({ type: "midi", st: 0xB0, d1: 2, d2: +e.target.value }));
 document.getElementById("reset").addEventListener("click", () => {
   if (document.getElementById("reset").dataset.armed) {
     try { localStorage.removeItem(STORE_KEY); } catch {}

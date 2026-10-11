@@ -86,13 +86,13 @@ The build also generates `build/gen/` (the font). It fails if a soft-double rout
 tests/run_tests.sh
 ```
 
-Runs, on the build machine: the maths library against libm; the instrument
-(`tests/host/kalimba_test.c`, linked without libm as on the device: scales and layouts, every
-material's pitch to a few cents, decay order, damping and the pedal, one voice per tine, rolls, the
-delay's echo times, grains and freeze, the hole and the buzzers); flash storage; Felucca's update-path
-tests against `build/windsynth.fwsc` (when it exists); and the whole app in the simulator
-(`tests/scenarios/*.kal`), with its screenshots and audio in `build/scenarios/`. One WAV per tine
-material lands in `build/host/materials/`.
+Runs, on the build machine: the maths library against libm; wind control
+(`tests/host/wind_ctl_test.c`: the MIDI parser, the channel filter, 14-bit breath and its curve, the
+note stack and legato, bend range, glide time and the mod matrix); flash storage; Felucca's update-path
+tests against `build/windsynth.fwsc` (when it exists); the browser build in Node
+(`tests/host/emu_test.mjs`: the panel's keys, a MIDI note opening with breath, the bite); and the whole
+app in the simulator (`tests/scenarios/*.scn`: breath, bite, glide, the pages, the matrix, the keys,
+the MIDI channel, the theme, saving), with its screenshots and audio in `build/scenarios/`.
 
 The wind voice has its own checks: `tools/check_vendor.py` (the vendored Plaits and stmlib files match
 their hashes); `tests/host/wind_voice_test.c`, against `tests/host/wind_ref.cc` (upstream Plaits' own
@@ -103,8 +103,8 @@ the WebAssembly build. `tools/build.py` links the voice into the firmware and fa
 need, a static constructor or a double.
 
 `host/build_host.sh` builds the simulator alone (`gen_font.py` needs Pillow; `PYTHON=` picks the
-interpreter); `build/host/kalimba_host SCRIPT OUTDIR` runs one script (the command list is at the top
-of `host/kalimba_host.c`).
+interpreter); `build/host/windsynth_host SCRIPT OUTDIR` runs one script (the command list is at the top
+of `host/windsynth_host.c`).
 
 ## Install
 

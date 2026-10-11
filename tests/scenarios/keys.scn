@@ -1,0 +1,34 @@
+# The panel's keys play notes (F3 up), with Key breath for breath; OCT- / OCT+ move them
+wait 200
+key 4 down
+wait 30
+expect top 57
+expect gate 1
+expect breath >98
+expect level >5
+expect litkeys 16
+shot key_held.png
+key 4 up
+wait 300
+expect gate 0
+tap OCT+
+expect par25 1
+key 0 down
+wait 20
+expect top 65
+key 0 up
+tap OCT-
+tap OCT-
+expect par25 -1
+tapkey 0
+expect top 41
+# Key breath at 0: a key plays with the filter shut, as a windsynth with no breath
+tap SEQ
+spin K1 -100
+expect par24 0
+key 4 down
+wait 30
+expect breath 0
+expect cutoff 15
+key 4 up
+wait 100

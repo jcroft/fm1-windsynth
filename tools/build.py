@@ -40,8 +40,8 @@ CFLAGS = ["-Os", "-ffunction-sections", "-fno-builtin", "-Wall", "-Wno-unused-fu
 # the AC79's single-precision FPU (the SDK's own flags); no fused multiply-add, so the host
 # build (-ffp-contract=off) computes the same samples
 FPU = ["-mcpu=r3", "-mfprev1", "-ffp-contract=off"]
-# the instrument: a separate unit at -O2
-O2_UNITS = ["dsp/kalimba.c"]
+# the instrument's C: separate units at -O2
+O2_UNITS = ["wind/wind_ctl.c", "wind/wind_matrix.c", "wind/wind_app.c"]
 # the wind voice: C++, freestanding (no exceptions, RTTI, static constructors or libm: firmware/src/wind/
 # shim), so it links with no C++ runtime. The host and web builds use the same (tools/wind_cxx.sh)
 WIND_UNITS = ["src/wind/wind_voice.cc",
@@ -50,8 +50,8 @@ WIND_UNITS = ["src/wind/wind_voice.cc",
 WIND_CXXFLAGS = ["-x", "c++", "-std=c++11", "-O2", "-ffunction-sections", "-ffreestanding", "-fno-exceptions",
                  "-fno-rtti", "-fno-threadsafe-statics", "-fno-use-cxa-atexit", "-DTEST", "-Wall",
                  "-Ifirmware/src/wind/shim", "-Ifirmware/third_party/mutable", "-Ifirmware/src"]
-# kept in the image although nothing calls it yet (M2 does), so every check here covers it
-WIND_KEEP = ["wv_init", "wv_engine", "wv_slope", "wv_render"]
+# the voice's entry points: linked (the build fails if the image lacks one)
+WIND_KEEP = ["wv_init", "wv_slope", "wv_env", "wv_render"]
 LINE = re.compile(r"^\s*([0-9a-f]+):\s+((?:[0-9a-f]{2} )+)\s*\t(.*)$")
 
 # SDK files of AC79NN_SDK_V1.2.1_2023-12-13 (the tested version)
@@ -240,8 +240,7 @@ def build_app():
     elf = OUT / "windsynth.elf"
     # unreferenced functions (each in its own section: -ffunction-sections) are dropped: the DSP keeps
     # mono reference paths for the host tests that the firmware no longer calls
-    keep = [a for k in WIND_KEEP for a in ("-u", k)]
-    tc("pi32v2/bin/ld", "--gc-sections", "-e", "_start", *keep, "-T", FW / "app.ld", *objs, "-o", elf)
+    tc("pi32v2/bin/ld", "--gc-sections", "-e", "_start", "-T", FW / "app.ld", *objs, "-o", elf)
     for sect in ("text.bin", "data.bin", "ramtext.bin"):
         (OUT / sect).unlink(missing_ok=True)
     *_, syms, dis, rt = tc_all(("common/bin/objcopy", "-O", "binary", "-j", ".text", elf, OUT / "text.bin"),

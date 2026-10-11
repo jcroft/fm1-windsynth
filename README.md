@@ -5,18 +5,52 @@ Custom firmware that turns the **M-VAVE FM-1** into a synthesizer for **any MIDI
 It runs in the browser first, as the firmware's own C code compiled to WebAssembly, and then on the
 FM-1 itself.
 
-> **Status: in development (0.0.x).** A fork of FiMba-1 that still plays FiMba's kalimba while the
-> wind voice is built. The voice (Plaits' VA-VCF engine) is in, tested against upstream Plaits, and
-> gets wired to breath and bite next. Nothing is released yet. The plan is in
-> [docs/PLAN.md](docs/PLAN.md).
+> **Status: in development (0.0.x).** It plays: notes, breath, bite and glide from any windsynth
+> drive one Plaits voice (the VA-VCF engine), in the browser and on the FM-1. More engines and
+> presets come next. Nothing is released yet. The plan is in [docs/PLAN.md](docs/PLAN.md).
 
-## The controls (planned defaults)
+![Full breath on A3](docs/img/wind_voice.png) ![The Breath page](docs/img/wind_breath.png) ![Mod 1: breath to cutoff](docs/img/wind_mod.png)
+
+## Playing
+
+Plug in your windsynth (USB, or the FM-1's MIDI jack) and blow. It listens on every channel by
+default. Last note wins: overlapping notes play legato, without a new attack, and letting one go
+returns to the one still held. The FM-1's own keys play too, every key its printed note from F3, as if
+blown at the **Key breath** level.
 
 | Control | Default | Options |
 | --- | --- | --- |
-| Breath | CC2, to filter cutoff | A matrix that also reaches amp, resonance and engine parameters; aftertouch or another CC as the source |
-| Bite | Pitch bend, ±2 semitones | Bend range adjustable |
-| Glide | CC5 sets glide time | Another CC as the source |
+| Breath | CC2, to filter cutoff (Mod 1: Breath → Cutoff, +75) | Aftertouch or any CC as the source; a curve; the Mod slots also send it to amp, resonance or morph |
+| Bite | Pitch bend, ±2 semitones | 0 to 12 semitones |
+| Glide | CC5 sets glide time | Another CC, or none; glide on every note or legato only |
+
+The screen shows the note (with its offset in cents while you bend), the bite, and bars for breath,
+cutoff and output.
+
+## Pages
+
+A page button opens its page; the four knobs set its four values. **EDIT** and the **SELECT** knob
+step through every page.
+
+| Button | Page | Knobs |
+| --- | --- | --- |
+| HOME | Voice | Cutoff, Resonance, Morph (the engine's tone), Slope (12 or 24 dB) |
+| ENV | Breath | Source (a CC, or aftertouch), Curve, Attack, Release |
+| LFO | Pitch | Bend range, Glide source, Glide time, Glide mode (always or legato) |
+| SEL | Mod 1–4 (press again for the next) | Source (breath, bite, mod wheel, pressure, velocity), Destination (cutoff, resonance, amp, morph), Amount (−100 to +100) |
+| SEQ | Keys | Key breath, Octave |
+| GLO | Setup | Transpose, Tune, MIDI channel (Omni by default), Theme (Light or Dark); the version |
+
+**OCT−** / **OCT+** move the panel's keys by octaves; **PRESETS** transposes. Settings save
+themselves a few seconds after you stop playing (**SAVE** saves now). Hold **SAVE** for 1.5 s, then
+press it again, to reset the sound to its defaults; the Setup page stays as it is.
+
+## In rough order
+
+- 0.0.1: the fork of FiMba-1, renamed.
+- 0.0.2: Plaits' VA-VCF voice inside, bit-exact with upstream Plaits.
+- 0.0.3: playable: breath, bite, glide and the mod matrix, from any windsynth, with its own pages and
+  screen. The kalimba is gone. The browser version picks a MIDI input and shows what it hears.
 
 ## Building and testing
 
@@ -29,8 +63,8 @@ FM-1 Windsynth is a fork of [FiMba-1](https://github.com/jadamsowers/fm1-fimba) 
 which grew from [FoMni](https://github.com/charlesvestal/fm1-fomni) and
 [X0X](https://github.com/charlesvestal/fm1-x0x) by Charles Vestal, both built on
 [Felucca](https://github.com/hugelton/Felucca) by Leo Kuroshita (Hügelton Instruments). The voices
-will come from [Plaits](https://github.com/pichenettes/eurorack) by Émilie Gillet (MIT). FiMba's
-original README, which documents the inherited kalimba, is in
+come from [Plaits](https://github.com/pichenettes/eurorack) by Émilie Gillet (MIT). FiMba's
+original README, which documents the kalimba this started from, is in
 [docs/FIMBA-README.md](docs/FIMBA-README.md).
 
 Licensing: GPL-3.0-only; see [LICENSING.md](LICENSING.md). Not affiliated with M-VAVE.

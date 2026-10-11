@@ -1,0 +1,31 @@
+# The pages: one button each (SEL: Mod 1-4, pressed again), EDIT and SELECT step through all
+wait 200
+tap ENV
+expect view 1
+shot breath_page.png
+tap LFO
+expect view 2
+shot pitch_page.png
+tap SEL
+expect view 3
+shot mod1_page.png
+tap SEL
+expect view 4
+tap SEL
+tap SEL
+expect view 6
+tap SEL
+expect view 3
+tap SEQ
+expect view 7
+tap GLO
+expect view 8
+shot setup_page.png
+tap EDIT
+expect view 0
+turn SELECT 2
+expect view 2
+turn SELECT -3
+expect view 8
+tap HOME
+expect view 0

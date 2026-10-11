@@ -1,6 +1,6 @@
 #!/bin/sh
 # SPDX-License-Identifier: GPL-3.0-only
-# Build the Windsynth host simulator (the whole app on this machine) into build/host/kalimba_host.
+# Build the Windsynth host simulator (the whole app on this machine) into build/host/windsynth_host.
 # Same sources as the firmware, -ffp-contract=off like the device (no fused multiply-add).
 set -e
 cd "$(dirname "$0")/.."
@@ -11,6 +11,6 @@ mkdir -p build/gen build/host
 # the wind voice (C++), freestanding as on the device: it links with $CC, no C++ runtime
 WIND=$(sh tools/wind_cxx.sh "${CXX:-c++}" build/host/wind)
 $CC -O2 -ffp-contract=off -std=c99 -Wall -Wextra -Wno-unused-function -Wno-unused-parameter \
-    -DOM_HOST -Ifirmware/src -Ifirmware/src/dsp -Ibuild/gen -o build/host/kalimba_host host/kalimba_host.c \
-    firmware/src/dsp/kalimba.c $WIND -lm
-echo "host: build/host/kalimba_host"
+    -DOM_HOST -Ifirmware/src -Ibuild/gen -o build/host/windsynth_host host/windsynth_host.c \
+    firmware/src/wind/wind_ctl.c firmware/src/wind/wind_matrix.c firmware/src/wind/wind_app.c $WIND -lm
+echo "host: build/host/windsynth_host"

@@ -1,0 +1,34 @@
+# CC5 sets the glide time (the knob follows); legato notes slide, detached ones jump
+wait 200
+tap LFO
+midi B0 05 40
+wait 40
+expect par10 50
+expect dirty 0
+midi B0 02 7F
+midi 90 3C 64
+wait 20
+expect note 6000
+midi 90 48 64
+wait 250
+expect note >6500
+expect note <6700
+wait 300
+expect note 7200
+shot glide.png
+midi 80 48 00
+midi 80 3C 00
+wait 50
+midi 90 30 64
+wait 5
+expect note 4800
+midi 80 30 00
+# Glide on: Always, from the Pitch page: now a detached note slides too
+spin K4 1
+expect par11 1
+midi 90 3C 64
+wait 250
+expect note >5300
+expect note <5500
+midi 80 3C 00
+wait 100

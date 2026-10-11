@@ -11,7 +11,7 @@ extern uint32_t _pool_start[], _pool_end[], _rt_start[], _rt_end[], _rt_load[];
 #define HALF_FRAMES 256u                    /* I2S half buffer: 5.8 ms at 44.1 kHz */
 #define HALF_WORDS (HALF_FRAMES * 2u)
 #define FS 44100u
-#define REND_FRAMES 256u                    /* km_render's frames per call */
+#define REND_FRAMES 256u                    /* wa_render's frames per call (it works in 64s) */
 #if FELUCCA_UAC
 _Static_assert(REND_FRAMES == UA_HALF, "usb.c sizes the USB audio ring band for this block");
 #endif
@@ -35,7 +35,7 @@ static void render_block(int32_t *o)                /* ALNK0: one half, measured
     {
         uint32_t k;
         for (k = 0; k < HALF_FRAMES; k += REND_FRAMES) {
-            km_render(o + 2u * k, REND_FRAMES, master_q12);
+            wa_render(o + 2u * k, REND_FRAMES, master_q12, plat_midi_in);
 #if FELUCCA_UAC
             uac_tap(o + 2u * k, REND_FRAMES);       /* the USB audio input: the same master output */
 #endif
@@ -283,7 +283,7 @@ static void fm1_main(void)
     fm1_adc_init();
     panel_init();
     led_pos_init();
-    km_init();
+    wa_init();
     project_load();                                 /* defaults when nothing (or another format) is saved */
     project_apply();
     audio_init();
@@ -340,7 +340,7 @@ static void fm1_main(void)
         ota_service();                              /* M-UPGRADE handshake (other SysEx is dropped) */
         if (usb.ota_req) {
             usb.ota_req = 0;
-            km_panic();
+            wa_panic();
             if (flash_ok)
                 ota_session();                      /* returns only if nothing was committed */
             ui_init();

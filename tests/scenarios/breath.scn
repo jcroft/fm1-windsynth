@@ -1,0 +1,31 @@
+# A windsynth's note and breath (CC2): the gate opens on the note, breath opens the cutoff
+wait 200
+midi 90 39 40
+wait 50
+expect gate 1
+expect top 57
+expect note 5700
+expect cutoff 15
+expect breath 0
+shot note_no_breath.png
+wav breath.wav
+breath 0 127 120
+wait 30
+expect breath >98
+expect cutoff 90
+expect level >5
+shot full_breath.png
+breath 127 40 200
+wait 30
+expect cutoff <60
+expect cutoff >30
+# a 14-bit controller: CC2 with its LSB (CC34)
+midi B0 02 40
+midi B0 22 00
+wait 30
+expect breath 50
+midi 80 39 00
+wait 300
+expect gate 0
+expect level 0
+wavstop

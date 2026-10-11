@@ -1,0 +1,14 @@
+# First boot: the Voice page, the defaults, nothing sounding
+wait 300
+expect view 0
+expect top -1
+expect gate 0
+expect par0 15
+expect par4 2
+expect par8 2
+expect par9 5
+expect par12 1
+expect par14 75
+expect dirty 0
+expect luma100 >200
+shot boot.png

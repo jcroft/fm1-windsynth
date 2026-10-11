@@ -23,6 +23,7 @@ enum { WV_SLOPE_12, WV_SLOPE_24 };      /* VA-VCF's filter: 12 dB/oct (LP) or 24
 void wv_init(void);
 void wv_engine(uint32_t id);
 void wv_slope(uint32_t slope);
+void wv_env(float attack_s, float release_s);  /* the gate envelope: rise time, fall to -40 dB */
 /* frames stereo frames, 24-bit in int32, the same signal on L and R */
 void wv_render(const wind_frame_t *f, int32_t *out_lr, uint32_t frames);
 
