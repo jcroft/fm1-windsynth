@@ -1,5 +1,13 @@
-# CC5 sets the glide time (the knob follows); legato notes slide, detached ones jump
+# CC5 sets the glide time (the knob follows); legato notes slide, detached ones jump. CC depth (Pitch 2)
+# starts at 400 ms; here 2 s, so CC5 64 is half of it on the knob
 wait 200
+tap LFO
+tap LFO
+expect par45 400
+spin K1 1600
+expect par45 2000
+wait 4500
+expect dirty 0
 tap LFO
 midi B0 05 40
 wait 40
@@ -32,15 +40,14 @@ expect note >5300
 expect note <5500
 midi 80 3C 00
 wait 100
-# Pitch 2: CC depth, the longest glide the CC reaches; CC5 at full then gives that, not 2 s
+# Pitch 2: CC depth, the longest glide the CC reaches; at 320 ms, CC5 at full gives Glide 40 (320 ms)
 tap LFO
 expect view 4
-expect par45 100
-spin K1 -50
-expect par45 50
+spin K1 -1680
+expect par45 320
 midi B0 05 7F
 wait 40
-expect par10 50
+expect par10 40
 midi B0 05 40
 wait 40
-expect par10 25
+expect par10 20

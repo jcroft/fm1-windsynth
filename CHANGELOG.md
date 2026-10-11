@@ -11,6 +11,8 @@ taken from its section below. Add the section in the same pull request as the `V
   and climbs an octave at a time, high-passed so the low end stays clear. On Reverb 2, the Mod knob
   becomes **Shimmer** while the type is Shimmer: how much climbs (50 by default; near the top it
   sustains on its own).
+- **CC depth starts at 400 ms** (it was 2 s) and is set in milliseconds, up to 2 s. A depth you set in
+  0.0.8 comes back as the same time.
 
 ## 0.0.8
 

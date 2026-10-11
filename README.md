@@ -22,7 +22,7 @@ blown at the **Key breath** level.
 | --- | --- | --- |
 | Breath | CC2, to filter cutoff (Mod 1: Breath → Cutoff, +75) | Aftertouch or any CC as the source; a curve; the Mod slots also send it to amp, resonance or morph |
 | Bite | Pitch bend, ±2 semitones | 0 to 12 semitones |
-| Glide | CC5 sets glide time, up to 2 s | Another CC, or none; how long a glide the CC reaches at full (CC depth); glide on every note or legato only |
+| Glide | CC5 sets glide time, up to 400 ms | Another CC, or none; how long a glide the CC reaches at full (CC depth, up to 2 s); glide on every note or legato only |
 
 The screen shows the note (with its offset in cents while you bend), the bite, and bars for breath,
 cutoff and output.
@@ -38,7 +38,7 @@ step through every page.
 | HOME again | Engine | Engine (Classic or FM; also the ALGORITHM knob), Ratio (FM's modulator, 0.5 to 16 times the note), Index (how much FM) |
 | ENV | Breath | Source (a CC, or aftertouch), Curve, Attack, Release |
 | LFO | Pitch | Bend range, Glide source, Glide time, Glide mode (always or legato) |
-| LFO again | Pitch 2 | CC depth: the glide time the glide CC reaches at full (2 s by default) |
+| LFO again | Pitch 2 | CC depth: the glide time the glide CC reaches at full (400 ms by default, up to 2 s) |
 | SEL | Mod 1–4 (press again for the next) | Source (breath, bite, mod wheel, pressure, velocity), Destination (cutoff, resonance, amp, morph, timbre: FM's index), Amount (−100 to +100) |
 | SEQ | Keys | Key breath, Octave |
 | GLO | Setup | Transpose, Tune, MIDI channel (Omni by default), Theme (Light or Dark); the version |

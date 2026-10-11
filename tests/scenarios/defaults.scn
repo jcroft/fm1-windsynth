@@ -9,6 +9,9 @@ expect par8 2
 expect par9 5
 expect par12 1
 expect par14 75
+# the engine: Classic; CC depth 400 ms
+expect par30 0
+expect par45 400
 # the init sound: one saw (Morph 25), no resonance, breath to cutoff and nothing else
 expect par1 0
 expect par2 25
