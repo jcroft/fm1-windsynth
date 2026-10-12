@@ -11,7 +11,8 @@
  *                 SELECT step through them all.
  *   PLAY          Stage: the controllers (note, breath, bite, glide, output) over twelve knobs in three
  *                 rows (Filter, the engine, the effects' mixes); KNOB 1-4 turn the lit row, SELECT moves
- *                 it; the keys light dim from the left with the breath. PLAY again: back to the page
+ *                 it (it's kept); the keys light dim from the left with the breath. PLAY again: back
+ *                 to the page it came from; a page button or EDIT: off Stage, to that page
  *   KNOB 1-4      the page's values      PRESETS the preset (1-64)      OCT- / OCT+ the panel keys' octave
  *   the keys      play notes (F3 up, chromatic), at full breath (they sense no pressure)
  *   SAVE          the sound into a preset: "SAVE TO P12", PRESETS picks another, SAVE again saves; held
@@ -307,6 +308,8 @@ static void button(int b)
     if (b == B_PLAY) {                              /* Stage, and back to the page it came from */
         ui.stage ^= 1u;
         ui.touched = -1;
+        ui.br_pk = ui.out_pk = 0.0f;                /* (peaks from now, not from the last time) */
+        ui.pk_t = plat_ms();
         return;
     }
     if (ui.stage) {                                 /* a page button or EDIT: off Stage, to that page */
@@ -394,7 +397,7 @@ static void input(void)
     }
     if ((e = plat_enc(EN_SELECT)) != 0) {
         if (ui.stage) {                              /* Stage: the row */
-            knob_set(P_STAGEROW, stage_row() + (e > 0 ? 1 : -1));
+            knob_set(P_STAGEROW, (stage_row() + (e > 0 ? 1 : STAGE_ROWS - 1)) % STAGE_ROWS);   /* (round, as the pages) */
             ui.touched = -1;
         } else {
             set_view((ui.view + (e > 0 ? 1 : NVIEWS - 1)) % NVIEWS);
@@ -491,7 +494,7 @@ static void draw_header(void)
         int32_t x = cv_text(10, 6, &FONT_B, ui.msg[0], K_TEXT);
         cv_text(x + 8, 6, &FONT_B, ui.msg[1], K_ACC);
     } else {
-        int32_t x = 232, w;
+        int32_t x = 232, w, lim;
         cv_text(10, 6, &FONT_B, title_now(), K_TEXT);
         if (ui.view == V_SETUP && !ui.stage) {                     /* the audio load and the version, for a check on the hardware */
             itoa_u(plat_cpu_pct(), t);
@@ -525,13 +528,17 @@ static void draw_header(void)
             x -= text_w(&FONT_B, v) + 10;
             cv_text(x, 5, &FONT_B, v, K_TEXT);
         }
+        lim = x;
         x = 18 + text_w(&FONT_B, title_now());
         if (ui.stage) {                               /* Stage: a dot per row, and the row's name */
+            const char *nm = stage_row_name(stage_row());
             int r;
             for (r = 0; r < STAGE_ROWS; r++)
                 cv_round(x - 4 + r * 9, 12, 6, 6, 3, r == stage_row() ? K_TEXT : K_LINE);
             x += STAGE_ROWS * 9 + 2;
-            x = cv_text(x, 7, &FONT_S, stage_row_name(stage_row()), K_ACC) + 6;
+            if (x + text_w(&FONT_S, nm) + 16 > lim)   /* (a long engine's name: "Engine") */
+                nm = "Engine";
+            x = cv_text(x, 7, &FONT_S, nm, K_ACC) + 6;
         } else {   /* the button's pages, when it has more than one: a dot each, this one filled */
             int first = ui.view, n = 0, v;
             while (first > 0 && VIEW_BTN[first - 1] == VIEW_BTN[ui.view])
@@ -747,6 +754,8 @@ static void draw_knobs(void)
 #define STG_MON_H 84
 #define STG_GRID_Y (MAIN_Y + STG_MON_H)
 #define STG_GRID_H (240 - STG_GRID_Y)
+#define MON_X 146                       /* the monitor's tracks: from x, this long */
+#define MON_W 80
 
 /* the angle of (x, y) from the centre, in turns 0..1: 0 is right, clockwise (the screen's y is down) */
 static float turns_of(float y, float x)
@@ -765,28 +774,48 @@ static float turns_of(float y, float x)
     return y < 0.0f ? 1.0f - r : r;
 }
 
-/* a ring's arc: radius r, w thick, from turn a0 clockwise for span turns; its round edges blended */
-static void cv_arc(int32_t cx, int32_t cy, float r, float w, float a0, float span, uint16_t c)
+/* a dial's ring: radius 9, 3 thick. Every dial is the same ring, so each pixel's coverage (its round
+ * edges blended, 0..256) and its angle (turns, 0..65535) are worked out once, on the first draw */
+#define ARC_R 13
+static uint16_t arc_cov[2 * ARC_R + 1][2 * ARC_R + 1], arc_turn[2 * ARC_R + 1][2 * ARC_R + 1];
+static void arc_init(void)
 {
-    int32_t R = (int32_t)(r + w) + 1, x, y;
-    for (y = cy - R; y <= cy + R; y++) {
-        int32_t py = y + cv_oy;
+    static uint8_t done;
+    int32_t x, y;
+    if (done)
+        return;
+    done = 1u;
+    for (y = -ARC_R; y <= ARC_R; y++)
+        for (x = -ARC_R; x <= ARC_R; x++) {
+            float dx = (float)x, dy = (float)y, cov = 2.0f - fm_fabsf(fm_sqrtf(dx * dx + dy * dy) - 9.0f),
+                  t = turns_of(dy, dx) * 65536.0f;
+            arc_cov[y + ARC_R][x + ARC_R] = cov <= 0.0f ? 0u : cov >= 1.0f ? 256u : (uint16_t)(cov * 256.0f);
+            arc_turn[y + ARC_R][x + ARC_R] = t >= 65535.0f ? 65535u : (uint16_t)t;
+        }
+}
+
+/* the ring's arc from turn a0 clockwise for span turns */
+static void dial_arc(int32_t cx, int32_t cy, float a0, float span, uint16_t c)
+{
+    int32_t a = (int32_t)(a0 * 65536.0f), sp = (int32_t)(span * 65536.0f), x, y;
+    if (sp <= 0)
+        return;
+    arc_init();
+    for (y = -ARC_R; y <= ARC_R; y++) {
+        int32_t py = cy + y + cv_oy;
         if (py < cv_y0 || py >= cv_y1)
             continue;
-        for (x = cx - R; x <= cx + R; x++) {
-            float dx = (float)(x - cx), dy = (float)(y - cy), cov, t;
+        for (x = -ARC_R; x <= ARC_R; x++) {
+            uint32_t n = arc_cov[y + ARC_R][x + ARC_R];
+            int32_t t;
             uint16_t *q;
-            if ((uint32_t)x >= cv_w)
+            if (!n || (uint32_t)(cx + x) >= cv_w)
                 continue;
-            cov = w * 0.5f + 0.5f - fm_fabsf(fm_sqrtf(dx * dx + dy * dy) - r);
-            if (cov <= 0.0f)
+            t = ((int32_t)arc_turn[y + ARC_R][x + ARC_R] - a) & 0xFFFF;
+            if (t > sp)
                 continue;
-            t = turns_of(dy, dx) - a0;
-            t = t < 0.0f ? t + 1.0f : t >= 1.0f ? t - 1.0f : t;
-            if (t > span)
-                continue;
-            q = &cv_px[(uint32_t)py * cv_w + (uint32_t)x];
-            *q = swap16(blend565(c, swap16(*q), cov >= 1.0f ? 256u : (uint32_t)(cov * 256.0f)));
+            q = &cv_px[(uint32_t)py * cv_w + (uint32_t)(cx + x)];
+            *q = swap16(blend565(c, swap16(*q), n));
         }
     }
 }
@@ -798,26 +827,34 @@ static float glide_pos(float ms)
     return p > 1.0f ? 1.0f : p;
 }
 
-/* the controllers: the note and its cents; breath (with its peak), bite, glide and output as bars */
-static void draw_stage_mon(void)
+/* the breath's and the output's peaks, once a frame (not as drawn: a redraw from scratch draws the same) */
+static void stage_peaks(void)
 {
-    uint32_t now = plat_ms(), h;
+    uint32_t now = plat_ms();
     float dt = (float)(now - ui.pk_t) * 0.001f, br = wa_state.breath, lv = wa_state.level > 1.0f ? 1.0f : wa_state.level;
-    float note = wa_state.note;
-    int top = wa_state.top, gate = wa_state.gate > 0.5f, n = (int)(note + 0.5f + 1200.0f) - 1200,
-        c = (int)((note - (float)n) * 100.0f);
-    int32_t pb, pbk, pe, pg, pgf, po, pok, i;
     ui.pk_t = now;
     dt = dt > 1.0f ? 1.0f : dt;
     ui.br_pk = br > ui.br_pk - 0.5f * dt ? br : ui.br_pk - 0.5f * dt;   /* peaks fall at half a bar a second */
     ui.out_pk = lv > ui.out_pk - 0.5f * dt ? lv : ui.out_pk - 0.5f * dt;
-    pb = (int32_t)(84.0f * br + 0.5f);
-    pbk = (int32_t)(84.0f * ui.br_pk + 0.5f);
-    pe = (int32_t)(42.0f * (wa_state.bend < -1.0f ? -1.0f : wa_state.bend > 1.0f ? 1.0f : wa_state.bend) + (wa_state.bend < 0.0f ? -0.5f : 0.5f));
-    pg = (int32_t)(84.0f * glide_pos(wa_state.glide_ms) + 0.5f);
-    pgf = (int32_t)(84.0f * glide_pos((float)proj.par[P_GLIDE]) + 0.5f);
-    po = (int32_t)(84.0f * lv + 0.5f);
-    pok = (int32_t)(84.0f * ui.out_pk + 0.5f);
+}
+
+/* the controllers: the note and its cents; breath (with its peak), bite, glide and output as bars */
+static void draw_stage_mon(void)
+{
+    uint32_t h;
+    float br = wa_state.breath, lv = wa_state.level > 1.0f ? 1.0f : wa_state.level, bend = wa_state.bend;
+    float note = wa_state.note;
+    int top = wa_state.top, gate = wa_state.gate > 0.5f, n = (int)(note + 0.5f + 1200.0f) - 1200,
+        c = (int)((note - (float)n) * 100.0f);
+    int32_t pb, pbk, pe, pg, pgf, po, pok, i;
+    bend = bend < -1.0f ? -1.0f : bend > 1.0f ? 1.0f : bend;
+    pb = (int32_t)((float)MON_W * br + 0.5f);
+    pbk = (int32_t)((float)MON_W * ui.br_pk + 0.5f);
+    pe = (int32_t)((float)(MON_W / 2) * bend + (bend < 0.0f ? -0.5f : 0.5f));
+    pg = (int32_t)((float)MON_W * glide_pos(wa_state.glide_ms) + 0.5f);
+    pgf = (int32_t)((float)MON_W * glide_pos((float)proj.par[P_GLIDE]) + 0.5f);
+    po = (int32_t)((float)MON_W * lv + 0.5f);
+    pok = (int32_t)((float)MON_W * ui.out_pk + 0.5f);
     h = hash(hash(hash(hash(2166136261u, (uint32_t)pb | (uint32_t)pbk << 8 | (uint32_t)(pe + 64) << 16 | (uint32_t)pg << 24),
                        (uint32_t)pgf | (uint32_t)po << 8 | (uint32_t)pok << 16 | (uint32_t)gate << 24 | (uint32_t)proj.par[P_THEME] << 25),
                   (uint32_t)(n + 2000) | (uint32_t)(c + 100) << 16),
@@ -844,27 +881,33 @@ static void draw_stage_mon(void)
             text_c(52, 52, &FONT_S, d, K_ACC);
         }
         if (gate)
-            cv_round(86, 10, 8, 8, 4, K_ACC);
+            cv_round(14, 10, 8, 8, 4, K_ACC);          /* (in the corner: clear of a wide "C#-1") */
     }
     {
         static const char *const NM[4] = {"BREATH", "BITE", "GLIDE", "OUT"};
         for (i = 0; i < 4; i++) {
             int32_t y = 12 + i * 17;
-            cv_text(104, y - 3, &FONT_XS, NM[i], K_DIM);
-            cv_round(142, y, 84, 6, 3, K_LINE);
+            cv_text(100, y - 3, &FONT_XS, NM[i], K_DIM);
+            cv_round(MON_X, y, MON_W, 6, 3, K_LINE);
         }
     }
     if (pb > 0)
-        cv_round(142, 12, pb < 6 ? 6 : pb, 6, 3, K_ACC);
-    cv_rect(142 + pbk - 1, 10, 2, 10, K_TEXT);
-    cv_rect(183, 27, 2, 10, K_DIM);
-    cv_round(pe < 0 ? 184 + pe : 184, 29, (pe < 0 ? -pe : pe) + 1 < 4 ? 4 : (pe < 0 ? -pe : pe) + 1, 6, 3, K_BLUE);
+        cv_round(MON_X, 12, pb < 6 ? 6 : pb, 6, 3, K_ACC);
+    if (pbk > 0)                                     /* (no sound: no peaks) */
+        cv_rect(MON_X + pbk - 1, 10, 2, 10, K_TEXT);
+    cv_rect(MON_X + MON_W / 2 - 1, 27, 2, 10, K_DIM);
+    {   /* the bite: from the middle, within the track */
+        int32_t m = MON_X + MON_W / 2, e = pe < 0 ? -pe : pe;
+        e = e < 3 ? 3 : e;
+        cv_round(pe < 0 ? m - e : m, 29, e, 6, 3, K_BLUE);
+    }
     if (pg > 0)
-        cv_round(142, 46, pg < 6 ? 6 : pg, 6, 3, K_BLUE);
-    cv_rect(142 + pgf, 44, 2, 10, K_TEXT);
+        cv_round(MON_X, 46, pg < 6 ? 6 : pg, 6, 3, K_BLUE);
+    cv_rect(MON_X + (pgf > MON_W - 2 ? MON_W - 2 : pgf), 44, 2, 10, K_TEXT);
     if (po > 0)
-        cv_round(142, 63, po < 6 ? 6 : po, 6, 3, K_TEXT);
-    cv_rect(142 + pok - 1, 61, 2, 10, K_DIM);
+        cv_round(MON_X, 63, po < 6 ? 6 : po, 6, 3, K_TEXT);
+    if (pok > 0)
+        cv_rect(MON_X + pok - 1, 61, 2, 10, K_DIM);
     cv_blit(0, MAIN_Y);
 }
 
@@ -872,29 +915,30 @@ static void draw_stage_mon(void)
  * as a dot on the ring */
 #define DIAL_A0 0.375f                         /* (135 degrees: the ring opens at the bottom) */
 #define DIAL_SPAN 0.75f
+#define DIAL_STEPS 42                          /* (the ring's 270 degrees are about 42 px long) */
 static void dial(int32_t x, int32_t y, int k, int on, int hot, int g)
 {
     const wa_param_t *p = wa_param_info(k);
     float f = p->hi > p->lo ? (float)(proj.par[k] - p->lo) / (float)(p->hi - p->lo) : 0.0f;
-    uint16_t col = hot ? K_ACC : on ? K_BLUE : K_DIM;
-    cv_arc(x, y, 9.0f, 3.0f, DIAL_A0, DIAL_SPAN, K_LINE);
+    uint16_t col = hot ? K_ACC : on ? K_BLUE : blend565(K_BLUE, K_LINE, 110u);
+    dial_arc(x, y, DIAL_A0, DIAL_SPAN, K_LINE);
     if (p->lo < 0) {
         if (f >= 0.5f)
-            cv_arc(x, y, 9.0f, 3.0f, DIAL_A0 + DIAL_SPAN * 0.5f, DIAL_SPAN * (f - 0.5f), col);
+            dial_arc(x, y, DIAL_A0 + DIAL_SPAN * 0.5f, DIAL_SPAN * (f - 0.5f), col);
         else
-            cv_arc(x, y, 9.0f, 3.0f, DIAL_A0 + DIAL_SPAN * f, DIAL_SPAN * (0.5f - f), col);
+            dial_arc(x, y, DIAL_A0 + DIAL_SPAN * f, DIAL_SPAN * (0.5f - f), col);
     } else if (f > 0.0f) {
-        cv_arc(x, y, 9.0f, 3.0f, DIAL_A0, DIAL_SPAN * f, col);
+        dial_arc(x, y, DIAL_A0, DIAL_SPAN * f, col);
     }
-    if (g >= 0) {                              /* g: the ghost's place, 0..255 along the ring */
-        float a = (DIAL_A0 + DIAL_SPAN * (float)g * (1.0f / 255.0f)) * 6.28318531f;
-        int32_t gx = x + (int32_t)(9.0f * fm_cosf(a) + (fm_cosf(a) < 0.0f ? -0.5f : 0.5f)),
-                gy = y + (int32_t)(9.0f * fm_sinf(a) + (fm_sinf(a) < 0.0f ? -0.5f : 0.5f));
-        cv_round(gx - 2, gy - 2, 5, 5, 2, K_ACC);
+    if (g >= 0) {                              /* g: the ghost's place along the ring, 0..DIAL_STEPS */
+        float a = (DIAL_A0 + DIAL_SPAN * (float)g * (1.0f / (float)DIAL_STEPS)) * 6.28318531f, co = fm_cosf(a),
+              si = fm_sinf(a);
+        int32_t gx = x + (int32_t)(9.0f * co + (co < 0.0f ? -0.5f : 0.5f)), gy = y + (int32_t)(9.0f * si + (si < 0.0f ? -0.5f : 0.5f));
+        cv_round(gx - 2, gy - 2, 5, 5, 2, hot ? K_TEXT : K_ACC);   /* (turning: the arc is the accent) */
     }
 }
 
-/* a dial's ghost: its place along the ring, 0..255, or -1 */
+/* a dial's ghost: its place along the ring, 0..DIAL_STEPS (about a pixel each), or -1 */
 static int dial_ghost(int k)
 {
     const wa_param_t *p;
@@ -906,7 +950,20 @@ static int dial_ghost(int k)
         return -1;
     f = (v - (float)p->lo) / (float)(p->hi - p->lo);
     f = f < 0.0f ? 0.0f : f > 1.0f ? 1.0f : f;
-    return (int)(f * 255.0f + 0.5f);
+    return (int)(f * (float)DIAL_STEPS + 0.5f);
+}
+
+/* s into t, cut to fit w px ("Feedback" -> "Feedb") */
+static void fit(char t[16], const char *s, const felucca_font_t *f, int32_t w)
+{
+    int32_t n = 0;
+    while (s[n] && n < 15) {
+        t[n] = s[n];
+        n++;
+    }
+    t[n] = 0;
+    while (n > 1 && text_w(f, t) > w)
+        t[--n] = 0;
 }
 
 /* the twelve knobs: the lit row is the one K1-K4 turn; the columns line up with the knobs */
@@ -949,17 +1006,18 @@ static void draw_stage_grid(void)
             int k = stage_knob(r, i), hot = on && now_touch && ui.touched == i;
             int32_t x = i * 60;
             char t[16];
-            if (on && i)
-                cv_rect(x, ry + 8, 1, 24, K_LINE);
             if (k == K_NONE)
                 continue;
-            dial(x + 16, ry + 22, k, on, hot, g[r][i]);
-            cv_text(x + 30, ry + 5, &FONT_XS, r == 1 ? wa_param_name(k) : STAGE_NAME[r / 2][i], on ? (hot ? K_TEXT : K_DIM) : blend565(K_DIM, K_BG, 170u));
+            if (on && i)
+                cv_rect(x, ry + 8, 1, 24, K_LINE);
+            dial(x + 15, ry + 22, k, on, hot, g[r][i]);
+            fit(t, r == 1 ? wa_param_name(k) : STAGE_NAME[r / 2][i], &FONT_XS, 32);
+            cv_text(x + 27, ry + 5, &FONT_XS, t, on ? (hot ? K_TEXT : K_DIM) : blend565(K_DIM, K_BG, 170u));
             if (k == P_DXPATCH)
                 itoa_u((uint32_t)proj.par[k] + 1u, t);
             else
                 wa_param_text(k, proj.par[k], t);
-            cv_text(x + 30, ry + 16, &FONT_B, t, hot ? K_ACC : on ? K_TEXT : K_DIM);
+            cv_text(x + 27, ry + 16, &FONT_B, t, hot ? K_ACC : on ? K_TEXT : K_DIM);
         }
     }
     cv_blit(0, STG_GRID_Y);
@@ -1000,6 +1058,7 @@ void ui_init(void)
     memset(&ui, 0, sizeof ui);
     ui.touched = -1;
     memset(ui.ghost, 0xFF, sizeof ui.ghost);
+    ui.btn = ui.btn_used = plat_buttons();   /* (held from boot, as safe mode's PLAY: its release is no press) */
     lcd_fill(0, 0, 240, 240, K_BG);
 }
 
@@ -1007,6 +1066,8 @@ void ui_frame(void)
 {
     input();
     autosave();
+    if (ui.stage)
+        stage_peaks();
     draw_header();
     draw_main();
     draw_knobs();

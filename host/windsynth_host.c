@@ -23,7 +23,8 @@
  *                                (WHAT: view dirty store_writes store_tries preset edited parN gate top (the note sounding)
  *                                 note (x100) breath cutoff res amp morph timbre noise level (x100) litkeys (bits)
  *                                 stale (pixels a redraw from scratch changes: 0, or the screen missed a change)
- *                                 ghostN (knob N's ghost tick: its x on the screen, -1 none)
+ *                                 ghostN (knob N's ghost tick: its x on the screen, -1 none; on Stage:
+ *                                 the lit row's dial N, its place along the ring 0..42)
  *                                 stage (1: Stage is showing) dimkeys (how many keys are lit dim)
  *                                 glide (the glide time in force, ms) txtX_Y (1: the pixel is the text colour)
  *                                 accX_Y (1: the pixel at X, Y is the theme's accent colour)

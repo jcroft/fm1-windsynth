@@ -9,8 +9,9 @@ taken from its section below. Add the section in the same pull request as the `V
 - **Stage, on PLAY.** One screen for playing: the note and how far off it is, breath (with its recent
   peak), bite, glide and the output as live meters, over twelve knobs in three rows: Filter (Breath,
   Cutoff, Reso, Noise), the engine's own four, and the effects' mixes. KNOB 1-4 turn the lit row, SELECT
-  moves the row, and the dials carry the same live ghosts as the knob bars. PLAY again goes back to the
-  page you came from; any page button goes to that page. The row is remembered.
+  moves the row, and the dials carry the same live ghosts as the knob bars. PLAY again (or EDIT) goes back to
+  the page you came from; another page button goes to its page. SELECT goes round the rows, and the
+  row is remembered.
 - **The keys show your breath on Stage.** They light dim from the left as you blow, with the note you're
   playing lit on top.
 
