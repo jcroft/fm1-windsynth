@@ -5,8 +5,9 @@
  *   the screen    the note playing and the bite's bend; breath, cutoff and level as bars; the page's
  *                 four values along the bottom
  *   HOME ENV LFO SEL SEQ GLO FX   the pages (pressed again: the button's next page): HOME Voice and
- *                 Engine, ENV Breath, LFO Pitch and Pitch 2, SEL Mod 1-4, SEQ Keys, GLO Setup, FX Reverb, Reverb 2 and
- *                 Delay. EDIT and SELECT step through them all.
+ *                 Engine, ENV Breath, LFO Pitch and Pitch 2, SEL Mod 1-4, SEQ Keys, GLO Setup, FX Distortion,
+ *                 Modulation, Delay, Reverb and Reverb 2 (the order the sound goes through them). EDIT and
+ *                 SELECT step through them all.
  *   KNOB 1-4      the page's values      PRESETS the preset (1-64)      OCT- / OCT+ the panel keys' octave
  *   the keys      play notes (F3 up, chromatic), with Key breath standing in for a breath controller
  *   SAVE          the sound into a preset: "SAVE TO P12", PRESETS picks another, SAVE again saves; held
@@ -15,12 +16,13 @@
  *
  * MIDI never passes through here: wind_app reads it in the audio interrupt, every 1.45 ms. */
 
-enum { V_VOICE, V_ENGINE, V_BREATH, V_PITCH, V_PITCH2, V_MOD1, V_MOD2, V_MOD3, V_MOD4, V_KEYS, V_SETUP, V_REVERB,
-       V_REVERB2, V_DELAY, NVIEWS };
+enum { V_VOICE, V_ENGINE, V_BREATH, V_PITCH, V_PITCH2, V_MOD1, V_MOD2, V_MOD3, V_MOD4, V_KEYS, V_SETUP, V_DIST,
+       V_MODFX, V_DELAY, V_REVERB, V_REVERB2, NVIEWS };
 static const char *const VIEW_NAME[NVIEWS] = {"Voice", "Engine", "Breath", "Pitch", "Pitch 2", "Mod 1", "Mod 2", "Mod 3",
-                                              "Mod 4", "Keys", "Setup", "Reverb", "Reverb 2", "Delay"};
+                                              "Mod 4", "Keys", "Setup", "Distortion", "Modulation", "Delay", "Reverb",
+                                              "Reverb 2"};
 static const uint8_t VIEW_BTN[NVIEWS] = {B_HOME, B_HOME, B_ENV, B_LFO, B_LFO, B_SEL, B_SEL, B_SEL, B_SEL, B_SEQ, B_GLO,
-                                         B_FX, B_FX, B_FX};
+                                         B_FX, B_FX, B_FX, B_FX, B_FX};
 #define K_NONE 255                     /* a knob with nothing on it */
 static const uint8_t VIEW_KNOB[NVIEWS][4] = {
     {P_CUTOFF, P_RESO, P_MORPH, P_SLOPE},
@@ -34,9 +36,11 @@ static const uint8_t VIEW_KNOB[NVIEWS][4] = {
     {P_M4SRC, P_M4DST, P_M4AMT, K_NONE},
     {P_KEYBREATH, P_OCTAVE, K_NONE, K_NONE},
     {P_TRANSPOSE, P_TUNE, P_MIDICH, P_THEME},
+    {P_DSTYPE, P_DSMIX, P_DSDRIVE, P_DSTONE},
+    {P_MOTYPE, P_MOMIX, P_MORATE, P_MODEPTH},
+    {P_DLMODE, P_DLMIX, P_DLTIME, P_DLFB},
     {P_RVTYPE, P_RVMIX, P_RVDECAY, P_RVTONE},
     {P_RVPRE, P_RVSIZE, P_RVMOD, P_RVLOW},
-    {P_DLMODE, P_DLMIX, P_DLTIME, P_DLFB},
 };
 #define SAVE_HOLD_MS 1500u             /* SAVE held this long: the init sound? (a tap: save to a preset) */
 #define RESET_ASK_MS 5000u             /* ...asked this long: SAVE again resets, anything else keeps */

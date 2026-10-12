@@ -24,7 +24,7 @@
  *                                 note (x100) breath cutoff res amp morph timbre level (x100) litkeys (bits)
  *                                 lumaY (brightness 0..255 of the screen at x 2, row Y: the theme)
  *                                 peak_db_max peak_db_min; text, "_" a space: msg0 msg1 (the message's
- *                                 lines) knob1..knob4 (a knob's name on this page, "-" none))
+ *                                 lines) knob1..knob4 (a knob's name on this page, "-" none) val1..val4 (its value as shown))
  *   reboot                       re-run boot from the simulated flash (persistence test)
  *   oldproject F                 rewrite the saved project as format F saved it (its values, then its preset)
  */
@@ -346,15 +346,21 @@ static int key_of(const char *s) { return atoi(s) % NKEYS; }
 static int expect(const char *what, const char *val)
 {
     int got;
-    if (!strncmp(what, "msg", 3) || !strncmp(what, "knob", 4)) {   /* text, "_" for a space */
-        char want[64];                            /* msg0, msg1: the message's lines; knobN: knob N's name */
-        const char *s;
+    if (!strncmp(what, "msg", 3) || !strncmp(what, "knob", 4) || !strncmp(what, "val", 3)) {   /* text, "_": a space */
+        char want[64], txt[24];                   /* msg0, msg1: the message's lines; knobN: knob N's name; */
+        const char *s;                            /* valN: its value as the screen shows it */
         int i, k;
         for (i = 0; val[i] && i < 63; i++)
             want[i] = val[i] == '_' ? ' ' : val[i];
         want[i] = 0;
         if (what[0] == 'm') {
             s = ui.msg[atoi(what + 3) & 1];
+        } else if (what[0] == 'v') {
+            k = knob_of((atoi(what + 3) - 1) & 3);
+            txt[0] = 0;
+            if (k != K_NONE)
+                wa_param_text(k, proj.par[k], txt);
+            s = k == K_NONE ? "-" : txt;
         } else {
             k = knob_of((atoi(what + 4) - 1) & 3);
             s = k == K_NONE ? "-" : wa_param_name(k);

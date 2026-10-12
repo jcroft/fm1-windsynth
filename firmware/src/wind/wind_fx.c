@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
-/* The delay and the reverb: see wind_fx.h. Float only, no libm (fastmath.h).
+/* The effects: see wind_fx.h. Float only, no libm (fastmath.h).
  *
  * Half rate: a 6-point half-band filter (Lagrange's midpoint weights, 3 -25 150 150 -25 3) takes the
  * voice down to 22,059 Hz, and the same weights bring the wet signal back up. The wet path is 11 kHz
@@ -30,12 +30,16 @@
 
 const char *const WF_RV_NAME[WF_RV_NTYPE] = {"Cloud", "Hall", "Plate", "Room", "Shimmer"};
 const char *const WF_DL_NAME[WF_DL_NMODE] = {"Digital", "Tape", "Analog", "Pingpong"};
+const char *const WF_DS_NAME[WF_DS_NTYPE] = {"Overdrive", "Distort", "Fuzz", "Fold", "Crush"};
+const char *const WF_MO_NAME[WF_MO_NTYPE] = {"Chorus", "Ensemble", "Flanger", "Phaser"};
 
 volatile wf_cfg_t wf_cfg;
 
 static uint16_t rv_buf[RV_N] WF_POOL;   /* half floats: a tail fades to nothing, not to a hiss */
 static int16_t dl_buf[DL_N] WF_POOL;
 static float sh_buf[SH_N] WF_POOL;
+#define MO_N 1024u                      /* the modulation's two lines: 23 ms each */
+static float mo_buf[2][MO_N] WF_POOL;
 
 /* ------------------------------------------------------------ reverb --- */
 /* the lines: pre-delay, 8 input allpasses, then per ring block an allpass (modulated), an allpass and a
@@ -383,12 +387,235 @@ static void dl_clear(void)
     dl_lp = dl_lp2 = dl_hp = 0.0f;
 }
 
+/* -------------------------------------------------------- distortion --- */
+/* Two times oversampled: the same half-band weights take the signal up (a midpoint between each two
+ * samples) and, after the shaper, back down, both linear phase, so the wet path is WF_DS_LATENCY samples
+ * late and the dry is delayed as much. Crush skips it (its aliasing is the point). */
+static float ds_x[6];                  /* the input, newest first */
+static float ds_o[6], ds_e[3];         /* the shaped 2x stream: its odd samples, its even ones */
+static float ds_lp1, ds_lp2, ds_dcx, ds_dcy, ds_hold;
+static uint32_t ds_n;
+
+typedef struct {
+    uint32_t type, hold;
+    float g, comp, lp_a, step;
+} ds_k_t;
+
+static void ds_block(ds_k_t *k)
+{
+    float d = wf_cfg.ds_drive, fc;
+    k->type = wf_cfg.ds_type < WF_DS_NTYPE ? wf_cfg.ds_type : 0u;
+    k->step = 1.0f;
+    k->hold = 1u;
+    switch (k->type) {
+    case WF_DS_FOLD:                   /* the folds: 1 to 8 times over */
+        k->g = 1.0f + d * 7.0f;
+        k->comp = 0.55f * fm_rsqrtf(k->g);
+        break;
+    case WF_DS_CRUSH: {                /* 16 bits down to 3, the rate down to a sixteenth */
+        float bits = 16.0f - d * 13.0f;
+        k->g = 1.0f;
+        k->comp = 1.0f;
+        k->step = fm_exp2f(1.0f - bits);
+        k->hold = 1u + (uint32_t)(d * d * 15.0f);
+        break;
+    }
+    default:                           /* 0 to 36 dB (Fuzz 6 dB more); the level held near the dry's */
+        k->g = fm_exp2f(d * 5.98f);
+        k->comp = fm_exp2f(d * 5.98f * -0.4f) * (k->type == WF_DS_FUZZ ? 0.65f : 1.0f);
+        k->g *= k->type == WF_DS_FUZZ ? 2.0f : 1.0f;
+        break;
+    }
+    /* Tone: a 12 dB low-pass after the shaper, 700 Hz .. 14 kHz, open at the top */
+    fc = 700.0f * fm_exp2f(wf_cfg.ds_tone * 4.3219f);
+    k->lp_a = wf_cfg.ds_tone >= 0.995f ? 1.0f : 1.0f - fm_expf(-FM_TWO_PI * fc / WV_SR);
+}
+
+static float shape(uint32_t type, float u)
+{
+    switch (type) {
+    case WF_DS_DISTORT: return u > 1.0f ? 1.0f : u < -1.0f ? -1.0f : u;
+    case WF_DS_FUZZ: return u > 0.0f ? (u > 0.6f ? 0.6f : u) : fm_tanhf(u);   /* hard above, soft below */
+    case WF_DS_FOLD: return fm_sinf(u * (FM_PI * 0.5f));
+    default: return fm_tanhf(u + 0.15f) - 0.148885f;          /* (tanh 0.15: a touch of even harmonics) */
+    }
+}
+
+/* one sample in, the wet (late by WF_DS_LATENCY) out; the dry, as late, in *dry */
+static float ds_sample(const ds_k_t *k, float x, float *dry)
+{
+    float y;
+    int j;
+    for (j = 5; j > 0; j--)
+        ds_x[j] = ds_x[j - 1];
+    ds_x[0] = x;
+    *dry = ds_x[5];
+    if (k->type == WF_DS_CRUSH) {
+        if (ds_n == 0u)
+            ds_hold = k->step * fm_floorf(ds_x[5] / k->step + 0.5f);
+        ds_n = ds_n + 1u >= k->hold ? 0u : ds_n + 1u;
+        y = ds_hold;
+    } else {
+        float mid = (150.0f * (ds_x[3] + ds_x[2]) - 25.0f * (ds_x[4] + ds_x[1]) + 3.0f * (ds_x[5] + ds_x[0])) *
+                    (1.0f / 256.0f);
+        for (j = 5; j > 0; j--)
+            ds_o[j] = ds_o[j - 1];
+        ds_e[2] = ds_e[1];
+        ds_e[1] = ds_e[0];
+        ds_e[0] = shape(k->type, ds_x[3] * k->g);
+        ds_o[0] = shape(k->type, mid * k->g);
+        y = (256.0f * ds_e[2] + 150.0f * (ds_o[2] + ds_o[3]) - 25.0f * (ds_o[1] + ds_o[4]) +
+             3.0f * (ds_o[0] + ds_o[5])) * (1.0f / 512.0f);
+    }
+    y *= k->comp;
+    ds_lp1 += k->lp_a * (y - ds_lp1);
+    ds_lp2 += k->lp_a * (ds_lp1 - ds_lp2);
+    y = ds_dcy * 0.99715f + ds_lp2 - ds_dcx;   /* ~20 Hz: the asymmetric shapers' offset out */
+    ds_dcx = ds_lp2;
+    ds_dcy = y;
+    return y;
+}
+
+static void ds_clear(void)
+{
+    int j;
+    for (j = 0; j < 6; j++)
+        ds_x[j] = ds_o[j] = 0.0f;
+    ds_e[0] = ds_e[1] = ds_e[2] = 0.0f;
+    ds_lp1 = ds_lp2 = ds_dcx = ds_dcy = ds_hold = 0.0f;
+    ds_n = 0u;
+}
+
+/* -------------------------------------------------------- modulation --- */
+/* Two lines (left, right) the input goes into, read by taps an LFO moves: a quadrature pair of them
+ * (the slow one), and a fast one for the Ensemble's vibrato. Flanger feeds each side's tap back into
+ * its own line; Phaser uses six one-pole allpasses a side instead of the lines. */
+static uint32_t mo_w;
+static float mo_c[2], mo_s[2];         /* the slow and the fast LFO */
+static float mo_fb[2], mo_ap[2][6];
+
+float wf_rate_hz(float rate) { return 0.05f * fm_exp2f(rate * 7.6439f); }   /* 0.05 x 200^rate */
+
+typedef struct {
+    uint32_t type;
+    float wc[2], ws[2], depth;
+} mo_k_t;
+
+static void mo_block(mo_k_t *k)
+{
+    float rate[2], r;
+    int i;
+    k->type = wf_cfg.mo_type < WF_MO_NTYPE ? wf_cfg.mo_type : 0u;
+    k->depth = wf_cfg.mo_depth;
+    rate[0] = wf_cfg.mo_hz;
+    rate[1] = 6.3f;
+    for (i = 0; i < 2; i++) {
+        float w = FM_TWO_PI * rate[i] / WV_SR;
+        k->wc[i] = fm_cosf(w);
+        k->ws[i] = fm_sinf(w);
+        r = 1.5f - 0.5f * (mo_c[i] * mo_c[i] + mo_s[i] * mo_s[i]);   /* back onto the unit circle */
+        mo_c[i] *= r;
+        mo_s[i] *= r;
+    }
+}
+
+static float mo_rd(int ch, float d)    /* line ch, d samples back */
+{
+    int32_t i = (int32_t)d;
+    float f = d - (float)i, a, b;
+    uint32_t p = mo_w - (uint32_t)i;
+    a = mo_buf[ch][p & (MO_N - 1u)];
+    b = mo_buf[ch][(p - 1u) & (MO_N - 1u)];
+    return a + f * (b - a);
+}
+
+static float allpass6(float *z, float a, float x)   /* six one-pole allpasses, coefficient a */
+{
+    int i;
+    for (i = 0; i < 6; i++) {
+        float y = z[i] - a * x;
+        z[i] = x + a * y;
+        x = y;
+    }
+    return x;
+}
+
+static void mo_sample(const mo_k_t *k, float x, float *l, float *r)
+{
+    float c, s, ms = WV_SR * 0.001f, dp = k->depth;
+    int i;
+    for (i = 0; i < 2; i++) {
+        c = mo_c[i] * k->wc[i] - mo_s[i] * k->ws[i];
+        s = mo_s[i] * k->wc[i] + mo_c[i] * k->ws[i];
+        mo_c[i] = c;
+        mo_s[i] = s;
+    }
+    c = mo_c[0];
+    s = mo_s[0];
+    switch (k->type) {
+    case WF_MO_ENSEMBLE: {             /* three taps 120 degrees apart, each with the fast vibrato too */
+        float p1 = -0.5f * c + 0.8660254f * s, p2 = -0.5f * c - 0.8660254f * s;
+        float f1 = -0.5f * mo_c[1] + 0.8660254f * mo_s[1], f2 = -0.5f * mo_c[1] - 0.8660254f * mo_s[1];
+        float b = 8.0f * ms, ds = dp * 3.0f * ms, df = dp * 0.35f * ms, t0, t1, t2;
+        mo_buf[0][mo_w & (MO_N - 1u)] = x;
+        t0 = mo_rd(0, b + ds * c + df * mo_c[1]);
+        t1 = mo_rd(0, b + ds * p1 + df * f1);
+        t2 = mo_rd(0, b + ds * p2 + df * f2);
+        *l = 0.7f * (t0 + 0.5f * t2);
+        *r = 0.7f * (t1 + 0.5f * t2);
+        break;
+    }
+    case WF_MO_FLANGER: {              /* 0.3 .. 6.3 ms, swept one way on the left, the other on the right */
+        float b = 0.3f * ms, sw = dp * 6.0f * ms;
+        mo_buf[0][mo_w & (MO_N - 1u)] = x + 0.65f * mo_fb[0];
+        mo_buf[1][mo_w & (MO_N - 1u)] = x + 0.65f * mo_fb[1];
+        *l = mo_fb[0] = mo_rd(0, b + sw * 0.5f * (1.0f + c));
+        *r = mo_fb[1] = mo_rd(1, b + sw * 0.5f * (1.0f - c));
+        break;
+    }
+    case WF_MO_PHASER: {               /* the notches swept from 150 Hz up 1 to 6 octaves, the sides 90 apart */
+        float span = 1.0f + dp * 5.0f, ph[2];
+        ph[0] = c;
+        ph[1] = s;
+        for (i = 0; i < 2; i++) {
+            float fc = 150.0f * fm_exp2f(span * 0.5f * (1.0f + ph[i])), w = FM_PI * fc / WV_SR, a, y;
+            w = w > 1.2f ? 1.2f : w;
+            w = w * (1.0f + w * w * (1.0f / 3.0f));          /* tan, near enough below 1.2 */
+            a = (1.0f - w) / (1.0f + w);
+            y = allpass6(mo_ap[i], a, x + 0.5f * mo_fb[i]);
+            mo_fb[i] = y;
+            *(i ? r : l) = y;
+        }
+        break;
+    }
+    default: {                         /* Chorus: 10 ms, +-4 ms at full Depth, the sides in quadrature */
+        float b = 10.0f * ms, d = dp * 4.0f * ms;
+        mo_buf[0][mo_w & (MO_N - 1u)] = x;
+        *l = mo_rd(0, b + d * c);
+        *r = mo_rd(0, b + d * s);
+        break;
+    }
+    }
+    mo_w++;
+}
+
+static void mo_clear(void)
+{
+    uint32_t i;
+    for (i = 0; i < MO_N; i++)
+        mo_buf[0][i] = mo_buf[1][i] = 0.0f;
+    for (i = 0; i < 6; i++)
+        mo_ap[0][i] = mo_ap[1][i] = 0.0f;
+    mo_fb[0] = mo_fb[1] = 0.0f;
+}
+
 /* -------------------------------------------------------------- mix --- */
 static float dec_x[12];                 /* the half-band filters' histories */
 static float up_l[6], up_r[6];
 static uint32_t phase;
 static float g_dry = 1.0f, g_dw, g_dd = 1.0f, g_rw, g_rd = 1.0f;   /* the gains at the end of the last block */
-static int rv_on, dl_on;
+static float g_sw, g_sd = 1.0f, g_mw, g_md = 1.0f;
+static int rv_on, dl_on, ds_on, mo_on;
 
 void wf_init(void)
 {
@@ -416,7 +643,14 @@ void wf_init(void)
     phase = 0;
     g_dry = g_dd = g_rd = 1.0f;
     g_dw = g_rw = 0.0f;
-    rv_on = dl_on = 0;
+    g_sd = g_md = 1.0f;
+    g_sw = g_mw = 0.0f;
+    rv_on = dl_on = ds_on = mo_on = 0;
+    ds_clear();
+    mo_clear();
+    mo_w = 0;
+    mo_c[0] = mo_c[1] = 1.0f;
+    mo_s[0] = mo_s[1] = 0.0f;
     wf_cfg.rv_type = WF_RV_CLOUD;
     wf_cfg.rv_mix = wf_cfg.dl_mix = 0.0f;
     wf_cfg.rv_decay = 0.5f;
@@ -429,6 +663,13 @@ void wf_init(void)
     wf_cfg.dl_mode = WF_DL_DIGITAL;
     wf_cfg.dl_fb = 0.35f;
     wf_cfg.dl_ms = 350.0f;
+    wf_cfg.ds_type = WF_DS_OVERDRIVE;
+    wf_cfg.ds_mix = wf_cfg.mo_mix = 0.0f;
+    wf_cfg.ds_drive = 0.4f;
+    wf_cfg.ds_tone = 0.6f;
+    wf_cfg.mo_type = WF_MO_CHORUS;
+    wf_cfg.mo_hz = wf_rate_hz(0.4f);
+    wf_cfg.mo_depth = 0.5f;
 }
 
 static float wet_of(float mix) { return mix >= 0.5f ? 1.0f : mix * 2.0f; }
@@ -442,13 +683,24 @@ static float halfband(const float *h, int c)   /* the midpoint weights about h[c
 
 void wf_process(int32_t *lr, uint32_t n)
 {
-    float rm = wf_cfg.rv_mix, dm = wf_cfg.dl_mix;
+    float rm = wf_cfg.rv_mix, dm = wf_cfg.dl_mix, sm = wf_cfg.ds_mix, mm = wf_cfg.mo_mix;
     float dw = wet_of(dm), dd = dry_of(dm), rw = wet_of(rm), rd = dry_of(rm);
-    float inc_dry, inc_dw, inc_dd, inc_rw, inc_rd, inv = 1.0f / (float)(n ? n : 1u);
+    float sw = wet_of(sm), sd = dry_of(sm), mw = wet_of(mm), md = dry_of(mm);
+    float inc_dry, inc_dw, inc_dd, inc_rw, inc_rd, inc_sw, inc_sd, inc_mw, inc_md, inv = 1.0f / (float)(n ? n : 1u);
     rv_k_t rk;
     dl_k_t dk;
+    ds_k_t sk;
+    mo_k_t mk;
     uint32_t i, j;
-    if (!dl_on && !rv_on && (dw > 0.0f || rw > 0.0f)) {   /* switched on: the resamplers from silence */
+    if (sw > 0.0f && !ds_on) {         /* switched on: from silence, not what it last held */
+        ds_clear();
+        ds_on = 1;
+    }
+    if (mw > 0.0f && !mo_on) {
+        mo_clear();
+        mo_on = 1;
+    }
+    if (!dl_on && !rv_on && (dw > 0.0f || rw > 0.0f)) {   /* the resamplers too */
         for (i = 0; i < 12; i++)
             dec_x[i] = 0.0f;
         for (i = 0; i < 6; i++)
@@ -466,59 +718,91 @@ void wf_process(int32_t *lr, uint32_t n)
         rv_pre = wf_cfg.rv_pre_ms * (SR2 / 1000.0f);
         rv_on = 1;
     }
-    if (!dl_on && !rv_on)
-        return;                         /* both off: the voice as it is */
+    if (!dl_on && !rv_on && !ds_on && !mo_on)
+        return;                         /* all off: the voice as it is */
     inc_dry = (dd * rd - g_dry) * inv;
     inc_dw = (dw - g_dw) * inv;
     inc_dd = (dd - g_dd) * inv;
     inc_rw = (rw - g_rw) * inv;
     inc_rd = (rd - g_rd) * inv;
+    inc_sw = (sw - g_sw) * inv;
+    inc_sd = (sd - g_sd) * inv;
+    inc_mw = (mw - g_mw) * inv;
+    inc_md = (md - g_md) * inv;
+    ds_block(&sk);
+    mo_block(&mk);
     dl_block(&dk);
     rv_block(&rk);
     for (i = 0; i < n; i++) {
-        float x = (float)lr[2 * i] * (1.0f / 8388608.0f), yl, yr;
-        g_dry += inc_dry;
-        g_dw += inc_dw;
-        g_dd += inc_dd;
-        g_rw += inc_rw;
-        g_rd += inc_rd;
-        for (j = 11; j > 0; j--)
-            dec_x[j] = dec_x[j - 1];
-        dec_x[0] = x;
-        if (phase) {                     /* a half-rate sample: down, the effects, back up */
-            float h = (256.0f * dec_x[5] + 150.0f * (dec_x[4] + dec_x[6]) - 25.0f * (dec_x[2] + dec_x[8]) +
-                       3.0f * (dec_x[0] + dec_x[10])) * (1.0f / 512.0f);
-            float el = 0.0f, er = 0.0f, vl = 0.0f, vr = 0.0f, a;
-            if (dl_on)
-                dl_sample(&dk, h, &el, &er);
-            a = h * g_dd + g_dw * 0.5f * (el + er);
-            if (rv_on)
-                rv_sample(&rk, a, &vl, &vr);
-            for (j = 5; j > 0; j--) {
-                up_l[j] = up_l[j - 1];
-                up_r[j] = up_r[j - 1];
-            }
-            up_l[0] = g_dw * el * g_rd + g_rw * vl;
-            up_r[0] = g_dw * er * g_rd + g_rw * vr;
-            yl = halfband(up_l, 2);
-            yr = halfband(up_r, 2);
-        } else {
-            yl = up_l[2];
-            yr = up_r[2];
+        float x = (float)lr[2 * i] * (1.0f / 8388608.0f), xl, xr, yl, yr;
+        g_sw += inc_sw;
+        g_sd += inc_sd;
+        g_mw += inc_mw;
+        g_md += inc_md;
+        if (ds_on) {                    /* the distortion, then the modulation: stereo from here */
+            float dry, w = ds_sample(&sk, x, &dry);
+            x = dry * g_sd + w * g_sw;
         }
-        phase ^= 1u;
-        yl += x * g_dry;
-        yr += x * g_dry;
+        xl = xr = x;
+        if (mo_on) {
+            float wl, wr;
+            mo_sample(&mk, x, &wl, &wr);
+            xl = x * g_md + wl * g_mw;
+            xr = x * g_md + wr * g_mw;
+        }
+        if (dl_on || rv_on) {
+            g_dry += inc_dry;
+            g_dw += inc_dw;
+            g_dd += inc_dd;
+            g_rw += inc_rw;
+            g_rd += inc_rd;
+            for (j = 11; j > 0; j--)
+                dec_x[j] = dec_x[j - 1];
+            dec_x[0] = 0.5f * (xl + xr);
+            if (phase) {                     /* a half-rate sample: down, the effects, back up */
+                float h = (256.0f * dec_x[5] + 150.0f * (dec_x[4] + dec_x[6]) - 25.0f * (dec_x[2] + dec_x[8]) +
+                           3.0f * (dec_x[0] + dec_x[10])) * (1.0f / 512.0f);
+                float el = 0.0f, er = 0.0f, vl = 0.0f, vr = 0.0f, a;
+                if (dl_on)
+                    dl_sample(&dk, h, &el, &er);
+                a = h * g_dd + g_dw * 0.5f * (el + er);
+                if (rv_on)
+                    rv_sample(&rk, a, &vl, &vr);
+                for (j = 5; j > 0; j--) {
+                    up_l[j] = up_l[j - 1];
+                    up_r[j] = up_r[j - 1];
+                }
+                up_l[0] = g_dw * el * g_rd + g_rw * vl;
+                up_r[0] = g_dw * er * g_rd + g_rw * vr;
+                yl = halfband(up_l, 2);
+                yr = halfband(up_r, 2);
+            } else {
+                yl = up_l[2];
+                yr = up_r[2];
+            }
+            phase ^= 1u;
+            yl += xl * g_dry;
+            yr += xr * g_dry;
+        } else {
+            yl = xl;
+            yr = xr;
+        }
         yl = yl > 1.0f ? 1.0f : yl < -1.0f ? -1.0f : yl;
         yr = yr > 1.0f ? 1.0f : yr < -1.0f ? -1.0f : yr;
         lr[2 * i] = (int32_t)(yl * 8388607.0f);
         lr[2 * i + 1] = (int32_t)(yr * 8388607.0f);
     }
-    g_dry = dd * rd;                    /* (exact at the block's end) */
-    g_dw = dw;
-    g_dd = dd;
-    g_rw = rw;
-    g_rd = rd;
+    g_sw = sw;                          /* (exact at the block's end) */
+    g_sd = sd;
+    g_mw = mw;
+    g_md = md;
+    if (dl_on || rv_on) {
+        g_dry = dd * rd;
+        g_dw = dw;
+        g_dd = dd;
+        g_rw = rw;
+        g_rd = rd;
+    }
     if (dl_on)
         dl_lp = fm_flush(dl_lp), dl_lp2 = fm_flush(dl_lp2), dl_hp = fm_flush(dl_hp);
     if (rv_on) {
@@ -526,6 +810,18 @@ void wf_process(int32_t *lr, uint32_t n)
             rv_lp[i] = fm_flush(rv_lp[i]), rv_low[i] = fm_flush(rv_low[i]);
         rv_in_lp = fm_flush(rv_in_lp);
         sh_hp = fm_flush(sh_hp);
+    }
+    if (ds_on) {
+        ds_lp1 = fm_flush(ds_lp1), ds_lp2 = fm_flush(ds_lp2), ds_dcy = fm_flush(ds_dcy);
+        if (sw == 0.0f)
+            ds_on = 0;
+    }
+    if (mo_on) {
+        for (i = 0; i < 6; i++)
+            mo_ap[0][i] = fm_flush(mo_ap[0][i]), mo_ap[1][i] = fm_flush(mo_ap[1][i]);
+        mo_fb[0] = fm_flush(mo_fb[0]), mo_fb[1] = fm_flush(mo_fb[1]);
+        if (mw == 0.0f)
+            mo_on = 0;
     }
     if (dw == 0.0f && g_dw == 0.0f)
         dl_on = 0;
