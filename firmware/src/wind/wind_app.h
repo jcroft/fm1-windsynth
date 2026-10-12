@@ -31,6 +31,7 @@ enum {
     P_DXPATCH,                                       /* Engine page, in Ratio's place on 6-op (0.0.10) */
     P_DSTYPE, P_DSMIX, P_DSDRIVE, P_DSTONE,          /* Distortion page (0.0.14) */
     P_MOTYPE, P_MOMIX, P_MORATE, P_MODEPTH,          /* Modulation page */
+    P_NZLEVEL, P_NZTYPE, P_NZFREQ, P_NZRESO,         /* Noise page (0.0.16) */
     P_NPARAMS
 };
 typedef struct {
@@ -58,7 +59,7 @@ void wa_render(int32_t *out_lr, uint32_t n, uint32_t gain_q12, int (*midi_in)(ui
 typedef struct {
     float note, gate, breath, bend;    /* wind_ctl's */
     float cutoff, res, amp, morph;     /* after the matrix */
-    float timbre;
+    float timbre, noise;
     float level;                       /* the output's peak in the last block, 0..1 */
     int top;                           /* the note sounding (MIDI number), -1 none yet */
     uint32_t midi_seen;                /* packets received */

@@ -68,7 +68,7 @@ tap FX
 tap FX
 tap FX
 tap FX
-expect view 14
+expect view 15
 spin K2 37
 expect par34 40
 oldproject 1
@@ -92,7 +92,7 @@ expect par45 500
 # to 0.0.11, Glide was where the glide CC last left it; now it's the least glide time, so it comes back
 # as 4 ms, the default
 tap LFO
-expect view 3
+expect view 4
 spin K2 196
 expect par10 200
 oldproject 6
@@ -113,11 +113,11 @@ wait 200
 expect par30 0
 # 0.0.13 (format 7) had no Distortion or Modulation: they come back at their defaults, the rest as saved
 tap LFO
-expect view 3
+expect view 4
 spin K2 196
 expect par10 200
 tap FX
-expect view 11
+expect view 12
 spin K2 50
 expect par49 50
 oldproject 7
@@ -126,3 +126,20 @@ wait 200
 expect par10 200
 expect par49 0
 expect par50 40
+# 0.0.14 and 0.0.15 (format 8) had no noise layer: it comes back at its defaults, the effects as saved
+tap FX
+expect view 12
+spin K2 50
+expect par49 50
+tap HOME
+tap HOME
+tap HOME
+expect view 2
+spin K1 30
+expect par56 30
+oldproject 8
+reboot
+wait 200
+expect par49 50
+expect par56 0
+expect par58 24

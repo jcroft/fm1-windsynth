@@ -3,7 +3,7 @@
 # Windsynth host tests: the maths, the platform pieces kept from Felucca / X0X / FoMni, the instrument
 # (the wind voice against upstream Plaits, wind control and the matrix, built without libm as on the
 # device), and the whole firmware app in the simulator (tests/scenarios/*.scn: breath, bite, glide,
-# pages, keys, persistence), with screenshots and audio in build/scenarios/.
+# pages, keys, persistence, effects, noise), with screenshots and audio in build/scenarios/.
 #   tests/run_tests.sh
 set -u
 cd "$(dirname "$0")/.."

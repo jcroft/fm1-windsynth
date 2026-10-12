@@ -171,10 +171,10 @@ kbd { font: 600 .85em ui-monospace, Menlo, monospace; background: var(--card); b
   <div>
     <h2>Pages</h2>
     <ul>
-      <li><b>HOME</b> Voice: cutoff, resonance, morph (Classic's waveform, FM's feedback), filter slope. Press again for Engine: Classic, FM, 6-op, Formant, Waveshape, VA, PD (phase distortion) or Harmonic (additive) (or turn <b>ALGORITHM</b>), and the engine's own two knobs, named for what they do (6-op's first picks one of 96 DX7 patches).</li>
+      <li><b>HOME</b> Voice: cutoff, resonance, morph (Classic's waveform, FM's feedback), filter slope. Press again for Engine: Classic, FM, 6-op, Formant, Waveshape, VA, PD (phase distortion) or Harmonic (additive) (or turn <b>ALGORITHM</b>), and the engine's own two knobs, named for what they do (6-op's first picks one of 96 DX7 patches). Again for Noise: a noise layer under any engine, with level, type (low-pass to high-pass), freq (from the note) and reso.</li>
       <li><b>ENV</b> Breath: source, curve, attack, release.</li>
       <li><b>LFO</b> Pitch: bend range, Glide (the glide time, 4 ms by default), the glide CC, glide always or legato only. The glide CC adds to Glide, never takes away: at 0 the glide is Glide itself. Again for Pitch 2: CC depth, how much the CC adds at full (400 ms by default, up to 2 s).</li>
-      <li><b>SEL</b> Mod 1&ndash;4 (press again for the next): source (breath, bite, mod wheel, pressure, velocity), destination (cutoff, resonance, amp, morph, timbre: FM's index), amount. Mod 1 is Breath → Cutoff.</li>
+      <li><b>SEL</b> Mod 1&ndash;4 (press again for the next): source (breath, bite, mod wheel, pressure, velocity), destination (cutoff, resonance, amp, morph, timbre: FM's index, noise: the noise layer's level), amount. Mod 1 is Breath → Cutoff.</li>
       <li><b>FX</b> Distortion: type (Overdrive, Distort, Fuzz, Fold, Crush), mix, drive, tone. Again for Modulation: type (Chorus, Ensemble, Flanger, Phaser), mix, rate, depth. Again for Delay: mode (Digital, Tape, Analog, Ping-pong), mix, time, feedback. Again for Reverb: type (Cloud, Hall, Plate, Room, Shimmer), mix, decay, tone. Again for Reverb 2: pre-delay, size, mod (on Shimmer: the shimmer's amount), low end. The sound goes through them in that order, and all start at mix 0 but the reverb, a touch of Cloud at 3.</li>
       <li><b>SEQ</b> Keys: key breath and octave. <b>GLO</b> Setup: transpose, tune, MIDI channel (Omni by default) and the <b>Theme</b>; the header shows the version.</li>
       <li><b>EDIT</b> and the <b>SELECT</b> knob step through every page; the four knobs set its four values. What you play is kept by itself. Hold <b>SAVE</b> for 1.5 s for the init sound (SAVE again to confirm).</li>
@@ -294,7 +294,7 @@ function hit(c, cls) {
 // what each control does, on hover (the Pages list below says the same)
 const TIP = { FX: "Distortion, Modulation, Delay, Reverb, Reverb 2", SEL: "Mod 1 to 4: source, destination, amount", ENV: "Breath page: source, curve, attack, release",
   LFO: "Pitch page: bend range, glide; again: CC depth", EDIT: "Every page in turn", GLO: "Setup page: transpose, tune, MIDI channel, theme",
-  HOME: "Voice page: cutoff, resonance, morph, slope; again: Engine", SAVE: "Save the sound to a preset (hold: the init sound)", SEQ: "Keys page: key breath, octave",
+  HOME: "Voice page: cutoff, resonance, morph, slope; again: Engine, then Noise", SAVE: "Save the sound to a preset (hold: the init sound)", SEQ: "Keys page: key breath, octave",
   "OCT-": "Octave down (the panel's keys)", "OCT+": "Octave up (the panel's keys)", SELECT: "Page", ALGORITHM: "Engine: Classic, FM, 6-op, Formant, Waveshape, VA, PD, Harmonic", PRESETS: "Preset (1 to 64)", MASTER: "Volume" };
 for (const [n, c] of [...Object.entries(buttons), ...Object.entries(knobs)]) if (TIP[n]) c.g.setAttribute("aria-description", TIP[n]);
 for (const k of Object.values(knobs)) hit(k, "knob");

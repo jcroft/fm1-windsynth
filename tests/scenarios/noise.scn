@@ -1,0 +1,47 @@
+# The noise layer: HOME's third page, Noise (Level, Type, Freq, Reso), off to start. Its level is a Mod
+# destination, so breath can blow it in; it plays with the note and stops with it.
+wait 200
+tap HOME
+tap HOME
+expect view 2
+expect par56 0
+expect val2 BP
+spin K2 -50
+expect val2 LP
+spin K2 25
+expect val2 LP-BP
+spin K2 25
+expect par57 50
+spin K3 -12
+expect val3 +12_st
+# Mod 2: breath to Noise at +60
+tap SEL
+tap SEL
+expect view 7
+spin K1 1
+spin K2 5
+expect val2 Noise
+spin K3 60
+expect par17 60
+midi 90 39 64
+breath 0 0 10
+wait 50
+expect noise 0
+breath 0 127 50
+wait 30
+expect noise 60
+expect level >5
+shot noise_breath.png
+# the knob adds to it
+tap HOME
+tap HOME
+tap HOME
+expect view 2
+spin K1 30
+expect par56 30
+wait 30
+expect noise 90
+midi 80 39 00
+breath 127 0 20
+wait 400
+expect gate 0

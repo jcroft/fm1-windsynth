@@ -36,10 +36,11 @@ step through every page.
 | --- | --- | --- |
 | HOME | Voice | Cutoff, Resonance, Morph (named for what it does on the engine; Classic: the waveform, a saw up to 25, a square at 50, then a pulse that narrows and widens again, with a sub-octave below 20 and above 80; FM: the feedback, none at 50), Slope (12 or 24 dB) |
 | HOME again | Engine | Engine (also the ALGORITHM knob), then the engine's two own knobs (Classic has none). See the engines below. |
+| HOME again | Noise | Level (0 is off), Type (low-pass through band-pass to high-pass), Freq (the noise filter's pitch, in semitones from the note), Reso |
 | ENV | Breath | Source (a CC, or aftertouch), Curve, Attack, Release |
 | LFO | Pitch | Bend range, Glide (the glide time with the glide CC at 0: 4 ms by default, up to 2 s), Glide CC, Glide mode (always or legato) |
 | LFO again | Pitch 2 | CC depth: how much the glide CC adds to Glide at full (400 ms by default, up to 2 s) |
-| SEL | Mod 1–4 (press again for the next) | Source (breath, bite, mod wheel, pressure, velocity), Destination (cutoff, resonance, amp, morph, timbre: the Engine page's second knob, FM's Index), Amount (−100 to +100) |
+| SEL | Mod 1–4 (press again for the next) | Source (breath, bite, mod wheel, pressure, velocity), Destination (cutoff, resonance, amp, morph, timbre: the Engine page's second knob, FM's Index; noise: the noise layer's level), Amount (−100 to +100) |
 | SEQ | Keys | Key breath, Octave |
 | GLO | Setup | Transpose, Tune, MIDI channel (Omni by default), Theme (Light or Dark); the version |
 | FX | Distortion | Type (Overdrive, Distort, Fuzz, Fold, Crush), Mix, Drive, Tone |
@@ -50,7 +51,10 @@ step through every page.
 
 The engines are Plaits' own, played by breath. Classic has its own filter, and every other engine goes
 through an exact copy of it, drive and saturation included, so breath on cutoff works and sounds the
-same way on all of them. Their knobs take the
+same way on all of them. A noise layer can go with any of them: Plaits' noise through its own
+filter, which sweeps from low-pass to high-pass and follows the note, mixed in ahead of the main
+filter, so breath on cutoff opens the air with the tone. Send breath to Noise on a Mod page to blow
+it in harder, or a negative amount for a breathy edge on soft notes. Their knobs take the
 engine's names.
 
 | Engine | Engine page | Morph (Voice page) |
@@ -125,6 +129,7 @@ you save).
 - 0.0.13: two more Plaits engines, PD (phase distortion) and Harmonic (additive).
 - 0.0.14: Distortion and Modulation (chorus, ensemble, flanger, phaser) before the delay and the reverb.
 - 0.0.15: every engine goes through Classic's filter exactly, its drive and saturation included.
+- 0.0.16: a noise layer for any engine, with its own page and a Mod destination.
 
 ## Building and testing
 

@@ -4,6 +4,15 @@ A release is a push to `main` that changes `VERSION` to a version with no tag ye
 release build, tags the commit `vX.Y.Z` and publishes the GitHub Release with that version's notes,
 taken from its section below. Add the section in the same pull request as the `VERSION` change.
 
+## 0.0.16
+
+- **A noise layer for any engine.** HOME's third page, Noise, mixes Plaits' noise in with the engine:
+  Level (0, off, to start), Type (low-pass through band-pass to high-pass), Freq (the noise filter's
+  pitch, in semitones from the note, +24 to start) and Reso. It goes in ahead of the main filter, so
+  breath on cutoff opens it with the tone, and it plays and stops with the note. Noise is also a new
+  Mod destination: breath to Noise blows it in harder, and a negative amount gives soft notes a breathy
+  edge.
+
 ## 0.0.15
 
 - **Every engine gets Classic's filter, exactly.** The other engines went through the same two filter

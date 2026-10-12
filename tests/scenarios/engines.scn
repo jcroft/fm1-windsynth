@@ -74,6 +74,7 @@ spin ALGO 1
 expect par30 7
 # Morph on the Voice page takes the engine's name too
 tap HOME
+tap HOME
 expect view 0
 expect knob3 Shape
 # breath to cutoff still works on every engine
