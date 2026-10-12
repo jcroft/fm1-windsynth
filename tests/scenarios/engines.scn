@@ -50,23 +50,17 @@ spin ALGO 1
 expect msg1 VA
 expect knob2 Detune
 expect knob3 Square
+expect par30 5
 wait 100
 expect level >5
+shot va.png
+# the end of the list (Swarm, 6, was dropped in 0.0.12)
 spin ALGO 1
-expect par30 6
-expect msg1 Swarm
-expect knob2 Spread
-expect knob3 Density
-wait 100
-expect level >5
-shot swarm.png
-# the end of the list
-spin ALGO 1
-expect par30 6
+expect par30 5
 # Morph on the Voice page takes the engine's name too
 tap HOME
 expect view 0
-expect knob3 Overlap
+expect knob3 Saw
 # breath to cutoff still works on every engine
 breath 127 10 50
 wait 60
@@ -76,7 +70,6 @@ midi 80 39 00
 wait 200
 # the patch stays with the sound across a restart
 tap HOME
-spin ALGO -1
 spin ALGO -1
 spin ALGO -1
 spin ALGO -1

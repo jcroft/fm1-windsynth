@@ -1,7 +1,9 @@
-# CC5 sets the glide time (the knob follows); legato notes slide, detached ones jump. CC depth (Pitch 2)
-# starts at 400 ms; here 2 s, so CC5 64 is half of it on the knob
+# Glide is the least glide time (4 ms to start); CC5 adds to it, up to CC depth (Pitch 2, 400 ms to start)
+# at full, and nothing at 0: it never takes the time below Glide. The knob stays where it's set. Legato
+# notes slide, detached ones jump. Here CC depth is 2 s, so CC5 64 adds about 1 s.
 wait 200
 tap LFO
+expect par10 4
 tap LFO
 expect par45 400
 spin K1 1600
@@ -11,43 +13,60 @@ expect dirty 0
 tap LFO
 midi B0 05 40
 wait 40
-expect par10 50
+expect par10 4
 expect dirty 0
 midi B0 02 7F
 midi 90 3C 64
 wait 20
 expect note 6000
 midi 90 48 64
-wait 250
+wait 500
 expect note >6500
 expect note <6700
-wait 300
+wait 600
 expect note 7200
 shot glide.png
 midi 80 48 00
 midi 80 3C 00
 wait 50
 midi 90 30 64
-wait 5
+wait 20
 expect note 4800
 midi 80 30 00
 # Glide on: Always, from the Pitch page: now a detached note slides too
 spin K4 1
 expect par11 1
 midi 90 3C 64
-wait 250
+wait 500
 expect note >5300
 expect note <5500
+wait 600
 midi 80 3C 00
 wait 100
-# Pitch 2: CC depth, the longest glide the CC reaches; at 320 ms, CC5 at full gives Glide 40 (320 ms)
+# CC5 back to 0: Glide alone. At 200 ms on the knob, a 12-semitone slide takes 200 ms, CC or not
+midi B0 05 00
+spin K2 196
+expect par10 200
+midi 90 48 64
+wait 100
+expect note >6500
+expect note <6700
+wait 150
+expect note 7200
+midi 80 48 00
+wait 100
+# Pitch 2: CC depth; at 320 ms, CC5 at full gives Glide + 320 ms = 520 ms
 tap LFO
 expect view 4
 spin K1 -1680
 expect par45 320
 midi B0 05 7F
 wait 40
-expect par10 40
-midi B0 05 40
-wait 40
-expect par10 20
+expect par10 200
+midi 90 3C 64
+wait 260
+expect note >6500
+expect note <6700
+wait 300
+expect note 6000
+midi 80 3C 00

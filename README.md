@@ -6,7 +6,7 @@ It runs in the browser first, as the firmware's own C code compiled to WebAssemb
 FM-1 itself.
 
 > **Status: in development (0.0.x).** It plays: notes, breath, bite and glide from any windsynth
-> drive a Plaits voice (seven engines), with 64 presets, a reverb and a delay, in the browser and on
+> drive a Plaits voice (six engines), with 64 presets, a reverb and a delay, in the browser and on
 > the FM-1. Nothing is released yet. The plan is in [docs/PLAN.md](docs/PLAN.md).
 
 ![Full breath on A3](docs/img/wind_voice.png) ![The Breath page](docs/img/wind_breath.png) ![Mod 1: breath to cutoff](docs/img/wind_mod.png)
@@ -22,7 +22,7 @@ blown at the **Key breath** level.
 | --- | --- | --- |
 | Breath | CC2, to filter cutoff (Mod 1: Breath → Cutoff, +75) | Aftertouch or any CC as the source; a curve; the Mod slots also send it to amp, resonance or morph |
 | Bite | Pitch bend, ±2 semitones | 0 to 12 semitones |
-| Glide | CC5 sets glide time, up to 400 ms | Another CC, or none; how long a glide the CC reaches at full (CC depth, up to 2 s); glide on every note or legato only |
+| Glide | 4 ms; CC5 adds up to 400 ms to it, and at 0 adds nothing | The glide time itself (up to 2 s, or off); another CC, or none; how much the CC adds at full (CC depth, up to 2 s); glide on every note or legato only |
 
 The screen shows the note (with its offset in cents while you bend), the bite, and bars for breath,
 cutoff and output.
@@ -37,8 +37,8 @@ step through every page.
 | HOME | Voice | Cutoff, Resonance, Morph (named for what it does on the engine; Classic: the waveform, a saw up to 25, a square at 50, then a pulse that narrows and widens again, with a sub-octave below 20 and above 80; FM: the feedback, none at 50), Slope (12 or 24 dB) |
 | HOME again | Engine | Engine (also the ALGORITHM knob), then the engine's two own knobs (Classic has none). See the engines below. |
 | ENV | Breath | Source (a CC, or aftertouch), Curve, Attack, Release |
-| LFO | Pitch | Bend range, Glide source, Glide time, Glide mode (always or legato) |
-| LFO again | Pitch 2 | CC depth: the glide time the glide CC reaches at full (400 ms by default, up to 2 s) |
+| LFO | Pitch | Bend range, Glide (the glide time with the glide CC at 0: 4 ms by default, up to 2 s), Glide CC, Glide mode (always or legato) |
+| LFO again | Pitch 2 | CC depth: how much the glide CC adds to Glide at full (400 ms by default, up to 2 s) |
 | SEL | Mod 1–4 (press again for the next) | Source (breath, bite, mod wheel, pressure, velocity), Destination (cutoff, resonance, amp, morph, timbre: the Engine page's second knob, FM's Index), Amount (−100 to +100) |
 | SEQ | Keys | Key breath, Octave |
 | GLO | Setup | Transpose, Tune, MIDI channel (Omni by default), Theme (Light or Dark); the version |
@@ -54,11 +54,10 @@ engine's names.
 |---|---|---|
 | Classic | (none) | the waveform |
 | FM | Ratio (the modulator, 0.5 to 16 times the note), Index | Feedback |
-| 6-op | Patch (96 DX7 patches, by name; BRASS 6 BC to start), Bright (the modulators' level) | Env (the envelopes' speed; 50 as the patch has it) |
+| 6-op | Patch (96 DX7 patches, by name; BRASS 6 BC to start), Bright (the modulators' level) | Env (the envelopes' speed; 25, Morph's default, as the patch has it) |
 | Formant | Ratio (between the two formants), Formant | Width |
 | Waveshape | Shape (the shaper's curve), Fold | Asym (asymmetry) |
 | VA | Detune (between the two oscillators), Square (pulse width, then sync) | Saw (triangle to saw) |
-| Swarm | Spread (pitch scatter of its 8 saws), Density | Overlap |
 
 6-op starts its envelopes at the start of each breath, not each note, so a slurred phrase stays one
 gesture.
@@ -107,6 +106,7 @@ you save).
 - 0.0.9: Shimmer rebuilt: the tail climbs in octaves, with a Shimmer amount.
 - 0.0.10: five more Plaits engines: 6-op FM (96 DX7 patches), Formant, Waveshape, VA and Swarm.
 - 0.0.11: a smoother reverb tail that fades to silence.
+- 0.0.12: Glide is a set time that CC5 adds to; 6-op in tune and smooth; Swarm dropped.
 
 ## Building and testing
 

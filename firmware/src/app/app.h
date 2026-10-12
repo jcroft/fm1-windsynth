@@ -15,10 +15,11 @@
 /* The format counts the settings a project holds: a newer version reads an older project's values and
  * gives the settings it lacks their defaults (its spare bytes, zeros, are never taken for settings).
  * Add a setting at the end of P_*, bump the format, and add its count here. */
-#define PROJ_FORMAT 6u                    /* 1: the first (30 settings); 2: the Engine page (33); 3: FX (45);
-                                          * 4: Glide depth (46); 5: Shimmer (47); 6: 6-op's patch (48) */
+#define PROJ_FORMAT 7u                    /* 1: the first (30 settings); 2: the Engine page (33); 3: FX (45);
+                                          * 4: Glide depth (46); 5: Shimmer (47); 6: 6-op's patch (48);
+                                          * 7: Glide in ms, the least glide time (48) */
 #define PROJ_NPAR_OF(f) ((f) == 1u ? 30 : (f) == 2u ? 33 : (f) == 3u ? 45 : (f) == 4u ? 46 : \
-                         (f) == 5u ? 47 : P_NPARAMS)
+                         (f) == 5u ? 47 : (f) == 6u ? 48 : P_NPARAMS)
 
 typedef struct {
     uint32_t magic, format;

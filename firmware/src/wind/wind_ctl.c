@@ -4,7 +4,6 @@
 #include "../dsp/fastmath.h"
 
 #define BREATH_MS 3.0f                 /* smoothing: 7-bit breath steps, ironed out */
-#define GLIDE_MAX_S 2.0f
 
 wc_cfg_t wc_cfg;
 
@@ -16,13 +15,14 @@ static struct {
     uint16_t breath_msb, breath_raw;   /* 14-bit */
     float breath_cc, breath;           /* raw 0..1, smoothed after the curve */
     float bend, mod, pressure, velocity;
-    int glide_cc;
+    uint8_t glide_cc;                  /* the glide CC's value */
 } w;
 
 void wc_reset(void)
 {
     w.n = w.keys = 0;
     w.bend = w.mod = w.pressure = 0.0f;
+    w.glide_cc = 0;
     w.breath_msb = w.breath_raw = 0;
     w.breath_cc = w.breath = 0.0f;
 }
@@ -34,7 +34,7 @@ void wc_init(void)
     wc_cfg.breath_curve = 0;
     wc_cfg.bend_range = 2;
     wc_cfg.glide_src = 5;
-    wc_cfg.glide = 0;
+    wc_cfg.glide = 4;
     wc_cfg.glide_depth = 400;
     wc_cfg.glide_always = 0;
     wc_cfg.transpose = 0;
@@ -44,14 +44,13 @@ void wc_init(void)
     w.cur = w.target = 60.0f;
     w.rate = 0.0f;
     w.velocity = 0.0f;
-    w.glide_cc = -1;
     wc_reset();
 }
 
+/* the glide time: Glide, and what the glide CC adds to it (only adds: at 0, Glide itself) */
 static float glide_s(void)
 {
-    float g = (float)wc_cfg.glide * 0.01f;
-    return g * g * GLIDE_MAX_S;        /* fine control of the short times */
+    return ((float)wc_cfg.glide + (float)wc_cfg.glide_depth * (float)w.glide_cc * (1.0f / 127.0f)) * 0.001f;
 }
 
 /* the stack's top changed: glide there (legato, or always) or jump */
@@ -119,13 +118,8 @@ static void cc(uint32_t n, uint32_t v)
         w.breath_raw = (uint16_t)(w.breath_msb << 7 | v);
         set_breath();
     }
-    if (n == wc_cfg.glide_src) {
-        /* 127: the depth (glide's time is its value squared: 100 is 2 s) */
-        float g = 100.0f * fm_sqrtf((float)wc_cfg.glide_depth * (1.0f / (GLIDE_MAX_S * 1000.0f))) * (float)v *
-                  (1.0f / 127.0f);
-        wc_cfg.glide = (uint8_t)(g + 0.5f);
-        w.glide_cc = wc_cfg.glide;
-    }
+    if (n == wc_cfg.glide_src)
+        w.glide_cc = (uint8_t)v;
     if (n == 1u)
         w.mod = (float)v * (1.0f / 127.0f);
     if (n == 120u || n == 123u) {      /* all sound off, all notes off */
@@ -216,12 +210,6 @@ void wc_block(uint32_t frames, float sr, wc_out_t *o)
     o->velocity = w.velocity;
 }
 
-int wc_take_glide_cc(void)
-{
-    int g = w.glide_cc;
-    w.glide_cc = -1;
-    return g;
-}
 
 int wc_held(void) { return w.n; }
 int wc_top_note(void) { return w.top; }
