@@ -20,6 +20,7 @@ static struct {
 } w;
 static wc_mon_t mon;                   /* the controller monitor */
 static uint8_t mon_msb;                /* the breath CC's MSB, as the monitor saw it */
+static uint8_t mon_bsrc, mon_gsrc;     /* the breath and glide sources the monitor last saw set */
 
 void wc_reset(void)
 {
@@ -55,7 +56,24 @@ void wc_init(void)
     mon.ch[0] = mon.ch[1] = mon.ch[2] = mon.ch[3] = 0u;
     mon.breath_src = mon.glide_src = 255u;
     mon_msb = 0u;
+    mon_bsrc = wc_cfg.breath_src;
+    mon_gsrc = wc_cfg.glide_src;
     mon.clock = 1u;
+}
+
+/* a source chosen again: what the old one sent no longer shows, even if it's chosen back before the new
+ * one sends (its values weren't kept meanwhile) */
+static void mon_sync(void)
+{
+    if (mon_bsrc != wc_cfg.breath_src) {
+        mon_bsrc = wc_cfg.breath_src;
+        mon.breath_src = 255u;
+        mon_msb = 0u;
+    }
+    if (mon_gsrc != wc_cfg.glide_src) {
+        mon_gsrc = wc_cfg.glide_src;
+        mon.glide_src = 255u;
+    }
 }
 
 /* the glide CC chosen again (another, or Off): what the old one set no longer adds */
@@ -125,6 +143,7 @@ static void seen_breath(uint32_t raw, uint32_t ch)
 static void monitor(uint32_t st, uint32_t d1, uint32_t d2)
 {
     uint32_t ch = (st & 0x0Fu) + 1u;
+    mon_sync();
     switch (st & 0xF0u) {
     case 0x90u: seen_note((int)d1, (int)d2, d2 != 0u, ch); break;
     case 0x80u: seen_note((int)d1, (int)d2, 0, ch); break;
@@ -268,6 +287,7 @@ void wc_block(uint32_t frames, float sr, wc_out_t *o)
     float t = (float)frames / sr, b = curve(w.breath_cc), a;
     if (!++mon.clock)                  /* (0 is "never") */
         mon.clock = 1u;
+    mon_sync();
     if (w.keys && wc_cfg.key_breath > b)
         b = wc_cfg.key_breath;
     a = 1.0f - fm_expf(-t * (1000.0f / BREATH_MS));

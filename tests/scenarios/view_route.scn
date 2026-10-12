@@ -191,6 +191,10 @@ spin K3 5
 tap GLO
 expect par4 2
 expect par9 5
+# chosen back: what CC2 and CC5 sent before the change doesn't come back (it wasn't kept meanwhile)
+wait 30
+expect rtmon0 CC2|Breath||-
+expect rtmon2 CC5|Glide||-
 # the monitor hears every channel: on MIDI ch 3, a CC2 on channel 1 shows, its channel marked
 spin K3 3
 expect par28 3

@@ -409,8 +409,6 @@ static void rt_mod(int slot)
             int32_t x = cv_text(16, y, &FONT_XS, off, K_DIM);
             cv_text(x + 6, y, &FONT_XS, "Off", K_DIM);
         }
-        if (!lines)
-            text_c(120, 102, &FONT_XS, "Nothing modulates the sound", K_DIM);
     }
     cv_blit(0, MAIN_Y);
 }
