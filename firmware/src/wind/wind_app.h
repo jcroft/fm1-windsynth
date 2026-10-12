@@ -32,6 +32,7 @@ enum {
     P_DSTYPE, P_DSMIX, P_DSDRIVE, P_DSTONE,          /* Distortion page (0.0.14) */
     P_MOTYPE, P_MOMIX, P_MORATE, P_MODEPTH,          /* Modulation page */
     P_NZLEVEL, P_NZTYPE, P_NZFREQ, P_NZRESO,         /* Noise page (0.0.16) */
+    P_AUX,                                           /* Engine page: Plaits' AUX output, mixed in (0.0.17) */
     P_NPARAMS
 };
 typedef struct {

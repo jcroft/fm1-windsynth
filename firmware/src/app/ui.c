@@ -26,7 +26,7 @@ static const uint8_t VIEW_BTN[NVIEWS] = {B_HOME, B_HOME, B_HOME, B_ENV, B_LFO, B
 #define K_NONE 255                     /* a knob with nothing on it */
 static const uint8_t VIEW_KNOB[NVIEWS][4] = {
     {P_CUTOFF, P_RESO, P_MORPH, P_SLOPE},
-    {P_ENGINE, P_RATIO, P_INDEX, K_NONE},
+    {P_ENGINE, P_RATIO, P_INDEX, P_AUX},
     {P_NZLEVEL, P_NZTYPE, P_NZFREQ, P_NZRESO},
     {P_BSRC, P_CURVE, P_ATTACK, P_RELEASE},
     {P_BEND, P_GLIDE, P_GSRC, P_GMODE},
@@ -98,6 +98,8 @@ static int knob_of(int i)
     if (k == P_RVMOD && proj.par[P_RVTYPE] == WF_RV_SHIMMER)
         return P_RVSHIM;
     if ((k == P_RATIO || k == P_INDEX) && proj.par[P_ENGINE] == WV_CLASSIC)
+        return K_NONE;
+    if (k == P_AUX && proj.par[P_ENGINE] == WV_SIXOP)   /* (6-op's AUX is its main output) */
         return K_NONE;
     if (k == P_RATIO && proj.par[P_ENGINE] == WV_SIXOP)
         return P_DXPATCH;
