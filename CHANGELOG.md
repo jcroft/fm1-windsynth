@@ -11,6 +11,8 @@ taken from its section below. Add the section in the same pull request as the `V
   the stages and in the second, and eases off the drive as resonance rises. Ours now does all of that,
   so FM, Formant, Waveshape, VA, PD and Harmonic sound as warm through the filter as Classic does, and
   resonance growls rather than whistles. A test holds ours to Classic's, sample for sample.
+- **The init sound has a touch of reverb**: Cloud at Mix 3, with Decay 3.5 s, Tone 60, Pre-delay
+  20 ms, Size 50 and Mod 50. Presets never saved start from it too.
 
 ## 0.0.14
 

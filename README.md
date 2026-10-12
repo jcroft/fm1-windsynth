@@ -74,7 +74,8 @@ gesture.
 The voice goes through four effects in order: Distortion, Modulation, Delay, Reverb. Modulation turns
 it stereo, and the delay and the reverb are stereo out. Mix works the same on each: at 0 the effect is
 off, at 50 you hear the dry sound and the effect at full level, and at 100 only the effect. All start
-at 0, so the init sound is dry, and a preset keeps its effects.
+at 0 except the reverb, which the init sound has a touch of (Cloud at Mix 3, 3.5 s), and a preset
+keeps its effects.
 
 The distortion has five types. **Overdrive** is a soft, slightly asymmetric clip, **Distort** a hard
 one, **Fuzz** hard on one side and soft on the other with more gain, **Fold** a wavefolder, and

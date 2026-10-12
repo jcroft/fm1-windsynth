@@ -69,13 +69,13 @@ tap FX
 tap FX
 tap FX
 expect view 14
-spin K2 40
+spin K2 37
 expect par34 40
 oldproject 1
 reboot
 wait 200
 expect preset 7
-expect par34 0
+expect par34 3
 oldproject 2
 reboot
 wait 200

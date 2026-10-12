@@ -1,6 +1,6 @@
 # The effects: FX opens Distortion, then Modulation, Delay, Reverb and Reverb 2, the order the sound goes
-# through them. All start at Mix 0 (the init sound is dry); with the reverb's Mix up, a note keeps
-# sounding after it stops, and Mix back at 0 is dry again.
+# through them. All start at Mix 0 but the reverb, a touch of Cloud at 3; with the reverb's Mix up, a
+# note keeps sounding after it stops, and every Mix at 0 is dry.
 wait 200
 tap FX
 expect view 11
@@ -39,9 +39,9 @@ shot delay_page.png
 tap FX
 expect view 14
 expect par33 0
-expect par34 0
+expect par34 3
 expect par35 50
-spin K2 40
+spin K2 37
 expect par34 40
 wait 50
 shot reverb_page.png
