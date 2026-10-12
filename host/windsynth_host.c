@@ -404,6 +404,14 @@ static int expect(const char *what, const char *val)
         got = (int)(wa_state.timbre * 100.0f + 0.5f);
     else if (!strcmp(what, "noise"))
         got = (int)(wa_state.noise * 100.0f + 0.5f);
+    else if (!strcmp(what, "harm"))
+        got = (int)(wa_state.harmonics * 100.0f + 0.5f);
+    else if (!strcmp(what, "aux"))
+        got = (int)(wa_state.aux * 100.0f + 0.5f);
+    else if (!strcmp(what, "lfo"))                /* -100..100 */
+        got = (int)(wa_state.lfo * 100.0f + (wa_state.lfo < 0.0f ? -0.5f : 0.5f));
+    else if (!strcmp(what, "pitch"))              /* x 100, as note, with the LFO's vibrato */
+        got = (int)(wa_state.pitch * 100.0f + (wa_state.pitch < 0.0f ? -0.5f : 0.5f));
     else if (!strcmp(what, "level"))
         got = (int)(wa_state.level * 100.0f + 0.5f);
     else if (!strcmp(what, "litkeys"))            /* the keys lit (bit per key) */

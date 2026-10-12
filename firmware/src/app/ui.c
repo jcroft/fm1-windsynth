@@ -5,37 +5,38 @@
  *   the screen    the note playing and the bite's bend; breath, cutoff and level as bars; the page's
  *                 four values along the bottom
  *   HOME ENV LFO SEL SEQ GLO FX   the pages (pressed again: the button's next page): HOME Voice,
- *                 Engine and Noise, ENV Breath, LFO Pitch and Pitch 2, SEL Mod 1-4, SEQ Keys, GLO Setup, FX Distortion,
+ *                 Engine and Noise, ENV Breath, LFO LFO and LFO 2, SEL Mod 1-4, SEQ Pitch and Pitch 2, GLO Setup, FX Distortion,
  *                 Modulation, Delay, Reverb and Reverb 2 (the order the sound goes through them). EDIT and
  *                 SELECT step through them all.
  *   KNOB 1-4      the page's values      PRESETS the preset (1-64)      OCT- / OCT+ the panel keys' octave
- *   the keys      play notes (F3 up, chromatic), with Key breath standing in for a breath controller
+ *   the keys      play notes (F3 up, chromatic), at full breath (they sense no pressure)
  *   SAVE          the sound into a preset: "SAVE TO P12", PRESETS picks another, SAVE again saves; held
  *                 1.5 s: the init sound (SAVE again to confirm). What you play is kept by itself, a few
  *                 seconds after a change, when quiet, with the preset it came from.
  *
  * MIDI never passes through here: wind_app reads it in the audio interrupt, every 1.45 ms. */
 
-enum { V_VOICE, V_ENGINE, V_NOISE, V_BREATH, V_PITCH, V_PITCH2, V_MOD1, V_MOD2, V_MOD3, V_MOD4, V_KEYS, V_SETUP, V_DIST,
-       V_MODFX, V_DELAY, V_REVERB, V_REVERB2, NVIEWS };
-static const char *const VIEW_NAME[NVIEWS] = {"Voice", "Engine", "Noise", "Breath", "Pitch", "Pitch 2", "Mod 1", "Mod 2", "Mod 3",
-                                              "Mod 4", "Keys", "Setup", "Distortion", "Modulation", "Delay", "Reverb",
-                                              "Reverb 2"};
-static const uint8_t VIEW_BTN[NVIEWS] = {B_HOME, B_HOME, B_HOME, B_ENV, B_LFO, B_LFO, B_SEL, B_SEL, B_SEL, B_SEL, B_SEQ, B_GLO,
-                                         B_FX, B_FX, B_FX, B_FX, B_FX};
+enum { V_VOICE, V_ENGINE, V_NOISE, V_BREATH, V_LFO, V_LFO2, V_MOD1, V_MOD2, V_MOD3, V_MOD4, V_PITCH, V_PITCH2, V_SETUP,
+       V_DIST, V_MODFX, V_DELAY, V_REVERB, V_REVERB2, NVIEWS };
+static const char *const VIEW_NAME[NVIEWS] = {"Voice", "Engine", "Noise", "Breath", "LFO", "LFO 2", "Mod 1", "Mod 2", "Mod 3",
+                                              "Mod 4", "Pitch", "Pitch 2", "Setup", "Distortion", "Modulation", "Delay",
+                                              "Reverb", "Reverb 2"};
+static const uint8_t VIEW_BTN[NVIEWS] = {B_HOME, B_HOME, B_HOME, B_ENV, B_LFO, B_LFO, B_SEL, B_SEL, B_SEL, B_SEL, B_SEQ, B_SEQ,
+                                         B_GLO, B_FX, B_FX, B_FX, B_FX, B_FX};
 #define K_NONE 255                     /* a knob with nothing on it */
 static const uint8_t VIEW_KNOB[NVIEWS][4] = {
     {P_CUTOFF, P_RESO, P_MORPH, P_SLOPE},
     {P_ENGINE, P_RATIO, P_INDEX, P_AUX},
     {P_NZLEVEL, P_NZTYPE, P_NZFREQ, P_NZRESO},
     {P_BSRC, P_CURVE, P_ATTACK, P_RELEASE},
-    {P_BEND, P_GLIDE, P_GSRC, P_GMODE},
-    {P_GDEPTH, K_NONE, K_NONE, K_NONE},
+    {P_LFOSHAPE, P_LFORATE, P_LFODST, P_LFOAMT},
+    {P_LFOFADE, P_LFOSYNC, K_NONE, K_NONE},
     {P_M1SRC, P_M1DST, P_M1AMT, K_NONE},
     {P_M2SRC, P_M2DST, P_M2AMT, K_NONE},
     {P_M3SRC, P_M3DST, P_M3AMT, K_NONE},
     {P_M4SRC, P_M4DST, P_M4AMT, K_NONE},
-    {P_KEYBREATH, P_OCTAVE, K_NONE, K_NONE},
+    {P_BEND, P_GLIDE, P_GSRC, P_GMODE},
+    {P_GDEPTH, K_NONE, K_NONE, K_NONE},
     {P_TRANSPOSE, P_TUNE, P_MIDICH, P_THEME},
     {P_DSTYPE, P_DSMIX, P_DSDRIVE, P_DSTONE},
     {P_MOTYPE, P_MOMIX, P_MORATE, P_MODEPTH},

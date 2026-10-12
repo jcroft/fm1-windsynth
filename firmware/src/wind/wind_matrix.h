@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
 /* The mod matrix: WM_NSLOT slots, each a source, a destination and an amount (-100..100).
  *
- *   Cutoff, Resonance, Morph, Timbre, Noise   the knob's value plus each slot's amount x its source,
+ *   Cutoff, Resonance, Morph, Timbre, Noise, Harmonics, Aux   the knob's value plus each slot's amount x its source,
  *                              clamped 0..1 (Timbre: the engine's own, FM's index; Classic has none;
  *                              Noise: the noise layer's level)
  *   Amp                        a gain from 1: a slot of amount a makes it (1 - a) + a x source, so at
@@ -12,9 +12,13 @@
 #pragma once
 #include <stdint.h>
 
-enum { WM_SRC_OFF, WM_SRC_BREATH, WM_SRC_BITE, WM_SRC_MOD, WM_SRC_PRESSURE, WM_SRC_VELOCITY, WM_NSRC };
-enum { WM_DST_CUTOFF, WM_DST_RES, WM_DST_AMP, WM_DST_MORPH, WM_DST_TIMBRE, WM_DST_NOISE, WM_NDST };
-#define WM_NSLOT 4
+/* (the LFO is a source for the LFO page's own slot only: the Mod slots pick from the ones before it) */
+enum { WM_SRC_OFF, WM_SRC_BREATH, WM_SRC_BITE, WM_SRC_MOD, WM_SRC_PRESSURE, WM_SRC_VELOCITY, WM_SRC_LFO, WM_NSRC };
+/* (Harmonics: the engine's HARMONICS, on the engines where it's smooth; Aux: the Aux mix) */
+enum { WM_DST_CUTOFF, WM_DST_RES, WM_DST_AMP, WM_DST_MORPH, WM_DST_TIMBRE, WM_DST_NOISE, WM_DST_HARM, WM_DST_AUX,
+       WM_NDST };
+#define WM_DST_PITCH WM_NDST           /* the LFO page's slot only: the note, outside the matrix */
+#define WM_NSLOT 5                     /* the Mod pages' four, then the LFO page's */
 
 typedef struct {
     uint8_t src, dst;

@@ -2,15 +2,15 @@
 # at full, and nothing at 0: it never takes the time below Glide. The knob stays where it's set. Legato
 # notes slide, detached ones jump. Here CC depth is 2 s, so CC5 64 adds about 1 s.
 wait 200
-tap LFO
+tap SEQ
 expect par10 4
-tap LFO
+tap SEQ
 expect par45 400
 spin K1 1600
 expect par45 2000
 wait 4500
 expect dirty 0
-tap LFO
+tap SEQ
 midi B0 05 40
 wait 40
 expect par10 4
@@ -56,8 +56,8 @@ expect note 7200
 midi 80 48 00
 wait 100
 # Pitch 2: CC depth; at 320 ms, CC5 at full gives Glide + 320 ms = 520 ms
-tap LFO
-expect view 5
+tap SEQ
+expect view 11
 spin K1 -1680
 expect par45 320
 midi B0 05 7F

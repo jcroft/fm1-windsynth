@@ -12,8 +12,8 @@ wait 10
 expect note 6700
 shot bite_down.png
 midi E0 00 40
-tap LFO
-expect view 4
+tap SEQ
+expect view 10
 spin K1 5
 expect par8 7
 midi E0 7F 7F
