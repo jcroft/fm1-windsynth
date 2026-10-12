@@ -4,6 +4,16 @@ A release is a push to `main` that changes `VERSION` to a version with no tag ye
 release build, tags the commit `vX.Y.Z` and publishes the GitHub Release with that version's notes,
 taken from its section below. Add the section in the same pull request as the `VERSION` change.
 
+## 0.0.15
+
+- **Every engine gets Classic's filter, exactly.** The other engines went through the same two filter
+  stages as Classic, but clean. Classic drives its filter: it soft-clips into the first stage, between
+  the stages and in the second, and eases off the drive as resonance rises. Ours now does all of that,
+  so FM, Formant, Waveshape, VA, PD and Harmonic sound as warm through the filter as Classic does, and
+  resonance growls rather than whistles. A test holds ours to Classic's, sample for sample.
+- **The init sound has a touch of reverb**: Cloud at Mix 3, with Decay 3.5 s, Tone 60, Pre-delay
+  20 ms, Size 50 and Mod 50. Presets never saved start from it too.
+
 ## 0.0.14
 
 - **Distortion and Modulation**, ahead of the delay and the reverb, so FX runs Distortion, Modulation,

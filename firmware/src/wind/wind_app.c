@@ -19,7 +19,7 @@ static const wa_param_t PARAMS[P_NPARAMS] = {
     {"Key brth", 0, 100, 100}, {"Octave", -3, 3, 0},
     {"Transpose", -24, 24, 0}, {"Tune", -100, 100, 0}, {"MIDI ch", 0, 16, 0}, {"Theme", 0, THEME_N - 1, 0},
     {"Engine", 0, WV_NENGINE - 1, WV_CLASSIC}, {"Ratio", 0, 100, 24}, {"Index", 0, 100, 40},
-    {"Type", 0, WF_RV_NTYPE - 1, WF_RV_CLOUD}, {"Mix", 0, 100, 0}, {"Decay", 0, 100, 50}, {"Tone", 0, 100, 60},
+    {"Type", 0, WF_RV_NTYPE - 1, WF_RV_CLOUD}, {"Mix", 0, 100, 3}, {"Decay", 0, 100, 50}, {"Tone", 0, 100, 60},
     {"Pre-delay", 0, WF_PRE_MAX_MS, 20}, {"Size", 0, 100, 50}, {"Mod", 0, 100, 50}, {"Low end", -50, 50, 0},
     {"Mode", 0, WF_DL_NMODE - 1, WF_DL_DIGITAL}, {"Mix", 0, 100, 0}, {"Time", 20, WF_TIME_MAX_MS, 350},
     {"Feedback", 0, 100, 35}, {"CC depth", 0, 2000, 400},

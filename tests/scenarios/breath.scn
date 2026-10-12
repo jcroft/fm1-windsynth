@@ -27,5 +27,6 @@ expect breath 50
 midi 80 39 00
 wait 300
 expect gate 0
-expect level 0
+# the voice is silent; what's left is the init sound's touch of reverb
+expect level <2
 wavstop

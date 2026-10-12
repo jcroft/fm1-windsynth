@@ -18,6 +18,18 @@ expect par2 25
 expect par15 0
 expect par18 0
 expect par21 0
+# ...with a touch of Cloud: Mix 3, Decay 50 (3.5 s), Tone 60, Pre-delay 20 ms, Size 50, Mod 50; the other
+# effects off
+expect par33 0
+expect par34 3
+expect par35 50
+expect par36 60
+expect par37 20
+expect par38 50
+expect par39 50
+expect par42 0
+expect par49 0
+expect par53 0
 expect dirty 0
 expect luma100 >200
 shot boot.png

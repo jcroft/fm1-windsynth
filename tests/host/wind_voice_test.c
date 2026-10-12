@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
 /* The wind voice on the host, linked with a C compiler and no libm or C++ runtime, as on the device:
  *   the engine: the fixed sweep (wind_sweep.h) against upstream Plaits (wind_ref), within 1 LSB
+ *   the filter: ours (every engine but Classic's) is Classic's, bit for bit
  *   the voice: silent with the gate shut, sounding with it open, in tune at the FM-1's rate,
  *              the gate's attack and release, cutoff brightening, L = R, no NaN, bounded peaks
  * and build/host/wind_sweep_N.f32 (each engine's sweep; VA-VCF's, 0, for wind_wasm_test.mjs) and wind_demo.wav, to listen to.
@@ -258,6 +259,42 @@ static void test_saw(void)
            (double)r[2], (double)r[3]);
 }
 
+/* our filter is Classic's: Classic's own saw through it comes out as Classic does, bit for bit, at
+ * every cutoff, resonance and slope (the drive and the soft clipping included) */
+static float ours[SR];
+static void test_filter(void)
+{
+    static const float cut[3] = {0.1f, 0.45f, 0.9f}, res[3] = {0.0f, 0.6f, 1.0f}, notes[2] = {40.0f, 76.0f};
+    uint32_t a, b, c, s, i, n = SR / 4, bad = 0, cases = 0;
+    float worst = 0.0f;
+    for (s = 0; s < 2; s++) {
+        wv_init();
+        wv_slope(s ? WV_SLOPE_24 : WV_SLOPE_12);
+        for (a = 0; a < 3; a++)
+            for (b = 0; b < 3; b++)
+                for (c = 0; c < 2; c++) {
+                    wind_frame_t f;
+                    memset(&f, 0, sizeof f);
+                    f.note = notes[c];
+                    f.gate = 1.0f;
+                    f.amp = 1.0f;
+                    f.cutoff = cut[a];
+                    f.res = res[b];
+                    f.morph = 0.25f;
+                    wv_filter_check(&f, buf, ours, n);
+                    for (i = 0; i < n; i++) {
+                        float d = fm_fabsf(buf[i] - ours[i]);
+                        worst = d > worst ? d : worst;
+                        bad += buf[i] != ours[i];
+                    }
+                    cases++;
+                }
+    }
+    CHECK(bad == 0, "our filter: %u samples differ from Classic's (worst %g)", bad, (double)worst);
+    printf("  our filter against Classic's: %u cases, %u samples differ\n", cases, bad);
+    wv_init();
+}
+
 /* FM through our filter: it sounds, the cutoff darkens and brightens it as on Classic, the index adds
  * overtones, and switching engines back and forth leaves no NaN */
 static void test_fm(void)
@@ -346,6 +383,7 @@ int main(int argc, char **argv)
         test_sweep(e, argv[1], argv[2]);
     test_voice(argv[2]);
     test_saw();
+    test_filter();
     test_fm();
     test_sixop();
     if (fails)

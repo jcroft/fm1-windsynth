@@ -49,7 +49,8 @@ step through every page.
 | FX again | Reverb 2 | Pre-delay (up to 500 ms), Size, Mod (how much the reverb moves; on Shimmer, Shimmer: how much of the tail climbs), Low end (the bass's decay, shorter or longer) |
 
 The engines are Plaits' own, played by breath. Classic has its own filter, and every other engine goes
-through one like it, so breath on cutoff works the same way on all of them. Their knobs take the
+through an exact copy of it, drive and saturation included, so breath on cutoff works and sounds the
+same way on all of them. Their knobs take the
 engine's names.
 
 | Engine | Engine page | Morph (Voice page) |
@@ -73,7 +74,8 @@ gesture.
 The voice goes through four effects in order: Distortion, Modulation, Delay, Reverb. Modulation turns
 it stereo, and the delay and the reverb are stereo out. Mix works the same on each: at 0 the effect is
 off, at 50 you hear the dry sound and the effect at full level, and at 100 only the effect. All start
-at 0, so the init sound is dry, and a preset keeps its effects.
+at 0 except the reverb, which the init sound has a touch of (Cloud at Mix 3, 3.5 s), and a preset
+keeps its effects.
 
 The distortion has five types. **Overdrive** is a soft, slightly asymmetric clip, **Distort** a hard
 one, **Fuzz** hard on one side and soft on the other with more gain, **Fold** a wavefolder, and
@@ -122,6 +124,7 @@ you save).
 - 0.0.12: Glide is a set time that CC5 adds to; 6-op in tune and smooth; Swarm dropped.
 - 0.0.13: two more Plaits engines, PD (phase distortion) and Harmonic (additive).
 - 0.0.14: Distortion and Modulation (chorus, ensemble, flanger, phaser) before the delay and the reverb.
+- 0.0.15: every engine goes through Classic's filter exactly, its drive and saturation included.
 
 ## Building and testing
 
