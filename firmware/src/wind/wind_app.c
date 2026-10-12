@@ -12,7 +12,7 @@ static const wa_param_t PARAMS[P_NPARAMS] = {
     {"Cutoff", 0, 100, 15}, {"Reso", 0, 100, 0}, {"Morph", 0, 100, 25}, {"Slope", 0, 1, 1},
     {"Breath", 0, 128, 2}, {"Curve", -100, 100, 0}, {"Attack", 1, 200, 5}, {"Release", 5, 2000, 60},
     {"Bend", 0, 12, 2}, {"Glide CC", 0, 128, 5}, {"Glide", 0, 2000, 4}, {"Glide on", 0, 1, 0},
-    {"Source", 0, WM_SRC_LFO - 1, WM_SRC_BREATH}, {"Dest", 0, WM_NDST - 1, WM_DST_CUTOFF}, {"Amount", -100, 100, 75},
+    {"Source", 0, WM_SRC_LFO - 1, WM_SRC_OFF}, {"Dest", 0, WM_NDST - 1, WM_DST_CUTOFF}, {"Amount", -100, 100, 0},
     {"Source", 0, WM_SRC_LFO - 1, WM_SRC_OFF}, {"Dest", 0, WM_NDST - 1, WM_DST_CUTOFF}, {"Amount", -100, 100, 0},
     {"Source", 0, WM_SRC_LFO - 1, WM_SRC_OFF}, {"Dest", 0, WM_NDST - 1, WM_DST_CUTOFF}, {"Amount", -100, 100, 0},
     {"Source", 0, WM_SRC_LFO - 1, WM_SRC_OFF}, {"Dest", 0, WM_NDST - 1, WM_DST_CUTOFF}, {"Amount", -100, 100, 0},
@@ -32,6 +32,7 @@ static const wa_param_t PARAMS[P_NPARAMS] = {
     {"Shape", 0, WA_LFO_NSHAPE - 1, WA_LFO_SINE}, {"Rate", 0, 100, 77},   /* (77: 5 Hz) */
     {"Dest", 0, WM_DST_PITCH, WM_DST_PITCH}, {"Amount", -100, 100, 0},  /* (Pitch: cents) */
     {"Fade", 0, 2000, 0}, {"Sync", 0, 1, 0},
+    {"Breath", -100, 100, 75},             /* breath to cutoff */
 };
 
 const wa_param_t *wa_param_info(int i) { return &PARAMS[(unsigned)i < P_NPARAMS ? i : 0]; }
@@ -117,7 +118,9 @@ static void put_src(char *b, int v, const char *none)   /* a CC number, "Press" 
     put_u(b + 2, (uint32_t)v);
 }
 
-static wm_slot_t slot[WM_NSLOT];       /* the Mod pages' four, then the LFO page's */
+static wm_slot_t slot[WM_NSLOT];       /* the Mod pages' four, the LFO page's, the Filter page's Breath */
+#define WA_LFO_SLOT 4
+#define WA_BREATH_SLOT 5
 
 static float lfo_hz(float x) { return 0.05f * fm_exp2f(x * 8.6439f); }   /* 0.05 x 400^x: 0.05..20 Hz */
 
@@ -184,7 +187,7 @@ void wa_param_text(int i, int v, char *b)
     case P_LFOSHAPE: copy_s(b, LFO_SHAPE_NAME[(unsigned)v < WA_LFO_NSHAPE ? v : 0]); return;
     case P_LFODST: put_dst(b, v); return;
     case P_LFOAMT:                                       /* on Pitch, in cents */
-        if (slot[WM_NSLOT - 1].dst == WM_DST_PITCH)
+        if (slot[WA_LFO_SLOT].dst == WM_DST_PITCH)
             copy_s(put_i(b, v, 1), "c");
         else
             put_i(b, v, 1);
@@ -222,7 +225,7 @@ void wa_param_text(int i, int v, char *b)
     case P_M1DST: case P_M2DST: case P_M3DST: case P_M4DST:
         put_dst(b, v);
         return;
-    case P_M1AMT: case P_M2AMT: case P_M3AMT: case P_M4AMT: case P_CURVE: case P_OCTAVE: case P_TRANSPOSE:
+    case P_M1AMT: case P_M2AMT: case P_M3AMT: case P_M4AMT: case P_BRCUT: case P_CURVE: case P_OCTAVE: case P_TRANSPOSE:
     case P_RVLOW:
         put_i(b, v, 1);
         return;
@@ -318,7 +321,9 @@ void wa_init(void)
     wc_init();
     wv_init();
     wf_init();
-    slot[WM_NSLOT - 1].src = WM_SRC_LFO;
+    slot[WA_LFO_SLOT].src = WM_SRC_LFO;
+    slot[WA_BREATH_SLOT].src = WM_SRC_BREATH;
+    slot[WA_BREATH_SLOT].dst = WM_DST_CUTOFF;
     for (i = 0; i < P_NPARAMS; i++)
         wa_set(i, PARAMS[i].def);
     wa_state.top = -1;
@@ -344,10 +349,11 @@ void wa_set(int k, int v)
     case P_AUX: base[WM_DST_AUX] = (float)v * 0.01f; break;
     case P_LFOSHAPE: lfo.shape = (uint32_t)v; break;
     case P_LFORATE: lfo.hz = lfo_hz((float)v * 0.01f); break;
-    case P_LFODST: slot[WM_NSLOT - 1].dst = (uint8_t)v; break;
-    case P_LFOAMT: slot[WM_NSLOT - 1].amount = (int8_t)v; break;
+    case P_LFODST: slot[WA_LFO_SLOT].dst = (uint8_t)v; break;
+    case P_LFOAMT: slot[WA_LFO_SLOT].amount = (int8_t)v; break;
     case P_LFOFADE: lfo.fade_s = (float)v * 0.001f; break;
     case P_LFOSYNC: lfo.sync = (uint32_t)(v != 0); break;
+    case P_BRCUT: slot[WA_BREATH_SLOT].amount = (int8_t)v; break;
     case P_ENGINE:
         engine = (unsigned)v < WV_NENGINE ? v : WV_CLASSIC;
         wv_engine((uint32_t)engine);
@@ -432,11 +438,11 @@ void wa_render(int32_t *out, uint32_t n, uint32_t gain_q12, int (*midi_in)(uint3
         src[WM_SRC_PRESSURE] = c.pressure;
         src[WM_SRC_VELOCITY] = c.velocity;
         lv = lfo_block(c.gate, k);
-        src[WM_SRC_LFO] = slot[WM_NSLOT - 1].dst == WM_DST_AMP ? 0.5f + 0.5f * lv : lv;  /* (Amp: from 1 down) */
+        src[WM_SRC_LFO] = slot[WA_LFO_SLOT].dst == WM_DST_AMP ? 0.5f + 0.5f * lv : lv;  /* (Amp: from 1 down) */
         wm_apply(slot, base, src, m);
         f.note = c.note;
-        if (slot[WM_NSLOT - 1].dst == WM_DST_PITCH)                /* the LFO's vibrato: Amount in cents */
-            f.note += lv * (float)slot[WM_NSLOT - 1].amount * 0.01f;
+        if (slot[WA_LFO_SLOT].dst == WM_DST_PITCH)                /* the LFO's vibrato: Amount in cents */
+            f.note += lv * (float)slot[WA_LFO_SLOT].amount * 0.01f;
         f.gate = c.gate;
         f.cutoff = m[WM_DST_CUTOFF];
         f.res = m[WM_DST_RES];

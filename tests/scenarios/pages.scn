@@ -1,9 +1,15 @@
-# The pages: one button each (HOME: Voice, Engine and Noise, LFO: LFO and LFO 2, SEL: Mod 1-4, SEQ: Pitch and Pitch 2,
+# The pages: one button each (HOME: Filter, Engine (named for the engine) and Noise, LFO: LFO and LFO 2, SEL: Mod 1-4, SEQ: Pitch and Pitch 2,
 # FX: Distortion, Modulation, Delay, Reverb and Reverb 2,
 # pressed again), EDIT and SELECT step through all
 wait 200
+expect title Filter
+expect knob1 Cutoff
+expect knob3 Slope
+expect knob4 Breath
 tap HOME
 expect view 1
+expect title Classic
+expect knob3 Morph
 shot engine_page.png
 tap HOME
 expect view 2

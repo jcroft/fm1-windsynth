@@ -1,9 +1,9 @@
-# The FM engine: on the Engine page (HOME again) or with ALGORITHM. Breath still opens our filter on
+# The FM engine: picked with ALGORITHM; its knobs are on the Engine page (HOME again). Breath still opens our filter on
 # it, and a Mod slot can send breath to its index (Timbre).
 wait 200
 tap HOME
 expect view 1
-spin K1 1
+spin ALGO 1
 expect par30 1
 expect par31 24
 expect par32 40

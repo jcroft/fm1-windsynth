@@ -13,7 +13,7 @@
 
 /* parameters, in the order they are saved: add new ones at the end */
 enum {
-    P_CUTOFF, P_RESO, P_MORPH, P_SLOPE,              /* Voice page */
+    P_CUTOFF, P_RESO, P_MORPH, P_SLOPE,              /* Filter page (Morph: on the Engine page) */
     P_BSRC, P_CURVE, P_ATTACK, P_RELEASE,            /* Breath page */
     P_BEND, P_GSRC, P_GLIDE, P_GMODE,                /* Pitch page */
     P_M1SRC, P_M1DST, P_M1AMT,                       /* Mod 1..4 pages: source, destination, amount */
@@ -35,6 +35,7 @@ enum {
     P_AUX,                                           /* Engine page: Plaits' AUX output, mixed in (0.0.17) */
     P_LFOSHAPE, P_LFORATE, P_LFODST, P_LFOAMT,       /* LFO page (0.0.18) */
     P_LFOFADE, P_LFOSYNC,                            /* LFO 2 page */
+    P_BRCUT,                                         /* Filter page: breath to cutoff, always there (0.0.19) */
     P_NPARAMS
 };
 typedef struct {

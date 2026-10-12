@@ -143,3 +143,19 @@ wait 200
 expect par49 50
 expect par56 0
 expect par58 24
+# to 0.0.18 (format 11), breath reached the cutoff only through a Mod slot: the first slot sending it
+# there gives the Filter page's Breath its amount and goes off, so the sound plays as it did
+tap SEL
+tap SEL
+expect view 7
+spin K1 1
+spin K3 60
+expect par15 1
+expect par16 0
+expect par17 60
+oldproject 11
+reboot
+wait 200
+expect par67 60
+expect par15 0
+expect par17 0
