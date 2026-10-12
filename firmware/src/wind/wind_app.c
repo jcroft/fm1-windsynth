@@ -27,6 +27,7 @@ static const wa_param_t PARAMS[P_NPARAMS] = {
     {"Patch", 0, WV_DX_NPATCH - 1, 94},    /* 6-op: BRASS 6 BC (bank 3), one that holds while you blow */
     {"Type", 0, WF_DS_NTYPE - 1, WF_DS_OVERDRIVE}, {"Mix", 0, 100, 0}, {"Drive", 0, 100, 40}, {"Tone", 0, 100, 60},
     {"Type", 0, WF_MO_NTYPE - 1, WF_MO_CHORUS}, {"Mix", 0, 100, 0}, {"Rate", 0, 100, 40}, {"Depth", 0, 100, 50},
+    {"Level", 0, 100, 0}, {"Type", 0, 100, 50}, {"Freq", -48, 48, 24}, {"Reso", 0, 100, 0},
 };
 
 const wa_param_t *wa_param_info(int i) { return &PARAMS[(unsigned)i < P_NPARAMS ? i : 0]; }
@@ -132,6 +133,10 @@ void wa_param_text(int i, int v, char *b)
     case P_RVTYPE: copy_s(b, WF_RV_NAME[(unsigned)v < WF_RV_NTYPE ? v : 0]); return;
     case P_DLMODE: copy_s(b, WF_DL_NAME[(unsigned)v < WF_DL_NMODE ? v : 0]); return;
     case P_DSTYPE: copy_s(b, WF_DS_NAME[(unsigned)v < WF_DS_NTYPE ? v : 0]); return;
+    case P_NZTYPE:                                       /* LP .. BP .. HP, the mix in between */
+        copy_s(b, v == 0 ? "LP" : v == 50 ? "BP" : v == 100 ? "HP" : v < 50 ? "LP-BP" : "BP-HP");
+        return;
+    case P_NZFREQ: copy_s(put_i(b, v, 1), " st"); return;
     case P_MOTYPE: copy_s(b, WF_MO_NAME[(unsigned)v < WF_MO_NTYPE ? v : 0]); return;
     case P_MORATE: {                                     /* the LFO: "0.42Hz", "2.5Hz", "10Hz" */
         uint32_t h = (uint32_t)(wf_rate_hz((float)v * 0.01f) * 100.0f + 0.5f);
@@ -212,6 +217,7 @@ static float base[WM_NDST];
 static wm_slot_t slot[WM_NSLOT];
 static int attack_ms = 5, release_ms = 60;
 static float ratio = 0.24f;            /* FM's HARMONICS */
+static int nz_par[3] = {50, 24, 0};    /* the noise layer's Type, Freq, Reso */
 volatile wa_state_t wa_state;
 
 /* the panel's keys and a panic, from the UI to the next block: a ring with one writer, one reader */
@@ -286,6 +292,11 @@ void wa_set(int k, int v)
     case P_MOMIX: wf_cfg.mo_mix = (float)v * 0.01f; break;
     case P_MORATE: wf_cfg.mo_hz = wf_rate_hz((float)v * 0.01f); break;
     case P_MODEPTH: wf_cfg.mo_depth = (float)v * 0.01f; break;
+    case P_NZLEVEL: base[WM_DST_NOISE] = (float)v * 0.01f; break;
+    case P_NZTYPE: case P_NZFREQ: case P_NZRESO:
+        nz_par[k - P_NZTYPE] = v;
+        wv_noise((float)nz_par[0] * 0.01f, (float)nz_par[1], (float)nz_par[2] * 0.01f);
+        break;
     case P_SLOPE: wv_slope(v ? WV_SLOPE_24 : WV_SLOPE_12); break;
     case P_BSRC: wc_cfg.breath_src = (uint8_t)v; break;
     case P_CURVE: wc_cfg.breath_curve = (int8_t)v; break;
@@ -348,6 +359,7 @@ void wa_render(int32_t *out, uint32_t n, uint32_t gain_q12, int (*midi_in)(uint3
         f.morph = m[WM_DST_MORPH];
         f.timbre = m[WM_DST_TIMBRE];
         f.harmonics = ratio;
+        f.noise = m[WM_DST_NOISE];
         wv_render(&f, out, k);
         wf_process(out, k);
         for (i = 0; i < k; i++) {
@@ -365,6 +377,7 @@ void wa_render(int32_t *out, uint32_t n, uint32_t gain_q12, int (*midi_in)(uint3
         wa_state.amp = m[WM_DST_AMP];
         wa_state.morph = f.morph;
         wa_state.timbre = f.timbre;
+        wa_state.noise = f.noise;
         wa_state.top = wc_top_note();
         out += 2 * k;
         n -= k;

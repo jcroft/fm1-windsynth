@@ -57,7 +57,7 @@ midi 80 48 00
 wait 100
 # Pitch 2: CC depth; at 320 ms, CC5 at full gives Glide + 320 ms = 520 ms
 tap LFO
-expect view 4
+expect view 5
 spin K1 -1680
 expect par45 320
 midi B0 05 7F

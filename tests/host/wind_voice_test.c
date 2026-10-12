@@ -2,6 +2,7 @@
 /* The wind voice on the host, linked with a C compiler and no libm or C++ runtime, as on the device:
  *   the engine: the fixed sweep (wind_sweep.h) against upstream Plaits (wind_ref), within 1 LSB
  *   the filter: ours (every engine but Classic's) is Classic's, bit for bit
+ *   the noise layer: off at level 0; LP to HP; breath's cutoff and the gate act on it
  *   the voice: silent with the gate shut, sounding with it open, in tune at the FM-1's rate,
  *              the gate's attack and release, cutoff brightening, L = R, no NaN, bounded peaks
  * and build/host/wind_sweep_N.f32 (each engine's sweep; VA-VCF's, 0, for wind_wasm_test.mjs) and wind_demo.wav, to listen to.
@@ -295,6 +296,72 @@ static void test_filter(void)
     wv_init();
 }
 
+/* the noise layer: nothing at level 0 (the tone alone, bit for bit), noise on top of it at level 1, on
+ * Classic (its own copy of our filter) and on FM (into ours); low-pass darker than high-pass; the cutoff
+ * closing quietens it (breath opens it), and the gate shuts it */
+static float tone[SR / 2];
+static float noise_part(uint32_t engine, float type, float cutoff, float gate, float *nz_rms)
+{
+    wind_frame_t f;
+    uint32_t i, n = SR / 2, same = 1;
+    double e = 0.0;
+    memset(&f, 0, sizeof f);
+    f.note = 57.0f;
+    f.gate = gate;
+    f.amp = 0.5f;
+    f.cutoff = cutoff;
+    f.morph = 0.25f;
+    f.timbre = 0.3f;
+    f.harmonics = 0.24f;
+    for (i = 0; i < 2; i++) {               /* (twice: Plaits' FM keeps two filters' state through Init) */
+        wv_init();
+        wv_engine(engine);
+        play(&f, 0, n);
+    }
+    memcpy(tone, buf, sizeof tone);
+    wv_init();
+    wv_engine(engine);
+    wv_noise(type, 24.0f, 0.0f);
+    play(&f, 0, n);                         /* level 0: the tone, bit for bit */
+    for (i = 0; i < n; i++)
+        same &= buf[i] == tone[i];
+    wv_init();
+    wv_engine(engine);
+    wv_noise(type, 24.0f, 0.0f);
+    f.noise = 1.0f;
+    play(&f, 0, n);
+    for (i = 0; i < n; i++) {
+        buf[i] -= tone[i];
+        e += (double)(buf[i] * buf[i]);
+    }
+    *nz_rms = fm_sqrtf((float)(e / n));
+    return same ? brightness(SR / 10, n - SR / 10) : -1.0f;
+}
+
+static void test_noise(void)
+{
+    static const uint32_t eng[2] = {WV_CLASSIC, WV_FM};
+    uint32_t j;
+    for (j = 0; j < 2; j++) {
+        float lp, hp, bp, r_lp, r_hp, r_bp, r_dark, r_shut;
+        lp = noise_part(eng[j], 0.0f, 0.9f, 1.0f, &r_lp);
+        hp = noise_part(eng[j], 1.0f, 0.9f, 1.0f, &r_hp);
+        bp = noise_part(eng[j], 0.5f, 0.9f, 1.0f, &r_bp);
+        noise_part(eng[j], 0.5f, 0.3f, 1.0f, &r_dark);
+        noise_part(eng[j], 0.5f, 0.9f, 0.0f, &r_shut);
+        CHECK(lp >= 0.0f && hp >= 0.0f, "noise: level 0 changes the tone (engine %u)", (unsigned)j);
+        CHECK(r_bp > 0.02f && r_lp > 0.02f && r_hp > 0.005f, "noise: level 1 adds little (%g %g %g)", (double)r_lp,
+              (double)r_bp, (double)r_hp);
+        CHECK(hp > lp * 2.0f, "noise: HP (%g) not brighter than LP (%g)", (double)hp, (double)lp);
+        CHECK(r_dark < r_bp * 0.5f, "noise: the cutoff closed leaves it at %g of %g", (double)r_dark, (double)r_bp);
+        CHECK(r_shut < 0.001f, "noise: the gate shut leaves %g", (double)r_shut);
+        printf("  noise on %s: level 0 the tone alone; rms LP %.3f BP %.3f HP %.3f, cutoff down %.3f, gate shut %.4f; "
+               "brightness LP %.3f BP %.3f HP %.3f\n", j ? "FM" : "Classic", (double)r_lp, (double)r_bp,
+               (double)r_hp, (double)r_dark, (double)r_shut, (double)lp, (double)bp, (double)hp);
+    }
+    wv_init();
+}
+
 /* FM through our filter: it sounds, the cutoff darkens and brightens it as on Classic, the index adds
  * overtones, and switching engines back and forth leaves no NaN */
 static void test_fm(void)
@@ -384,6 +451,7 @@ int main(int argc, char **argv)
     test_voice(argv[2]);
     test_saw();
     test_filter();
+    test_noise();
     test_fm();
     test_sixop();
     if (fails)

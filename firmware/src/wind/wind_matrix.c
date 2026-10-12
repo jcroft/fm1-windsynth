@@ -3,7 +3,7 @@
 #include "wind_matrix.h"
 
 const char *const WM_SRC_NAME[WM_NSRC] = {"Off", "Breath", "Bite", "Mod wh", "Press", "Veloc"};
-const char *const WM_DST_NAME[WM_NDST] = {"Cutoff", "Reso", "Amp", "Morph", "Timbre"};
+const char *const WM_DST_NAME[WM_NDST] = {"Cutoff", "Reso", "Amp", "Morph", "Timbre", "Noise"};
 
 void wm_apply(const wm_slot_t slot[WM_NSLOT], const float base[WM_NDST], const float src[WM_NSRC],
               float out[WM_NDST])

@@ -24,6 +24,7 @@
 #include "plaits/dsp/engine/virtual_analog_engine.h"
 #include "plaits/dsp/engine2/phase_distortion_engine.h"
 #include "plaits/dsp/engine/additive_engine.h"
+#include "plaits/dsp/noise/clocked_noise.h"
 #include "plaits/resources.h"
 #include "stmlib/utils/random.h"
 
@@ -67,15 +68,26 @@ static float six_q[WV_BLK];
 static uint32_t six_at = WV_BLK;
 static float last_gate;                 /* 6-op: a new breath starts its envelopes */
 static union {
-    char raw[2 * sizeof(stmlib::Svf)];
+    char raw[5 * sizeof(stmlib::Svf) + sizeof(ClockedNoise)];
     double align;
-} post_mem;
-static stmlib::Svf *post;               /* our filter: LP, then LP for 24 dB (built in wv_init: a static
-                                         * object with a constructor would need one run at boot) */
+} post_mem;                             /* (built in wv_init: a static object with a constructor would
+                                         * need one run at boot) */
 typedef struct {
-    float f, q, gain, stage2;           /* its targets for a block (and, kept, at the end of the last) */
+    float f, q, gain, stage2;           /* our filter's targets for a block (and, kept, at the end of the last) */
 } post_k_t;
-static post_k_t post_at;
+typedef struct {
+    stmlib::Svf *svf;                   /* LP, then LP for 24 dB */
+    post_k_t at;
+} filt_t;
+static filt_t post, nz_post;            /* our filter; the noise's own copy of it, on Classic */
+/* The noise layer: Plaits' clocked noise (white, here) through a filter that morphs from low-pass through
+ * band-pass to high-pass at a pitch that tracks the note, as Plaits' filtered noise engine does; mixed in
+ * before our filter (on Classic, through its own copy of it), so breath opens it with the tone, and
+ * through the same gate and VCA. Its level is a Mod destination. */
+static ClockedNoise *nz;
+static stmlib::Svf *nz_svf;
+static float nz_type = 0.5f, nz_semis = 24.0f, nz_reso;   /* the Noise page: LP..HP, the pitch, resonance */
+static float nz_f, nz_q, nz_mode, nz_lvl;                 /* ...at the end of the last block */
 static uint32_t slope;
 static float env, env_up, env_down;     /* the gate envelope: 5 ms up, 60 ms down by default */
 static float dc_x, dc_y;                /* DC blocker state */
@@ -125,30 +137,63 @@ static void post_targets(const wind_frame_t *f, post_k_t *k)
 }
 
 /* VA-VCF's filter loop, on the engine's output */
-static void post_filter(float *x, uint32_t n, const post_k_t *k)
+static void post_filter(filt_t *p, float *x, uint32_t n, const post_k_t *k)
 {
-    stmlib::ParameterInterpolator fi(&post_at.f, k->f, (size_t)n), qi(&post_at.q, k->q, (size_t)n),
-        si(&post_at.stage2, k->stage2, (size_t)n), gi(&post_at.gain, k->gain, (size_t)n);
+    stmlib::ParameterInterpolator fi(&p->at.f, k->f, (size_t)n), qi(&p->at.q, k->q, (size_t)n),
+        si(&p->at.stage2, k->stage2, (size_t)n), gi(&p->at.gain, k->gain, (size_t)n);
+    stmlib::Svf *svf = p->svf;
     uint32_t i;
     for (i = 0; i < n; i++) {
         float f = fi.Next(), q = qi.Next(), s2 = si.Next(), g, lp;
         f = f < 0.25f ? f : 0.25f;
-        post[0].set_f_q<stmlib::FREQUENCY_FAST>(f, 0.5f + q);
-        post[1].set_f_q<stmlib::FREQUENCY_FAST>(f, 0.5f + 0.025f * q);
+        svf[0].set_f_q<stmlib::FREQUENCY_FAST>(f, 0.5f + q);
+        svf[1].set_f_q<stmlib::FREQUENCY_FAST>(f, 0.5f + 0.025f * q);
         g = gi.Next();
-        lp = post[0].Process<stmlib::FILTER_MODE_LOW_PASS>(stmlib::SoftClip(x[i] * g));
+        lp = svf[0].Process<stmlib::FILTER_MODE_LOW_PASS>(stmlib::SoftClip(x[i] * g));
         lp = stmlib::SoftClip(lp * g);
-        lp += s2 * (stmlib::SoftClip(post[1].Process<stmlib::FILTER_MODE_LOW_PASS>(lp)) - lp);
+        lp += s2 * (stmlib::SoftClip(svf[1].Process<stmlib::FILTER_MODE_LOW_PASS>(lp)) - lp);
         x[i] = lp;
     }
 }
 
-static void post_reset(void)
+static void filt_reset(filt_t *p)
 {
-    post[0].Init();
-    post[1].Init();
-    post_at.f = post_at.q = post_at.gain = post_at.stage2 = 0.0f;   /* (as VA-VCF's Init) */
+    p->svf[0].Init();
+    p->svf[1].Init();
+    p->at.f = p->at.q = p->at.gain = p->at.stage2 = 0.0f;   /* (as VA-VCF's Init) */
 }
+
+/* the noise layer for n frames, level ramping from the last block's to lvl (0: silent, nothing run) */
+static int noise_block(const wind_frame_t *f, float lvl, float *x, uint32_t n)
+{
+    float fc = NoteToFrequency(f->note + WV_TUNE + nz_semis), q = 0.5f * stmlib::SemitonesToRatio(nz_reso * 60.0f);
+    uint32_t i;
+    if (lvl <= 0.0f && nz_lvl <= 0.0f)
+        return 0;
+    fc = fc < 0.4f ? fc : 0.4f;
+    nz->Render(false, 1.0f, x, n);
+    stmlib::ParameterInterpolator fi(&nz_f, fc, (size_t)n), qi(&nz_q, q, (size_t)n), mi(&nz_mode, nz_type, (size_t)n),
+        li(&nz_lvl, lvl, (size_t)n);
+    for (i = 0; i < n; i++) {
+        float ff = fi.Next(), qq = qi.Next(), y, in;
+        nz_svf->set_f_q<stmlib::FREQUENCY_ACCURATE>(ff, qq);
+        in = x[i] * fm_rsqrtf((0.5f + qq) * 40.0f * ff);   /* (Plaits': the same loudness at any width) */
+        nz_svf->ProcessMultimodeLPtoHP(&in, &y, 1, mi.Next());
+        x[i] = y * li.Next();
+    }
+    if (lvl <= 0.0f)
+        nz_lvl = 0.0f;
+    return 1;
+}
+
+extern "C" void wv_noise(float type, float semis, float reso)
+{
+    nz_type = clamp01(type);
+    nz_semis = semis;
+    nz_reso = clamp01(reso);
+}
+
+static void post_reset(void) { filt_reset(&post); }
 
 extern "C" void wv_init(void)
 {
@@ -172,9 +217,17 @@ extern "C" void wv_init(void)
     last_gate = 0.0f;
     eng = vcf;
     engine = WV_CLASSIC;
-    post = new (post_mem.raw) stmlib::Svf();
-    new (post_mem.raw + sizeof(stmlib::Svf)) stmlib::Svf();
+    for (i = 0; i < 5; i++)
+        new (post_mem.raw + i * sizeof(stmlib::Svf)) stmlib::Svf();
+    post.svf = (stmlib::Svf *)post_mem.raw;
+    nz_post.svf = post.svf + 2;
+    nz_svf = post.svf + 4;
+    nz = new (post_mem.raw + 5 * sizeof(stmlib::Svf)) ClockedNoise();
     post_reset();
+    filt_reset(&nz_post);
+    nz_svf->Init();
+    nz->Init();
+    nz_f = nz_q = nz_mode = nz_lvl = 0.0f;
     slope = WV_SLOPE_12;
     env = vca = dc_x = dc_y = 0.0f;
     wv_env(0.005f, 0.060f);
@@ -236,8 +289,9 @@ extern "C" void wv_slope(uint32_t s) { slope = s == WV_SLOPE_24 ? WV_SLOPE_24 : 
 extern "C" void wv_render(const wind_frame_t *f, int32_t *out_lr, uint32_t frames)
 {
     EngineParameters p;
-    float out[WV_BLK], aux[WV_BLK];
+    float out[WV_BLK], aux[WV_BLK], nzb[WV_BLK];
     post_k_t pk;
+    float nlvl = clamp01(f->noise);
     float amp = f->amp < 0.0f ? 0.0f : f->amp > 1.0f ? 1.0f : f->amp;
     float dvca = (amp - vca) / (float)(frames ? frames : 1);   /* the VCA ramps across the block */
     bool enveloped;
@@ -245,8 +299,8 @@ extern "C" void wv_render(const wind_frame_t *f, int32_t *out_lr, uint32_t frame
         dx_load();
     params_for(f, &p);
     last_gate = f->gate;
-    if (engine != WV_CLASSIC)
-        post_targets(f, &pk);
+    post_targets(f, &pk);
+    nlvl = nlvl * nlvl * 2.0f;          /* (Level: a curve, and room on top) */
     while (frames) {
         uint32_t k = frames > WV_BLK ? WV_BLK : frames, i;
         if (engine == WV_SIXOP) {       /* always Plaits' 12 (see six_q), handed out k at a time */
@@ -264,8 +318,14 @@ extern "C" void wv_render(const wind_frame_t *f, int32_t *out_lr, uint32_t frame
             if (p.trigger & TRIGGER_RISING_EDGE)
                 p.trigger = TRIGGER_HIGH;   /* (the edge: once) */
         }
+        if (noise_block(f, nlvl, nzb, k)) {
+            if (engine == WV_CLASSIC)   /* (Classic's filter is inside it: the noise gets a copy) */
+                post_filter(&nz_post, nzb, k, &pk);
+            for (i = 0; i < k; i++)
+                out[i] += nzb[i];
+        }
         if (engine != WV_CLASSIC)
-            post_filter(out, k, &pk);
+            post_filter(&post, out, k, &pk);
         for (i = 0; i < k; i++) {
             float x, y;
             if (f->gate > 0.5f)
@@ -362,6 +422,6 @@ extern "C" void wv_filter_check(const wind_frame_t *f, float *ref, float *ours, 
     for (i = 0; i < n; i += WV_BLK) {
         uint32_t m = n - i < WV_BLK ? n - i : WV_BLK;
         osc.Render(NoteToFrequency(p.note), pw, shape, ours + i, m);
-        post_filter(ours + i, m, &k);
+        post_filter(&post, ours + i, m, &k);
     }
 }

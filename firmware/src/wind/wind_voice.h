@@ -15,6 +15,7 @@ typedef struct {            /* control state, per 64-frame block */
     float gate;             /* 0 or 1 */
     float cutoff, res, amp; /* 0..1 after the matrix */
     float timbre, morph, harmonics;  /* the engine's own: FM uses all three (index, feedback, ratio) */
+    float noise;            /* the noise layer's level 0..1, after the matrix */
 } wind_frame_t;
 
 /* Plaits' engines: VA-VCF; then, into our filter, 2-op FM, 6-op FM (DX7 patches), granular formant,
@@ -31,6 +32,8 @@ float wv_fm_ratio(float harmonics);    /* the FM engine's modulator ratio for a 
 void wv_dx_patch(uint32_t patch);      /* 6-op: the patch, 0..95 */
 void wv_dx_name(uint32_t patch, char *name);   /* ...its name, as the DX7 has it (11 bytes) */
 void wv_slope(uint32_t slope);
+void wv_noise(float type, float semis, float reso);   /* the noise layer: LP..BP..HP 0..1, its pitch
+                                                      * from the note, resonance 0..1 */
 void wv_env(float attack_s, float release_s);  /* the gate envelope: rise time, fall to -40 dB */
 /* frames stereo frames, 24-bit in int32, the same signal on L and R */
 void wv_render(const wind_frame_t *f, int32_t *out_lr, uint32_t frames);
