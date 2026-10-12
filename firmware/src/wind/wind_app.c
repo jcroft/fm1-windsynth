@@ -404,6 +404,45 @@ void wa_set(int k, int v)
     }
 }
 
+/* is a route reaching destination d: a slot with a source and an amount */
+static int routed(int d)
+{
+    int i;
+    for (i = 0; i < WM_NSLOT; i++)
+        if (slot[i].dst == d && slot[i].src != WM_SRC_OFF && slot[i].amount != 0)
+            return 1;
+    return 0;
+}
+
+int wa_live(int k, float *v)
+{
+    int d;
+    switch (k) {
+    case P_CUTOFF: d = WM_DST_CUTOFF; *v = wa_state.cutoff; break;
+    case P_RESO: d = WM_DST_RES; *v = wa_state.res; break;
+    case P_MORPH: d = WM_DST_MORPH; *v = wa_state.morph; break;
+    case P_INDEX: d = WM_DST_TIMBRE; *v = wa_state.timbre; break;
+    case P_NZLEVEL: d = WM_DST_NOISE; *v = wa_state.noise; break;
+    case P_AUX: d = WM_DST_AUX; *v = wa_state.aux; break;
+    case P_RATIO:                      /* (only the smooth engines' HARMONICS can be moved) */
+        if (!wa_harm_smooth(engine))
+            return 0;
+        d = WM_DST_HARM;
+        *v = wa_state.harmonics;
+        break;
+    case P_GLIDE: case P_GDEPTH:       /* the glide CC adds to Glide, up to CC depth */
+        if (wc_cfg.glide_src == WC_SRC_OFF || (k == P_GLIDE && !wc_cfg.glide_depth))
+            return 0;
+        *v = wa_state.glide_ms - (k == P_GDEPTH ? (float)wc_cfg.glide : 0.0f);
+        return 1;
+    default: return 0;
+    }
+    if (k == P_INDEX && engine == WV_CLASSIC)   /* (Classic's TIMBRE is our cutoff) */
+        return 0;
+    *v *= 100.0f;
+    return routed(d);
+}
+
 static void drain(int (*midi_in)(uint32_t *pkt))
 {
     uint32_t pkt;
@@ -483,6 +522,7 @@ void wa_render(int32_t *out, uint32_t n, uint32_t gain_q12, int (*midi_in)(uint3
         wa_state.lfo = lv;
         wa_state.pitch = f.note;
         wa_state.top = wc_top_note();
+        wa_state.glide_ms = c.glide_ms;
         out += 2 * k;
         n -= k;
     }

@@ -41,6 +41,7 @@ typedef struct {
     float mod;                         /* 0..1, the mod wheel (CC1) */
     float pressure;                    /* 0..1, channel pressure */
     float velocity;                    /* 0..1, the last note's */
+    float glide_ms;                    /* the glide time in force: Glide, plus what the glide CC adds */
 } wc_out_t;
 
 extern wc_cfg_t wc_cfg;

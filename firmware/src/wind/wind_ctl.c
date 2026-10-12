@@ -210,6 +210,7 @@ void wc_block(uint32_t frames, float sr, wc_out_t *o)
     o->mod = w.mod;
     o->pressure = w.pressure;
     o->velocity = w.velocity;
+    o->glide_ms = glide_s() * 1000.0f;
 }
 
 

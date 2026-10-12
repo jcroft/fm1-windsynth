@@ -3,7 +3,8 @@
  * simulator includes it too. (The frame of it, knobs, bands and autosave, is FoMni's and FiMba's ui.c.)
  *
  *   the screen    the note playing and the bite's bend; breath, cutoff and level as bars; the page's
- *                 four values along the bottom
+ *                 four values along the bottom, each with a ghost (an accent tick) at its live value
+ *                 when something moves it: a Mod slot, the LFO, the Filter's Breath, the glide CC
  *   HOME ENV LFO SEL SEQ GLO FX   the pages (pressed again: the button's next page): HOME Filter,
  *                 Engine (named for the engine: ALGORITHM picks it) and Noise, ENV Breath, LFO LFO and LFO 2, SEL Mod 1-4, SEQ Pitch and Pitch 2, GLO Setup, FX Distortion,
  *                 Modulation, Delay, Reverb and Reverb 2 (the order the sound goes through them). EDIT and
@@ -82,7 +83,9 @@ static struct {
     int8_t touched;
     uint32_t touch_until;
     uint32_t frame;
-    uint32_t sig[3];
+    uint32_t sig[4];                   /* the bands' hashes as drawn; [3]: the strip's, without its ghosts */
+    uint32_t ghost_t;                  /* when the strip last drew for a ghost alone */
+    int16_t ghost[4];                  /* each knob's ghost, the pixel it sits at (-1: none) */
     uint32_t save_t;                   /* when SAVE went down (held: reset to the defaults?) */
     uint32_t reset_ask;                /* until when "RESET?" waits for SAVE (0: not asking) */
     uint32_t save_ask;                 /* until when "SAVE TO" waits for SAVE (0: not asking) */
@@ -579,6 +582,30 @@ static void draw_main(void)
     cv_blit(0, MAIN_Y);
 }
 
+/* a knob's ghost: the tick at its live value, when something moves it (wa_live); -1: none */
+static int32_t ghost_px(int k, int32_t cx)
+{
+    const wa_param_t *p;
+    float v, f;
+    if (k == K_NONE || !wa_live(k, &v))
+        return -1;
+    p = wa_param_info(k);
+    if (p->hi <= p->lo)
+        return -1;
+    f = (v - (float)p->lo) / (float)(p->hi - p->lo);
+    f = f < 0.0f ? 0.0f : f > 1.0f ? 1.0f : f;
+    return cx - 22 + (int32_t)(44.0f * f + 0.5f);
+}
+
+/* a over b, a's share n/256 (RGB565) */
+static uint16_t blend565(uint16_t a, uint16_t b, uint32_t n)
+{
+    uint32_t r = ((a >> 11) * n + (b >> 11) * (256u - n)) >> 8, g = (((a >> 5) & 63u) * n + ((b >> 5) & 63u) * (256u - n)) >> 8,
+             bl = ((a & 31u) * n + (b & 31u) * (256u - n)) >> 8;
+    return (uint16_t)(r << 11 | g << 5 | bl);
+}
+
+#define GHOST_MS 33u                   /* a ghost alone moves the strip at most this often */
 static void draw_knobs(void)
 {
     /* (each in its own hash: touched is -1 untouched, and shifted in with the rest it hid the engine) */
@@ -592,9 +619,20 @@ static void draw_knobs(void)
         h = hash(h, k == K_NONE ? 0xFFFFu : (uint32_t)(uint16_t)proj.par[k] | (uint32_t)k << 16);
     }
     h = hash(h, (uint32_t)now_touch);
-    if (h == ui.sig[2])
-        return;
-    ui.sig[2] = h;
+    {   /* the ghosts: a change that moves only them draws at most every GHOST_MS */
+        uint32_t hg = h, now = plat_ms();
+        for (i = 0; i < 4; i++) {
+            ui.ghost[i] = (int16_t)ghost_px(knob_of((int)i), (int32_t)i * 60 + 30);
+            hg = hash(hg, (uint32_t)(ui.ghost[i] + 1));
+        }
+        if (hg == ui.sig[2])
+            return;
+        if (h == ui.sig[3] && now - ui.ghost_t < GHOST_MS)
+            return;
+        ui.sig[2] = hg;
+        ui.sig[3] = h;
+        ui.ghost_t = now;
+    }
     cv_begin(240, KNB_H, K_BG);
     cv_round(4, 2, 232, KNB_H - 6, 6, K_PANEL);
     for (i = 0; i < 4; i++) {
@@ -632,6 +670,12 @@ static void draw_knobs(void)
         } else if (bw) {
             cv_round(cx - 22, 50, bw < 6 ? 6 : bw, 6, 3, hot ? K_ACC : K_BLUE);
         }
+        if (ui.ghost[i] >= 0) {                      /* the ghost: where modulation has the value now */
+            int32_t gx = ui.ghost[i], sx = cx - 22 + bw;  /* (the knobs it shows on start at 0) */
+            if (gx - sx > 1 || sx - gx > 1)
+                cv_rect(gx < sx ? gx : sx, 52, gx < sx ? sx - gx : gx - sx, 2, blend565(K_ACC, K_LINE, 115u));
+            cv_round(gx - 1, 46, 3, 14, 1, hot ? K_TEXT : K_ACC);
+        }
     }
     cv_blit(0, KNB_Y);
 }
@@ -665,6 +709,7 @@ void ui_init(void)
 {
     memset(&ui, 0, sizeof ui);
     ui.touched = -1;
+    memset(ui.ghost, 0xFF, sizeof ui.ghost);
     lcd_fill(0, 0, 240, 240, K_BG);
 }
 

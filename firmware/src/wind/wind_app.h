@@ -69,7 +69,12 @@ typedef struct {
     float lfo;                         /* the LFO, -1..1 (faded in) */
     float pitch;                       /* the note sounding, with the LFO's vibrato (note: without it) */
     float level;                       /* the output's peak in the last block, 0..1 */
+    float glide_ms;                    /* the glide time in force (Glide, plus the glide CC's share) */
     int top;                           /* the note sounding (MIDI number), -1 none yet */
     uint32_t midi_seen;                /* packets received */
 } wa_state_t;
 extern volatile wa_state_t wa_state;
+
+/* a knob's live value, in its own units, when something moves it (a Mod slot, the LFO, the Filter's
+ * Breath, the glide CC): 1 and *v; 0 when nothing does (its value is its setting) */
+int wa_live(int k, float *v);
