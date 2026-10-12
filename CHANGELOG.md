@@ -4,6 +4,13 @@ A release is a push to `main` that changes `VERSION` to a version with no tag ye
 release build, tags the commit `vX.Y.Z` and publishes the GitHub Release with that version's notes,
 taken from its section below. Add the section in the same pull request as the `VERSION` change.
 
+## 0.0.21
+
+- **The web page says it isn't released yet.** It says it's for trying Windsynth in the browser, with
+  the FM-1 firmware to follow once it has been tested on the real thing. The link to the source is
+  gone (the repository is private), and the installer is folded away under "Have a test build?" until
+  a release exists. Then it opens by itself and the notice goes.
+
 ## 0.0.20
 
 - **The Engine page follows the engine.** Turning ALGORITHM on the Engine page now always redraws its
