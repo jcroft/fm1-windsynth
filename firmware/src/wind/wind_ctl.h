@@ -42,6 +42,8 @@ typedef struct {
     float pressure;                    /* 0..1, channel pressure */
     float velocity;                    /* 0..1, the last note's */
     float glide_ms;                    /* the glide time in force: Glide, plus what the glide CC adds */
+    float breath_in;                   /* 0..1, the breath as it comes in: before the curve and the smoothing */
+    float gliding;                     /* 1 while a glide is on its way, else 0 */
 } wc_out_t;
 
 /* the controller monitor (Setup): the raw values as they came in, on any channel (before the MIDI

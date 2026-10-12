@@ -47,6 +47,9 @@
  *                                 5 white 6 accent 7 accent tint 8 blue 9 blue tint, -1 none of them)
  *                                 topX_C (the top row of the middle band, 28..171, in column X that is theme
  *                                 colour C, as colX_Y numbers them; -1 none) botX_C (the same, the bottom row)
+ *                                 countC_X0_Y0_X1_Y1 (pixels of theme colour C in the box, inclusive)
+ *                                 aboveA_B_X0_Y0_X1_Y1 (columns of the box with both colours where colour A's
+ *                                 top pixel is higher than colour B's)
  *                                 peak_db_max peak_db_min; text, "_" a space: msg0 msg1 (the message's
  *                                 lines) knob1..knob4 (a knob's name on this page, "-" none) val1..val4 (its value as shown))
  *   scopemark                    keep the Engine page's newest scope trace (expect scope_since)
@@ -377,6 +380,19 @@ static int key_of(const char *s) { return atoi(s) % NKEYS; }
 
 static int16_t scope_mark[VS_N];        /* scopemark: a trace, for expect scope_since */
 
+/* a pixel as one of the theme's colours (theme_t's order: 0 bg, 1 panel, 2 line, 3 dim, 4 text, 5 white,
+ * 6 accent, 7 accent tint, 8 blue, 9 blue tint), -1 none of them */
+static int theme_colour(uint16_t p)
+{
+    const uint16_t *t = &THEME->bg;
+    int i;
+    p = (uint16_t)((p >> 8) | (p << 8));
+    for (i = 0; i < 10; i++)
+        if (t[i] == p)
+            return i;
+    return -1;
+}
+
 static int expect(const char *what, const char *val)
 {
     int got;
@@ -559,6 +575,40 @@ static int expect(const char *what, const char *val)
                     break;
             }
         }
+    }
+    else if (!strncmp(what, "above", 5)) {        /* aboveA_B_X0_Y0_X1_Y1: columns where A's top pixel is over B's */
+        int c[6] = {0}, n = 0, x, y;
+        const char *q = what + 5;
+        while (n < 6) {
+            c[n++] = atoi(q);
+            if (!(q = strchr(q, '_')))
+                break;
+            q++;
+        }
+        got = 0;
+        for (x = c[2]; x <= c[4] && x < 240; x++) {
+            int ta = 999, tb = 999;
+            for (y = c[5] < 239 ? c[5] : 239; y >= c[3]; y--) {
+                int k = theme_colour(fb[y * 240 + x]);
+                ta = k == c[0] ? y : ta;
+                tb = k == c[1] ? y : tb;
+            }
+            got += ta < tb && tb < 999;
+        }
+    }
+    else if (!strncmp(what, "count", 5)) {        /* countC_X0_Y0_X1_Y1: pixels of theme colour C in the box */
+        int c[5] = {0}, n = 0, x, y;
+        const char *q = what + 5;
+        while (n < 5) {
+            c[n++] = atoi(q);
+            if (!(q = strchr(q, '_')))
+                break;
+            q++;
+        }
+        got = 0;
+        for (y = c[2]; y <= c[4] && y < 240; y++)
+            for (x = c[1]; x <= c[3] && x < 240; x++)
+                got += theme_colour(fb[y * 240 + x]) == c[0];
     }
     else if (!strncmp(what, "luma", 4)) {         /* lumaY: the screen's brightness at (2, Y) */
         uint16_t p = fb[(atoi(what + 4) % 240) * 240 + 2];

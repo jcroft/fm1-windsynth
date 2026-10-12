@@ -288,8 +288,9 @@ void wc_block(uint32_t frames, float sr, wc_out_t *o)
     if (!++mon.clock)                  /* (0 is "never") */
         mon.clock = 1u;
     mon_sync();
+    o->breath_in = w.breath_cc;
     if (w.keys && wc_cfg.key_breath > b)
-        b = wc_cfg.key_breath;
+        o->breath_in = b = wc_cfg.key_breath;      /* (a panel key: as if blown that hard, curve and all) */
     a = 1.0f - fm_expf(-t * (1000.0f / BREATH_MS));
     w.breath += (b - w.breath) * a;
     w.breath = fm_flush(w.breath);
@@ -310,6 +311,7 @@ void wc_block(uint32_t frames, float sr, wc_out_t *o)
     o->pressure = w.pressure;
     o->velocity = w.velocity;
     o->glide_ms = glide_s() * 1000.0f;
+    o->gliding = w.rate > 0.0f ? 1.0f : 0.0f;
 }
 
 
