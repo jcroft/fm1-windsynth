@@ -2,7 +2,7 @@
 // The reference: upstream Plaits' engines as Plaits itself builds them for a desktop (-DTEST, the
 // system's <algorithm> and libm, no shim), rendering the fixed sweep to a file of floats.
 //   wind_ref <out.f32> [ENGINE]  (wind_voice.h's engine number: 0 VA-VCF, the default, 1 2-op FM, 2 6-op FM
-//                                 (bank 0), 3 granular formant, 4 waveshaping, 5 virtual analog)
+//                                 (bank 0), 3 granular formant, 4 waveshaping, 5 virtual analog, 6 phase distortion, 7 additive)
 #include <stdio.h>
 #include <string.h>
 #include "plaits/dsp/engine2/virtual_analog_vcf_engine.h"
@@ -11,6 +11,8 @@
 #include "plaits/dsp/engine/grain_engine.h"
 #include "plaits/dsp/engine/waveshaping_engine.h"
 #include "plaits/dsp/engine/virtual_analog_engine.h"
+#include "plaits/dsp/engine2/phase_distortion_engine.h"
+#include "plaits/dsp/engine/additive_engine.h"
 #include "plaits/resources.h"
 #include <stdlib.h>
 #include "wind_sweep.h"
@@ -26,14 +28,16 @@ int main(int argc, char **argv)
     static GrainEngine grain;
     static WaveshapingEngine shape;
     static VirtualAnalogEngine va;
-    Engine *all[] = {&vcf, &fm, &six, &grain, &shape, &va};
+    static PhaseDistortionEngine pd;
+    static AdditiveEngine harm;
+    Engine *all[] = {&vcf, &fm, &six, &grain, &shape, &va, &pd, &harm};
     int id = argc > 2 ? (strcmp(argv[2], "fm") ? atoi(argv[2]) : 1) : 0;
-    Engine &e = *all[id >= 0 && id < 6 ? id : 0];
+    Engine &e = *all[id >= 0 && id < 8 ? id : 0];
     stmlib::BufferAllocator a(arena, sizeof arena);
     FILE *f = argc > 1 ? fopen(argv[1], "wb") : NULL;
     if (!f)
         return 2;
-    for (int i = 0; i < 6; i++) {       /* every engine, in wind_voice's order: the random numbers then match */
+    for (int i = 0; i < 8; i++) {       /* every engine, in wind_voice's order: the random numbers then match */
         all[i]->Init(&a);
         all[i]->Reset();
     }

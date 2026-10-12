@@ -34,9 +34,10 @@ run wind sh -c "mkdir -p $OUT/wind && $CXX -O2 -ffp-contract=off -DTEST -Ifirmwa
     firmware/third_party/mutable/plaits/dsp/engine2/six_op_engine.cc firmware/third_party/mutable/plaits/dsp/fm/algorithms.cc \
     firmware/third_party/mutable/plaits/dsp/fm/dx_units.cc firmware/third_party/mutable/plaits/dsp/engine/grain_engine.cc \
     firmware/third_party/mutable/plaits/dsp/engine/waveshaping_engine.cc firmware/third_party/mutable/plaits/dsp/engine/virtual_analog_engine.cc \
+    firmware/third_party/mutable/plaits/dsp/engine2/phase_distortion_engine.cc firmware/third_party/mutable/plaits/dsp/engine/additive_engine.cc \
     firmware/third_party/mutable/stmlib/utils/random.cc \
     firmware/third_party/mutable/stmlib/dsp/units.cc && \
-    for e in 0 1 2 3 4 5; do $OUT/wind/wind_ref $OUT/wind/ref_\$e.f32 \$e || exit 1; done && \
+    for e in 0 1 2 3 4 5 6 7; do $OUT/wind/wind_ref $OUT/wind/ref_\$e.f32 \$e || exit 1; done && \
     $CC -O2 -ffp-contract=off -std=c99 -Wall -Wextra -Wdouble-promotion -Werror -Ifirmware/src -Itests/host \
     -o $OUT/wind/wind_voice_test tests/host/wind_voice_test.c \$(sh tools/wind_cxx.sh $CXX $OUT/wind -Werror) && \
     $OUT/wind/wind_voice_test $OUT/wind $OUT/wind"

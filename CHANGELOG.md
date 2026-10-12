@@ -4,6 +4,12 @@ A release is a push to `main` that changes `VERSION` to a version with no tag ye
 release build, tags the commit `vX.Y.Z` and publishes the GitHub Release with that version's notes,
 taken from its section below. Add the section in the same pull request as the `VERSION` change.
 
+## 0.0.13
+
+- **Two more Plaits engines**, after VA on ALGORITHM: **PD**, phase distortion as on Casio's CZ
+  (Ratio, Amount, and Asym on Morph), and **Harmonic**, Plaits' additive engine (Bumps, Peak, and
+  Shape on Morph). Breath on cutoff works on both as on the others.
+
 ## 0.0.12
 
 - **Glide is a set time, and CC5 adds to it.** Glide on the Pitch page is now the glide time in
