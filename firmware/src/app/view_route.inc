@@ -75,7 +75,7 @@ static void rt_fit(char *s, int32_t w)
     for (k = n - 1 < 22 ? n - 1 : 22; k > 1; k--) {
         for (j = k; j > 1 && s[j - 1] == ' '; j--)
             ;
-        memcpy(t, s, (size_t)j);
+        memcpy(t, s, (unsigned)j);
         t[j] = '.';
         t[j + 1] = 0;
         if (text_w(&FONT_XS, t) <= w)
