@@ -43,8 +43,6 @@
  *                                 scope_label (text: its label on the right, "Square_40", "-" none)
  *                                 offbgY0_Y1 (pixels in rows Y0..Y1 that aren't the background); text: rtrowN
  *                                 rtoff rtdst rtmonN (the Mod and Setup views' rows, see view_route.inc)
- *                                 themepxX_Y (the theme colour at (X, Y): 0 bg 1 panel 2 line 3 dim 4 text
- *                                 5 white 6 accent 7 accent tint 8 blue 9 blue tint, -1 none of them)
  *                                 colX_Y (the theme's colour at pixel X,Y: 0 bg 1 panel 2 line 3 dim 4 text
  *                                 5 white 6 accent 7 accent tint 8 blue 9 blue tint, -1 none of them)
  *                                 topX_C (the top row of the middle band, 28..171, in column X that is theme
@@ -574,20 +572,6 @@ static int expect(const char *what, const char *val)
         for (got = 0; y <= y1; y++)
             for (x = 0; x < 240; x++)
                 got += fb[y * 240 + x] != bg;
-    }
-    else if (!strncmp(what, "themepx", 7)) {      /* themepxX_Y: which theme colour the pixel at (X, Y) is */
-        const uint16_t *k = &THEME->bg;           /* (0 bg 1 panel 2 line 3 dim 4 text 5 white 6 accent */
-        uint16_t p;                               /*  7 accent tint 8 blue 9 blue tint; -1 none of them) */
-        int x = atoi(what + 7) % 240, y = 0, i;
-        const char *u = strchr(what, '_');
-        if (u)
-            y = atoi(u + 1) % 240;
-        p = fb[y * 240 + x];
-        p = (uint16_t)((p >> 8) | (p << 8));
-        got = -1;
-        for (i = 0; i < 10 && got < 0; i++)
-            if (k[i] == p)
-                got = i;
     }
     else if (!strcmp(what, "peak_db_max") || !strcmp(what, "peak_db_min")) {
         double db = 20.0 * log10(peak_out > 1e-9f ? peak_out : 1e-9f);

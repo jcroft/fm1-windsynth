@@ -35,14 +35,14 @@ expect timbre 67
 shot mod1_light.png
 expect stale 0
 # the source's bar is accent up to its live level (67 % of 56 px from x 16), the track past it
-expect themepx40_57 6
-expect themepx66_57 2
+expect col40_57 6
+expect col66_57 2
 # the destination's mark at its live value (67 % of 58 px from x 168), its knob's value blue under it
-expect themepx207_52 6
-expect themepx180_57 8
+expect col207_52 6
+expect col180_57 8
 expect rtdst SQUARE
 # the cable leaves the source in the accent, mixed into the panel by the breath: not the panel
-expect themepx80_58 -1
+expect col80_58 -1
 # the list: slot 1's row first, highlighted (the background), its level bar accent; the LFO's and the
 # Filter's under it, and the slots that are off
 expect rtrow0 1|Breath>Square|+40
@@ -50,16 +50,16 @@ expect rtrow1 |LFO_Square>Saw|+40
 expect rtrow2 Filter|Breath>Cutoff|+75
 expect rtrow3 -
 expect rtoff 2-4
-expect themepx12_115 0
-expect themepx190_120 6
-expect themepx228_142 1
+expect col12_115 0
+expect col190_120 6
+expect col228_142 1
 # four lines: the slot's panel full height (x 12, y 88 in it), nothing drawn under the list's panel
-expect themepx12_88 1
+expect col12_88 1
 expect offbg168_171 0
 # full breath: the cable at full strength
 breath 85 127 30
 wait 30
-expect themepx80_58 6
+expect col80_58 6
 expect stale 0
 breath 127 85 30
 wait 30
@@ -72,9 +72,9 @@ expect view 6
 wait 50
 shot mod1_dark.png
 expect stale 0
-expect themepx40_57 6
-expect themepx66_57 2
-expect themepx12_115 0
+expect col40_57 6
+expect col66_57 2
+expect col12_115 0
 expect offbg168_171 0
 # Mod 2: off, a grey cable and pill; the list still shows slot 1, the LFO and the Filter, and "2-4 Off"
 tap SEL
@@ -82,8 +82,8 @@ expect view 7
 wait 30
 shot mod2_off_dark.png
 expect stale 0
-expect themepx108_70 2
-expect themepx80_58 2
+expect col108_70 2
+expect col80_58 2
 tap GLO
 spin K4 -1
 expect par29 0
@@ -133,14 +133,14 @@ shot setup_light.png
 expect stale 0
 # F4 bitten down a quarter tone: -25c, the tuner's needle left of the middle in the accent
 expect note 6475
-expect themepx119_60 6
+expect col119_60 6
 # the breath bar to 74/127 of 68 px from x 118, the track past it; its dot lit (just in: the accent)
-expect themepx150_110 6
-expect themepx170_110 2
-expect themepx15_110 6
+expect col150_110 6
+expect col170_110 2
+expect col15_110 6
 # the bite's bar from the middle (x 152) to the left, the track to its right
-expect themepx149_126 8
-expect themepx156_126 2
+expect col149_126 8
+expect col156_126 2
 # the rows: the source as its knob says it, the channel each came on, the value
 expect rtmon0 CC2|Breath|ch1|74
 expect rtmon1 PB|Bite|ch1|-1024
@@ -149,15 +149,15 @@ expect rtmon3 NOTE|F4_on|ch1|100
 wait 500
 expect stale 0
 # the dots go out, the values stay
-expect themepx15_110 2
-expect themepx150_110 6
+expect col15_110 2
+expect col150_110 6
 spin K4 1
 wait 50
 shot setup_dark.png
 expect stale 0
-expect themepx150_110 6
-expect themepx119_60 6
-expect themepx15_110 2
+expect col150_110 6
+expect col119_60 6
+expect col15_110 2
 spin K4 -1
 midi 80 41 00
 wait 300
@@ -236,13 +236,13 @@ expect rtrow1 2|Bite>Detune|-60
 expect rtrow3 4|Press>Aux|+100
 expect rtrow5 Filter|Breath>Cutoff|+75
 expect rtoff none
-expect themepx12_88 0
-expect themepx12_110 0
-expect themepx190_110 6
+expect col12_88 0
+expect col12_110 0
+expect col190_110 6
 expect offbg168_171 0
 # the bite (-50): the source's bar from its middle (x 44) to the left
-expect themepx30_58 6
-expect themepx55_58 2
+expect col30_58 6
+expect col55_58 2
 tap GLO
 spin K4 1
 tap SEL
@@ -250,8 +250,8 @@ tap SEL
 wait 50
 shot mod2_six_dark.png
 expect stale 0
-expect themepx12_88 0
-expect themepx12_110 0
+expect col12_88 0
+expect col12_110 0
 expect offbg168_171 0
 spin K4 -1
 # FM: long names cut to fit left of the amount; Harmonics does nothing on FM (stepped), so slot 3 on it
@@ -279,8 +279,8 @@ expect stale 0
 expect rtdst HARM_OFF
 expect rtrow2 3|Mod_wh>Harm_off|-100
 expect rtrow3 4|Press>Feedback|+100
-expect themepx108_70 2
-expect themepx80_58 2
+expect col108_70 2
+expect col80_58 2
 # the LFO on Harmonics at -100: its names cut to the room left of the amount (and inert on FM)
 tap LFO
 spin K4 -140

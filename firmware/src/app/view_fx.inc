@@ -614,7 +614,7 @@ static int vw_fx(int v)
     /* what's drawn: the moving pages' time; the others' dot, lit echo, bar or marker */
     h = hash(hash(2166136261u, (uint32_t)v | (uint32_t)proj.par[P_THEME] << 8 | (uint32_t)amp_px << 16),
              (uint32_t)lit | (uint32_t)feed_px << 12 | (uint32_t)(mark + 1) << 20);
-    h = hash(hash(h, v == V_MODFX || v == V_REVERB2 ? fx_t : 0u), since);
+    h = hash(hash(hash(h, v == V_MODFX || v == V_REVERB2 ? fx_t : 0u), since), (uint32_t)anim);
     for (i = P_RVTYPE; i <= P_DLFB; i++)
         h = hash(h, (uint32_t)(uint16_t)proj.par[i]);
     for (i = P_DSTYPE; i <= P_MODEPTH; i++)
