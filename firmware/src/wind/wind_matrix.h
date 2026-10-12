@@ -8,7 +8,8 @@
  *                              100 the source alone sets the level (breath dynamics); a negative
  *                              amount turns it down as the source rises
  *
- * By default one slot sends breath to the cutoff and the rest are off. */
+ * The last slot is fixed, breath to the cutoff (the Filter page's Breath, +75 to start); the Mod pages'
+ * four start off. */
 #pragma once
 #include <stdint.h>
 
@@ -18,7 +19,7 @@ enum { WM_SRC_OFF, WM_SRC_BREATH, WM_SRC_BITE, WM_SRC_MOD, WM_SRC_PRESSURE, WM_S
 enum { WM_DST_CUTOFF, WM_DST_RES, WM_DST_AMP, WM_DST_MORPH, WM_DST_TIMBRE, WM_DST_NOISE, WM_DST_HARM, WM_DST_AUX,
        WM_NDST };
 #define WM_DST_PITCH WM_NDST           /* the LFO page's slot only: the note, outside the matrix */
-#define WM_NSLOT 5                     /* the Mod pages' four, then the LFO page's */
+#define WM_NSLOT 6                     /* the Mod pages' four, the LFO page's, then the Filter page's Breath */
 
 typedef struct {
     uint8_t src, dst;

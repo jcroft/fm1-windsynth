@@ -1,4 +1,4 @@
-# First boot: the Voice page, the defaults, nothing sounding
+# First boot: the Filter page, the defaults, nothing sounding
 wait 300
 expect view 0
 expect top -1
@@ -7,12 +7,15 @@ expect par0 15
 expect par4 2
 expect par8 2
 expect par9 5
-expect par12 1
-expect par14 75
+# breath to cutoff on the Filter page's Breath (+75); the four Mod slots off
+expect par67 75
+expect val4 +75
+expect par12 0
+expect par14 0
 # the engine: Classic; CC depth 400 ms
 expect par30 0
 expect par45 400
-# the init sound: one saw (Morph 25), no resonance, breath to cutoff and nothing else
+# the init sound: one saw (Morph 25), no resonance, breath to cutoff (the knob) and nothing else
 expect par1 0
 expect par2 25
 expect par15 0

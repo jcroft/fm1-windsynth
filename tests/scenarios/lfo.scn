@@ -51,7 +51,11 @@ wait 200
 tap HOME
 tap HOME
 expect view 1
-spin K1 5
+spin ALGO 1
+spin ALGO 1
+spin ALGO 1
+spin ALGO 1
+spin ALGO 1
 expect par30 5
 tap LFO
 expect view 4

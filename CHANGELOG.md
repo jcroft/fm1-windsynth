@@ -4,6 +4,16 @@ A release is a push to `main` that changes `VERSION` to a version with no tag ye
 release build, tags the commit `vX.Y.Z` and publishes the GitHub Release with that version's notes,
 taken from its section below. Add the section in the same pull request as the `VERSION` change.
 
+## 0.0.19
+
+- **Filter and Engine pages.** HOME's first page is now Filter: Cutoff, Resonance, Slope and Breath.
+  The engine's own three knobs (Harmonics, Timbre and Morph, named for what they do on it) and Aux are
+  together on the Engine page, whose header names the engine. The ALGORITHM knob picks the engine.
+- **Breath to cutoff is a knob.** The Filter page's Breath sets how far breath opens the cutoff
+  (+75 to start, −100 to +100), always connected, so all four Mod slots are free and start off. A sound
+  saved earlier that sent breath to the cutoff from a Mod slot has that amount moved onto the knob and
+  the slot turned off, so it plays as it did.
+
 ## 0.0.18
 
 - **An LFO.** The LFO key now holds two LFO pages: Shape (Sine, Triangle, Saw, Square, S&H), Rate

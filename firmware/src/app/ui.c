@@ -4,8 +4,8 @@
  *
  *   the screen    the note playing and the bite's bend; breath, cutoff and level as bars; the page's
  *                 four values along the bottom
- *   HOME ENV LFO SEL SEQ GLO FX   the pages (pressed again: the button's next page): HOME Voice,
- *                 Engine and Noise, ENV Breath, LFO LFO and LFO 2, SEL Mod 1-4, SEQ Pitch and Pitch 2, GLO Setup, FX Distortion,
+ *   HOME ENV LFO SEL SEQ GLO FX   the pages (pressed again: the button's next page): HOME Filter,
+ *                 Engine (named for the engine: ALGORITHM picks it) and Noise, ENV Breath, LFO LFO and LFO 2, SEL Mod 1-4, SEQ Pitch and Pitch 2, GLO Setup, FX Distortion,
  *                 Modulation, Delay, Reverb and Reverb 2 (the order the sound goes through them). EDIT and
  *                 SELECT step through them all.
  *   KNOB 1-4      the page's values      PRESETS the preset (1-64)      OCT- / OCT+ the panel keys' octave
@@ -16,17 +16,17 @@
  *
  * MIDI never passes through here: wind_app reads it in the audio interrupt, every 1.45 ms. */
 
-enum { V_VOICE, V_ENGINE, V_NOISE, V_BREATH, V_LFO, V_LFO2, V_MOD1, V_MOD2, V_MOD3, V_MOD4, V_PITCH, V_PITCH2, V_SETUP,
+enum { V_FILTER, V_ENGINE, V_NOISE, V_BREATH, V_LFO, V_LFO2, V_MOD1, V_MOD2, V_MOD3, V_MOD4, V_PITCH, V_PITCH2, V_SETUP,
        V_DIST, V_MODFX, V_DELAY, V_REVERB, V_REVERB2, NVIEWS };
-static const char *const VIEW_NAME[NVIEWS] = {"Voice", "Engine", "Noise", "Breath", "LFO", "LFO 2", "Mod 1", "Mod 2", "Mod 3",
+static const char *const VIEW_NAME[NVIEWS] = {"Filter", "Engine", "Noise", "Breath", "LFO", "LFO 2", "Mod 1", "Mod 2", "Mod 3",
                                               "Mod 4", "Pitch", "Pitch 2", "Setup", "Distortion", "Modulation", "Delay",
                                               "Reverb", "Reverb 2"};
 static const uint8_t VIEW_BTN[NVIEWS] = {B_HOME, B_HOME, B_HOME, B_ENV, B_LFO, B_LFO, B_SEL, B_SEL, B_SEL, B_SEL, B_SEQ, B_SEQ,
                                          B_GLO, B_FX, B_FX, B_FX, B_FX, B_FX};
 #define K_NONE 255                     /* a knob with nothing on it */
 static const uint8_t VIEW_KNOB[NVIEWS][4] = {
-    {P_CUTOFF, P_RESO, P_MORPH, P_SLOPE},
-    {P_ENGINE, P_RATIO, P_INDEX, P_AUX},
+    {P_CUTOFF, P_RESO, P_SLOPE, P_BRCUT},
+    {P_RATIO, P_INDEX, P_MORPH, P_AUX},          /* (the engine itself: ALGORITHM, and the header shows it) */
     {P_NZLEVEL, P_NZTYPE, P_NZFREQ, P_NZRESO},
     {P_BSRC, P_CURVE, P_ATTACK, P_RELEASE},
     {P_LFOSHAPE, P_LFORATE, P_LFODST, P_LFOAMT},
@@ -411,6 +411,14 @@ static void text_c(int32_t cx, int32_t y, const felucca_font_t *f, const char *s
     cv_text(cx - text_w(f, s) / 2, y, f, s, c);
 }
 
+/* a page's name in the header: the Engine page shows the engine ("VA", "Waveshape") */
+static const char *view_name(int v)
+{
+    if (v == V_ENGINE)
+        return WA_ENGINE_NAME[(unsigned)proj.par[P_ENGINE] < WV_NENGINE ? proj.par[P_ENGINE] : 0];
+    return VIEW_NAME[v];
+}
+
 static void draw_header(void)
 {
     char t[24];
@@ -423,6 +431,8 @@ static void draw_header(void)
         h = hash(hash(h, (uint32_t)ui.msg[0][0] << 8 | ui.msg[0][1]), ui.msg_until);
     if (ui.view == V_SETUP)
         h = hash(h, plat_cpu_pct() | plat_xruns() << 8);
+    if (ui.view == V_ENGINE)
+        h = hash(h, (uint32_t)proj.par[P_ENGINE]);
     if (h == ui.sig[0])
         return;
     ui.sig[0] = h;
@@ -432,7 +442,7 @@ static void draw_header(void)
         cv_text(x + 8, 6, &FONT_B, ui.msg[1], K_ACC);
     } else {
         int32_t x = 232, w;
-        cv_text(10, 6, &FONT_B, VIEW_NAME[ui.view], K_TEXT);
+        cv_text(10, 6, &FONT_B, view_name(ui.view), K_TEXT);
         if (ui.view == V_SETUP) {                     /* the audio load and the version, for a check on the hardware */
             itoa_u(plat_cpu_pct(), t);
             w = s_len(t);
@@ -465,7 +475,7 @@ static void draw_header(void)
             x -= text_w(&FONT_B, v) + 10;
             cv_text(x, 5, &FONT_B, v, K_TEXT);
         }
-        x = 18 + text_w(&FONT_B, VIEW_NAME[ui.view]);
+        x = 18 + text_w(&FONT_B, view_name(ui.view));
         {   /* the button's pages, when it has more than one: a dot each, this one filled */
             int first = ui.view, n = 0, v;
             while (first > 0 && VIEW_BTN[first - 1] == VIEW_BTN[ui.view])

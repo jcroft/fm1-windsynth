@@ -20,7 +20,7 @@ full breath (they're switches, so they sense no pressure). **OCT−** / **OCT+**
 
 | Control | Default | Options |
 | --- | --- | --- |
-| Breath | CC2, to filter cutoff (Mod 1: Breath → Cutoff, +75) | Aftertouch or any CC as the source; a curve; the Mod slots also send it to amp, resonance or morph |
+| Breath | CC2, to filter cutoff (the Filter page's Breath knob, +75) | Aftertouch or any CC as the source; a curve; how much it opens the cutoff (Breath, −100 to +100); the Mod slots also send it to amp, resonance, morph and the rest |
 | Bite | Pitch bend, ±2 semitones | 0 to 12 semitones |
 | Glide | 4 ms; CC5 adds up to 400 ms to it, and at 0 adds nothing | The glide time itself (up to 2 s, or off); another CC, or none; how much the CC adds at full (CC depth, up to 2 s); glide on every note or legato only |
 
@@ -34,8 +34,8 @@ step through every page.
 
 | Button | Page | Knobs |
 | --- | --- | --- |
-| HOME | Voice | Cutoff, Resonance, Morph (named for what it does on the engine; Classic: the waveform, a saw up to 25, a square at 50, then a pulse that narrows and widens again, with a sub-octave below 20 and above 80; FM: the feedback, none at 50), Slope (12 or 24 dB) |
-| HOME again | Engine | Engine (also the ALGORITHM knob), then the engine's two own knobs (Classic has none), then Aux: from the engine's main output (0) to its second output alone (100; not on 6-op, whose second output is the same). See the engines below. |
+| HOME | Filter | Cutoff, Resonance, Slope (12 or 24 dB), Breath (how far breath opens the cutoff, −100 to +100, +75 to start) |
+| HOME again | Engine (the header names it) | The engine's own three knobs, named for what they do on it: Harmonics and Timbre (Classic has neither), Morph (Classic: the waveform, a saw up to 25, a square at 50, then a pulse that narrows and widens again, with a sub-octave below 20 and above 80; FM: the feedback, none at 50); then Aux: from the engine's main output (0) to its second output alone (100; not on 6-op, whose second output is the same). The ALGORITHM knob picks the engine. See the engines below. |
 | HOME again | Noise | Level (0 is off), Type (low-pass through band-pass to high-pass), Freq (the noise filter's pitch, in semitones from the note), Reso |
 | ENV | Breath | Source (a CC, or aftertouch), Curve, Attack, Release |
 | LFO | LFO | Shape (Sine, Triangle, Saw, Square, S&H), Rate (0.05 to 20 Hz, 5 Hz by default), Dest (the Mod slots' destinations, plus Pitch), Amount (−100 to +100; on Pitch, in cents; 0 by default, so it's off) |
@@ -58,7 +58,7 @@ filter, so breath on cutoff opens the air with the tone. Send breath to Noise on
 it in harder, or a negative amount for a breathy edge on soft notes. Their knobs take the
 engine's names.
 
-| Engine | Engine page | Morph (Voice page) |
+| Engine | Engine page: Harmonics, Timbre | Engine page: Morph |
 |---|---|---|
 | Classic | (none) | the waveform |
 | FM | Ratio (the modulator, 0.5 to 16 times the note), Index | Feedback |
@@ -107,7 +107,7 @@ another; the header shows which, with a `*` once you've changed its sound. To ke
 press **SAVE** again (any other button leaves the presets alone). What you're playing, edits
 included, is also kept by itself a few seconds after you stop, so it comes back after a restart.
 
-A preset holds the sound: the Voice, Engine, Noise, LFO, Pitch and Mod pages, the effects, and Attack and
+A preset holds the sound: the Filter, Engine, Noise, LFO, Pitch and Mod pages, the effects, and Attack and
 Release. Your rig's settings stay put when you change presets: breath source and curve, the glide CC and its
 depth, the keys' octave and Setup.
 Hold **SAVE** for 1.5 s, then press it again, for the init sound (the preset slot is untouched until

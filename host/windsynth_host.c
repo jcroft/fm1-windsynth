@@ -346,14 +346,17 @@ static int key_of(const char *s) { return atoi(s) % NKEYS; }
 static int expect(const char *what, const char *val)
 {
     int got;
-    if (!strncmp(what, "msg", 3) || !strncmp(what, "knob", 4) || !strncmp(what, "val", 3)) {   /* text, "_": a space */
+    if (!strncmp(what, "msg", 3) || !strncmp(what, "knob", 4) || !strncmp(what, "val", 3) ||
+        !strcmp(what, "title")) {                 /* text, "_": a space; title: the page's name in the header */
         char want[64], txt[24];                   /* msg0, msg1: the message's lines; knobN: knob N's name; */
         const char *s;                            /* valN: its value as the screen shows it */
         int i, k;
         for (i = 0; val[i] && i < 63; i++)
             want[i] = val[i] == '_' ? ' ' : val[i];
         want[i] = 0;
-        if (what[0] == 'm') {
+        if (what[0] == 't') {
+            s = view_name(ui.view);
+        } else if (what[0] == 'm') {
             s = ui.msg[atoi(what + 3) & 1];
         } else if (what[0] == 'v') {
             k = knob_of((atoi(what + 3) - 1) & 3);

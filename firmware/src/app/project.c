@@ -13,6 +13,24 @@ void project_defaults(void)
         proj.par[i] = wa_param_info(i)->def;
 }
 
+/* A sound saved before the Filter page's Breath (0.0.19) sent breath to the cutoff from a Mod slot if at
+ * all (Mod 1, at +75, in the init sound): the first slot that does gives the knob its amount and goes off,
+ * so it plays as it did, with a slot free; with none, the knob is 0. */
+static void breath_knob(int16_t *par)
+{
+    int i;
+    par[P_BRCUT] = 0;
+    for (i = 0; i < 4; i++) {
+        int16_t *s = &par[P_M1SRC + 3 * i];
+        if (s[0] == WM_SRC_BREATH && s[1] == WM_DST_CUTOFF) {
+            par[P_BRCUT] = s[2];
+            s[0] = WM_SRC_OFF;
+            s[2] = 0;
+            return;
+        }
+    }
+}
+
 /* A project of this format loads. Each value out of its range (a setting this version added, that an older
  * project has no room for, or one whose range has changed) takes its default; the rest are kept. */
 static int project_valid(int bytes)
@@ -39,6 +57,8 @@ static int project_valid(int bytes)
         if (i >= have || proj.par[i] < p->lo || proj.par[i] > p->hi)
             proj.par[i] = p->def;
     }
+    if (have > P_M4AMT && have <= P_BRCUT)
+        breath_knob(proj.par);
     return 1;
 }
 
@@ -106,6 +126,9 @@ static void bank_read(int b)
             if (k >= bank.npar || bank.p[i].par[k] < p->lo || bank.p[i].par[k] > p->hi)
                 bank.p[i].par[k] = p->def;
         }
+    if (bank.npar > P_M4AMT && bank.npar <= P_BRCUT)
+        for (i = 0; i < BANK_N; i++)
+            breath_knob(bank.p[i].par);
     bank.magic = BANK_MAGIC;
     bank.format = 2;
     bank.npar = P_NPARAMS;
