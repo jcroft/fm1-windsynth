@@ -93,6 +93,7 @@ static float env, env_up, env_down;     /* the gate envelope: 5 ms up, 60 ms dow
 static float dc_x, dc_y;                /* DC blocker state */
 static float vca;                       /* the VCA gain at the end of the last block */
 static float aux_at;                    /* the Aux mix at the end of the last block */
+static float *tap;                      /* wv_tap: where the voice before the VCA goes, or none */
 
 static float clamp01(float x) { return x < 0.0f ? 0.0f : x > 1.0f ? 1.0f : x; }
 
@@ -285,7 +286,11 @@ extern "C" float wv_fm_ratio(float h)
 {
     return stmlib::SemitonesToRatio(stmlib::Interpolate(lut_fm_frequency_quantizer, clamp01(h), 128.0f));
 }
+/* (Plaits' tables quantise the pitch to 1/256 semitone: the scope locks to what plays, not the exact note) */
+extern "C" float wv_note_freq(float note) { return NoteToFrequency(note + WV_TUNE); }
 extern "C" void wv_slope(uint32_t s) { slope = s == WV_SLOPE_24 ? WV_SLOPE_24 : WV_SLOPE_12; }
+
+extern "C" void wv_tap(float *to) { tap = to; }
 
 extern "C" void wv_render(const wind_frame_t *f, int32_t *out_lr, uint32_t frames)
 {
@@ -342,6 +347,8 @@ extern "C" void wv_render(const wind_frame_t *f, int32_t *out_lr, uint32_t frame
             else
                 env -= env * env_down;
             vca += dvca;
+            if (tap)
+                *tap++ = out[i] * env;
             x = out[i] * env * vca;
             y = dc_y * 0.99715f + x - dc_x;  /* ~20 Hz */
             dc_x = x;
@@ -354,6 +361,7 @@ extern "C" void wv_render(const wind_frame_t *f, int32_t *out_lr, uint32_t frame
     }
     vca = amp;
     aux_at = ax;
+    tap = 0;                            /* (this render's only) */
 }
 
 extern "C" void wv_render_raw_engine(uint32_t id, float note, float timbre, float morph, float harmonics,

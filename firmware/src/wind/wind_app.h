@@ -79,3 +79,9 @@ extern volatile wa_state_t wa_state;
 /* a knob's live value, in its own units, when something moves it (a Mod slot, the LFO, the Filter's
  * Breath, the glide CC): 1 and *v; 0 when nothing does (its value is its setting) */
 int wa_live(int k, float *v);
+
+/* the scope (the Engine page): n points, -1..1, spanning `cycles` periods of the note sounding from where
+ * one began, out of the voice (before the effects and MASTER), so a held note's steady wave stands still.
+ * Returns the period in samples (0: nothing to show yet, not enough of this note yet, or the audio moved
+ * on while it read). From the UI; the audio interrupt only writes the ring it reads. */
+float wa_scope(float *y, int n, int cycles);
