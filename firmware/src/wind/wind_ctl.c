@@ -167,8 +167,10 @@ void wc_key(int note, int on)
 {
     if (note < 0 || note > 127)
         return;
-    if (on)
+    if (on) {
+        w.velocity = 100.0f / 127.0f;   /* the panel's keys have no velocity: a fixed one, not the last MIDI note's */
         note_on(note, 1);
+    }
     else
         note_off(note);
 }

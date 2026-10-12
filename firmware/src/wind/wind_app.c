@@ -285,8 +285,8 @@ static void kq_put(uint32_t v)
 void wa_key(int note, int on) { kq_put((uint32_t)(note & 0x7F) | (on ? 0x100u : 0u)); }
 void wa_panic(void) { kq_put(KQ_PANIC); }
 
-/* the LFO's value for a block of n frames, -1..1: advanced by the block, faded in after a note starts from
- * silence, restarted by it on Sync Note */
+/* the LFO's value for a block of n frames, -1..1, unfaded: advanced by the block, restarted by a note
+ * from silence on Sync Note. lfo.fade (0..1), its depth, fades in after such a note. */
 static float lfo_block(float gate, uint32_t n)
 {
     float t = (float)n * (1.0f / WV_SR), x, ph;
@@ -312,7 +312,7 @@ static float lfo_block(float gate, uint32_t n)
     case WA_LFO_SH: x = lfo.sh; break;
     default: x = fm_sin_turns(ph); break;
     }
-    return x * lfo.fade;
+    return x;
 }
 
 void wa_init(void)
@@ -438,7 +438,15 @@ void wa_render(int32_t *out, uint32_t n, uint32_t gain_q12, int (*midi_in)(uint3
         src[WM_SRC_PRESSURE] = c.pressure;
         src[WM_SRC_VELOCITY] = c.velocity;
         lv = lfo_block(c.gate, k);
-        src[WM_SRC_LFO] = slot[WA_LFO_SLOT].dst == WM_DST_AMP ? 0.5f + 0.5f * lv : lv;  /* (Amp: from 1 down) */
+        if (slot[WA_LFO_SLOT].dst == WM_DST_AMP) {    /* Amp: from 1 down, faded in as depth (no dip at 0) */
+            float s = 0.5f + 0.5f * lv;
+            if (lfo.fade < 1.0f)
+                s = slot[WA_LFO_SLOT].amount > 0 ? 1.0f - lfo.fade * (1.0f - s) : lfo.fade * s;
+            src[WM_SRC_LFO] = s;
+        } else {
+            src[WM_SRC_LFO] = lv * lfo.fade;
+        }
+        lv *= lfo.fade;
         wm_apply(slot, base, src, m);
         f.note = c.note;
         if (slot[WA_LFO_SLOT].dst == WM_DST_PITCH)                /* the LFO's vibrato: Amount in cents */

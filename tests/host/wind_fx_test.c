@@ -15,7 +15,10 @@
  *                Distort is the dry WF_DS_LATENCY samples late (so Mix 50 doesn't comb); Drive adds
  *                harmonics; the oversampling keeps a 5 kHz tone's aliases down; Crush has few levels
  *   modulation   every type stays bounded and near the dry's level, left and right differ; Phaser and
- *                Flanger notch the spectrum at Mix 50 */
+ *                Flanger notch the spectrum at Mix 50
+ *   switching    the delay into Ping-pong from a long Time, and at a Time that reads the line's very end,
+ *                stays in the line; the distortion on and off mid-note: no dropout, no jump
+ */
 #include <stdio.h>
 #include <string.h>
 #include "wind/wind_fx.h"
@@ -500,6 +503,55 @@ static void test_modulation(void)
     }
 }
 
+/* switching while it plays: the delay's Time glide into Ping-pong's shorter limit, and Times whose read
+ * lands exactly on the line's end, stay inside the line (the sanitizer build checks every read); the
+ * distortion comes on and goes off without a dropout or a jump in the dry */
+static void test_switching(void)
+{
+    uint32_t i, n = SR, sw = 64u * 344u;     /* (on a block's start, half a second in) */
+    float d, steady = 0.0f, worst = 0.0f;
+    char m[160];
+    defaults();
+    wf_cfg.dl_mix = 0.5f;
+    wf_cfg.dl_ms = 2000.0f;
+    wf_cfg.dl_fb = 0.5f;
+    fill_click(n);
+    run(n);
+    wf_cfg.dl_mode = WF_DL_PINGPONG;
+    fill_click(n);
+    run(n);
+    check(at(n - 1, 1) == at(n - 1, 1), "Delay 2 s, then Ping-pong: plays on (reads in the line)");
+    defaults();
+    wf_cfg.dl_mix = 0.5f;
+    wf_cfg.dl_ms = 340.0f;              /* (a read exactly at the line's end, once a trip) */
+    wf_cfg.dl_fb = 0.5f;
+    fill_click(n);
+    run(3 * n / 4);
+    check(at(10, 0) == at(10, 0), "Delay 340 ms: plays (reads in the line)");
+    for (i = 0; i < 2; i++) {           /* on, then off */
+        uint32_t j;
+        defaults();
+        wf_cfg.ds_type = WF_DS_DISTORT;
+        wf_cfg.ds_drive = 0.0f;
+        wf_cfg.ds_tone = 1.0f;
+        wf_cfg.ds_mix = i ? 0.01f : 0.0f;
+        fill_sine(n, 440.0f, 0.4f);
+        for (j = 0; j < n; j += 64) {
+            if (j == sw)
+                wf_cfg.ds_mix = i ? 0.0f : 0.01f;
+            wf_process(buf + 2 * j, 64);
+        }
+        steady = worst = 0.0f;
+        for (j = 1000; j < sw - 1000; j++)
+            d = fm_fabsf(at(j, 0) - at(j - 1, 0)), steady = d > steady ? d : steady;
+        for (j = sw - 64; j < sw + 256; j++)
+            d = fm_fabsf(at(j, 0) - at(j - 1, 0)), worst = d > worst ? d : worst;
+        snprintf(m, sizeof m, "Distortion switched %s mid-note: the largest step %.4f, %.4f steady",
+                 i ? "off" : "on", worst, steady);
+        check(worst < 1.5f * steady, m);
+    }
+}
+
 int main(void)
 {
     test_off();
@@ -509,6 +561,7 @@ int main(void)
     test_delay();
     test_distortion();
     test_modulation();
+    test_switching();
     if (fails)
         printf("wind_fx: %d FAILED\n", fails);
     else

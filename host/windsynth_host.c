@@ -20,13 +20,14 @@
  *   shot FILE.png                save the screen
  *   leds                         print the lit buttons and keys
  *   expect WHAT VALUE            check state: exit 1 on mismatch; VALUE "<N" / ">N" is a bound
- *                                (WHAT: view dirty store_writes preset edited parN gate top (the note sounding)
+ *                                (WHAT: view dirty store_writes store_tries preset edited parN gate top (the note sounding)
  *                                 note (x100) breath cutoff res amp morph timbre noise level (x100) litkeys (bits)
  *                                 stale (pixels a redraw from scratch changes: 0, or the screen missed a change)
  *                                 lumaY (brightness 0..255 of the screen at x 2, row Y: the theme)
  *                                 peak_db_max peak_db_min; text, "_" a space: msg0 msg1 (the message's
  *                                 lines) knob1..knob4 (a knob's name on this page, "-" none) val1..val4 (its value as shown))
  *   reboot                       re-run boot from the simulated flash (persistence test)
+ *   storefail 0|1                every save fails (1) or works (0); store_tries counts from here
  *   oldproject F                 rewrite the saved project as format F saved it (its values, then its preset)
  */
 #define OM_HOST 1
@@ -126,8 +127,12 @@ int plat_store_load(uint32_t obj, void *dst, uint32_t max)
     memcpy(dst, store[obj], (size_t)n);
     return n;
 }
+static int store_fail, store_tries;       /* storefail 1: every save fails, as a worn sector's would */
 int plat_store_save(uint32_t obj, const void *src, uint32_t len)
 {
+    store_tries++;
+    if (store_fail)
+        return -7;
     if (obj >= OBJ_NOBJ || len > PLAT_STORE_MAX)
         return -1;
     memcpy(store[obj], src, len);
@@ -302,7 +307,9 @@ static void run_ms(uint32_t ms)
             dt = now_ns() - t0;
             render_ns_total += dt;
             render_budget_ns_total += 256.0 * 1e9 / WV_SR;
+#ifdef OM_WEB
             cpu_pct = (uint32_t)(100.0 * dt / (256.0 * 1e9 / WV_SR));
+#endif                                          /* (a script's screen: simulated time only, so 0) */
             for (k = 0; k < 256; k++) {
                 float l = (float)blk[2 * k] / 8388608.0f, r = (float)blk[2 * k + 1] / 8388608.0f;
                 int16_t s[2];
@@ -348,7 +355,8 @@ static int expect(const char *what, const char *val)
 {
     int got;
     if (!strncmp(what, "msg", 3) || !strncmp(what, "knob", 4) || !strncmp(what, "val", 3) ||
-        !strcmp(what, "title")) {                 /* text, "_": a space; title: the page's name in the header */
+        !strcmp(what, "title") || !strcmp(what, "notename")) {   /* text, "_": a space; title: the page's */
+                                          /* name in the header; notename: the note on the main screen */
         char want[64], txt[24];                   /* msg0, msg1: the message's lines; knobN: knob N's name; */
         const char *s;                            /* valN: its value as the screen shows it */
         int i, k;
@@ -357,6 +365,9 @@ static int expect(const char *what, const char *val)
         want[i] = 0;
         if (what[0] == 't') {
             s = view_name(ui.view);
+        } else if (what[0] == 'n') {
+            note_text((int)(wa_state.note + 0.5f + 1200.0f) - 1200, txt);
+            s = txt;
         } else if (what[0] == 'm') {
             s = ui.msg[atoi(what + 3) & 1];
         } else if (what[0] == 'v') {
@@ -382,6 +393,8 @@ static int expect(const char *what, const char *val)
         got = ui.dirty;
     else if (!strcmp(what, "store_writes"))
         got = (int)store_writes;
+    else if (!strcmp(what, "store_tries"))       /* saves tried since the last storefail, failed or not */
+        got = store_tries;
     else if (!strcmp(what, "preset"))             /* the preset, 1..64 as the screen shows it */
         got = proj.preset + 1;
     else if (!strcmp(what, "edited"))             /* the sound differs from its preset's */
@@ -575,10 +588,14 @@ int main(int argc, char **argv)
             for (i = 0; i < NKEYS; i++)
                 printf("%c", (lit_keys >> i & 1u) ? '#' : '.');
             printf("\n");
+        } else if (!strcmp(cmd, "storefail")) {
+            store_fail = atoi(a);
+            store_tries = 0;
         } else if (!strcmp(cmd, "expect"))
             fails += expect(a, b);
         else if (!strcmp(cmd, "reboot")) {
             memset(&proj, 0, sizeof proj);
+            project_forget();
             boot();
         } else if (!strcmp(cmd, "oldproject")) {   /* the layout an older version wrote: fewer values */
             int f = atoi(a), n = PROJ_NPAR_OF((uint32_t)f);

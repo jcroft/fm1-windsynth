@@ -31,3 +31,14 @@ expect par1 0
 # nothing on the screen is stale
 wait 50
 expect stale 0
+# a save that fails is tried again after another quiet spell, not every frame (each try erases a sector)
+storefail 1
+spin K1 1
+wait 5000
+expect store_tries 1
+expect dirty 1
+wait 4000
+expect store_tries 2
+storefail 0
+wait 4500
+expect dirty 0

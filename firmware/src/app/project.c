@@ -103,6 +103,16 @@ static int bank_at = -1;                 /* the bank in `bank`, -1 none */
 static int16_t snd[P_NPARAMS];           /* the project's preset as stored: what "edited" compares with */
 
 /* one bank into `bank`: from flash, or (never saved, or not ours) every preset the init sound */
+#ifdef OM_HOST
+/* the host's restart: what a device's cleared RAM forgets, so presets come back from the store */
+void project_forget(void)
+{
+    bank_at = -1;
+    memset(&bank, 0xA5, sizeof bank);
+    memset(snd, 0, sizeof snd);
+}
+#endif
+
 static void bank_read(int b)
 {
     int n, i, k;

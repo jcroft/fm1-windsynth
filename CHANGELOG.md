@@ -4,6 +4,32 @@ A release is a push to `main` that changes `VERSION` to a version with no tag ye
 release build, tags the commit `vX.Y.Z` and publishes the GitHub Release with that version's notes,
 taken from its section below. Add the section in the same pull request as the `VERSION` change.
 
+## 0.0.22
+
+Fixes from a full code review (eight reviewers, each finding checked by two skeptics):
+
+- **Delay: no more bursts of noise.** Switching the delay to Ping-pong with Time above about 1.1 s read
+  outside the delay line for most of a second, and Times that are multiples of 17 ms read one sample past
+  its end once a trip. Both played whatever memory sat beside the line, and fed it back into the echoes.
+- **Distortion: no click when it comes on or goes off.** Its dry path started with 5 samples of silence
+  and jumped back in time when it went off; now the dry slides to and from the distortion's latency.
+- **LFO to Amp with Fade:** a note now starts at full level, and the tremolo fades in from there (it
+  started 6 dB down).
+- **Mod slots:** two Bite (or other bipolar) to Amp slots no longer multiply two negative gains back to
+  full level at full bite down. Panel keys play at a fixed velocity (100), so Velocity to Amp no longer
+  mutes them at power-on or follows the last MIDI note.
+- **Screen:** small bites and Tune changes redraw the cents and the bite bar; notes below MIDI 0 show the
+  right octave, and notes above 119 both digits; messages and the knob highlight no longer stick after
+  49.7 days of uptime. The splash says "A windsynth for the FM-1".
+- **Saving:** a pending edit is saved before an update over USB or entering update mode, and a failed
+  autosave waits for the next quiet spell instead of erasing flash every frame.
+- **Browser:** changing the MIDI input silences held notes on every channel, and a store saved by a newer
+  build can no longer overwrite the emulator's memory.
+- **Tests and CI:** the published page is now opened and played in Chrome in CI (it was skipped), the
+  effects and maths run under the address and undefined-behaviour sanitizers, the host's restart forgets
+  its cached presets as the device does, the Setup page's screen check no longer depends on the host's
+  speed, and FiMba-1's old changelog sections can no longer be released as Windsynth's.
+
 ## 0.0.21
 
 - **The web page says it isn't released yet.** It says it's for trying Windsynth in the browser, with
@@ -194,7 +220,7 @@ taken from its section below. Add the section in the same pull request as the `V
 
 The history below is FiMba-1's.
 
-## 0.6.0
+## FiMba-1 0.6.0
 
 - **Reset to the defaults:** hold SAVE for 1.5 s, then press SAVE again to confirm (anything else, or
   waiting 5 s, keeps everything). Every sound setting goes back to its default; the Setup page (Tune,
@@ -206,14 +232,14 @@ The history below is FiMba-1's.
 - **The middle of the kalimba glows:** the key under the lowest tine (white key 9 in Tine, 8 in
   Mirror; in Keyboard, the key that plays middle C) is dimly lit, and lights fully while it rings.
 
-## 0.5.2
+## FiMba-1 0.5.2
 
 - **Wah is how much wah.** With Wah rate on, the hand now flutters from open to the Wah setting and
   back, so Wah 100 is the full sweep and low settings a gentle one. In 0.5.1 it was the other way
   round: the flutter filled what Wah left open, so Wah 1 swept the whole way and Wah 100 didn't move.
 - The fastest Wah rates (up to ~8 Hz) now sweep fully instead of being smoothed away.
 
-## 0.5.1
+## FiMba-1 0.5.1
 
 - **The wah is now heard.** Covering the sound hole (ENV → Body: Wah, the mod wheel, pressure, the Hole
   key, or Wah rate) muffles the sound like a vowel closing: bright with the hole open, dark and a little
@@ -223,7 +249,7 @@ The history below is FiMba-1's.
 - The hand glides over the hole in about 20 ms, so the Hole key covers and uncovers it without a click.
 - **Wah rate**'s lowest setting reads **Off** (it was "Hand"): the hole moves only when you move it.
 
-## 0.5.0
+## FiMba-1 0.5.0
 
 - **Theme**, a new knob on the Setup page (GLO, KNOB 4): **Light**, the pale wood and dark ink as
   before, or **Dark**, near-black with cream and amber. In Dark the knob bars and the chips turn cream
@@ -232,7 +258,7 @@ The history below is FiMba-1's.
 - The Setup page's header shows the firmware's version, beside the CPU load.
 - Saved settings carry over; Theme starts on Light.
 
-## 0.4.1
+## FiMba-1 0.4.1
 
 - **Tine is now left-first**, as on a 17-key kalimba in C. C4 sits on white key 9, the next note up
   (D4) is on its left, and the scale alternates outward: D6 on the far left, C6 on the far right
@@ -241,7 +267,7 @@ The history below is FiMba-1's.
   key 8, D4 on its right.
 - Saved settings carry over. A project saved on Tine plays the new way; pick Mirror for the old one.
 
-## 0.4.0
+## FiMba-1 0.4.0
 
 - **16 voices** (up from 12): fewer tines cut short when long-ringing steel tines and patterns overlap.
   Upper overtones that have died away are skipped, so ordinary playing costs less.
@@ -253,15 +279,15 @@ The history below is FiMba-1's.
 - **ARP**: tap to start or stop the pattern; **hold** to open its settings.
 - Settings saved by earlier versions carry over; new settings start at their defaults.
 
-## 0.3.0
+## FiMba-1 0.3.0
 
 - The web page installs FiMba-1 on the FM-1 over USB, and offers the highest release.
 - It runs on the FM-1: the first install on real hardware boots and plays.
 
-## 0.2.0
+## FiMba-1 0.2.0
 
 - CI builds the firmware package and checks it against FoMni's; a version tag makes a release.
 
-## 0.1.0
+## FiMba-1 0.1.0
 
 - The first release.

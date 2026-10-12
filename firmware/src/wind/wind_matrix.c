@@ -18,9 +18,10 @@ void wm_apply(const wm_slot_t slot[WM_NSLOT], const float base[WM_NDST], const f
         if (s->src == WM_SRC_OFF || s->src >= WM_NSRC || s->dst >= WM_NDST || !s->amount)
             continue;
         x = src[s->src];
-        if (s->dst == WM_DST_AMP)
-            out[WM_DST_AMP] *= a > 0.0f ? 1.0f - a + a * x : 1.0f + a * x;
-        else
+        if (s->dst == WM_DST_AMP) {          /* each slot's gain stops at 0: two below it don't multiply up */
+            float g = a > 0.0f ? 1.0f - a + a * x : 1.0f + a * x;
+            out[WM_DST_AMP] *= g < 0.0f ? 0.0f : g;
+        } else
             out[s->dst] += a * x;
     }
     for (d = 0; d < WM_NDST; d++)

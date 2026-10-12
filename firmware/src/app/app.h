@@ -36,6 +36,9 @@ void project_defaults(void);
 int project_load(void);                  /* 0 = loaded; else defaults are in place */
 int project_save(void);                  /* 0 = saved and verified */
 void project_apply(void);                /* every value to the engine (boot, load) */
+#ifdef OM_HOST
+void project_forget(void);               /* the host's restart: the preset cache dropped, as RAM is */
+#endif
 
 /* presets: NPRESETS sounds in flash, 16 to a bank object. A slot never saved is the init sound. */
 #define NPRESETS 64
@@ -52,4 +55,5 @@ void ui_input_only(void);
 void ui_repaint(void);
 #endif
 int ui_dirty(void);
+void ui_mark_dirty(void);                /* unsaved again: autosave writes it */
 void ui_say(const char *a, const char *b);

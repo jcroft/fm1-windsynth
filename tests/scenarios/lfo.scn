@@ -88,3 +88,27 @@ wait 200
 # nothing on the screen is stale
 wait 50
 expect stale 0
+# Amp at 100 with Fade 1 s: the note starts at full level, and the tremolo fades in from there (the
+# fade is its depth, so no dip at the start)
+tap LFO
+expect view 4
+spin K3 -4
+expect par63 2
+expect val3 Amp
+spin K4 50
+expect par64 100
+tap LFO
+expect view 5
+spin K1 1000
+expect par65 1000
+midi 90 3C 64
+breath 0 127 20
+wait 10
+expect amp >95
+wait 1120
+expect lfo <-90
+expect amp <10
+midi 80 3C 00
+breath 127 0 20
+spin K1 -1000
+wait 200
