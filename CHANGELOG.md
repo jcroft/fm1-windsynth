@@ -9,7 +9,9 @@ taken from its section below. Add the section in the same pull request as the `V
 - **Live ghosts on the knobs.** A knob that something is moving shows an orange tick at its live value,
   joined to where it's set: Cutoff (the Filter's Breath, Mod slots, the LFO), Reso, Morph, Timbre,
   Harmonics on the smooth engines, Aux, Noise Level, and Glide and CC depth while the glide CC adds to
-  the glide. Knobs nothing moves look as before.
+  the glide. Knobs nothing moves look as before. While you turn a knob, its tick takes the text colour.
+- **Glide CC: choosing another CC, or Off, lets go of the old one.** The glide used to stay as long as the
+  old CC had last set it until the new one moved.
 
 ## 0.0.22
 

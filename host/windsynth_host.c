@@ -24,6 +24,7 @@
  *                                 note (x100) breath cutoff res amp morph timbre noise level (x100) litkeys (bits)
  *                                 stale (pixels a redraw from scratch changes: 0, or the screen missed a change)
  *                                 ghostN (knob N's ghost tick: its x on the screen, -1 none)
+ *                                 glide (the glide time in force, ms) txtX_Y (1: the pixel is the text colour)
  *                                 accX_Y (1: the pixel at X, Y is the theme's accent colour)
  *                                 lumaY (brightness 0..255 of the screen at x 2, row Y: the theme)
  *                                 peak_db_max peak_db_min; text, "_" a space: msg0 msg1 (the message's
@@ -438,6 +439,13 @@ static int expect(const char *what, const char *val)
         uint16_t p = fb[y * 240 + x];
         got = (uint16_t)((p >> 8) | (p << 8)) == K_ACC;
     }
+    else if (!strncmp(what, "txt", 3)) {          /* txtX_Y: 1 when the pixel at (X, Y) is the text colour */
+        int x = atoi(what + 3) % 240, y = atoi(strchr(what, '_') ? strchr(what, '_') + 1 : "0") % 240;
+        uint16_t p = fb[y * 240 + x];
+        got = (uint16_t)((p >> 8) | (p << 8)) == K_TEXT;
+    }
+    else if (!strcmp(what, "glide"))              /* the glide time in force, ms */
+        got = (int)(wa_state.glide_ms + 0.5f);
     else if (!strncmp(what, "ghost", 5))          /* ghostN: knob N's ghost, the x it sits at (-1: none) */
         got = ui.ghost[(atoi(what + 5) - 1) & 3];
     else if (!strcmp(what, "litkeys"))            /* the keys lit (bit per key) */

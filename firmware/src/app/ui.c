@@ -594,7 +594,7 @@ static int32_t ghost_px(int k, int32_t cx)
         return -1;
     f = (v - (float)p->lo) / (float)(p->hi - p->lo);
     f = f < 0.0f ? 0.0f : f > 1.0f ? 1.0f : f;
-    return cx - 22 + (int32_t)(44.0f * f + 0.5f);
+    return cx - 22 + (int32_t)(44.0f * f);         /* (truncated, as the bar is) */
 }
 
 /* a over b, a's share n/256 (RGB565) */
@@ -605,7 +605,7 @@ static uint16_t blend565(uint16_t a, uint16_t b, uint32_t n)
     return (uint16_t)(r << 11 | g << 5 | bl);
 }
 
-#define GHOST_MS 33u                   /* a ghost alone moves the strip at most this often */
+#define GHOST_MS 30u                   /* a ghost alone moves the strip at most this often: every other frame */
 static void draw_knobs(void)
 {
     /* (each in its own hash: touched is -1 untouched, and shifted in with the rest it hid the engine) */
@@ -621,9 +621,10 @@ static void draw_knobs(void)
     h = hash(h, (uint32_t)now_touch);
     {   /* the ghosts: a change that moves only them draws at most every GHOST_MS */
         uint32_t hg = h, now = plat_ms();
+        int16_t g[4];
         for (i = 0; i < 4; i++) {
-            ui.ghost[i] = (int16_t)ghost_px(knob_of((int)i), (int32_t)i * 60 + 30);
-            hg = hash(hg, (uint32_t)(ui.ghost[i] + 1));
+            g[i] = (int16_t)ghost_px(knob_of((int)i), (int32_t)i * 60 + 30);
+            hg = hash(hg, (uint32_t)(g[i] + 1));
         }
         if (hg == ui.sig[2])
             return;
@@ -632,6 +633,8 @@ static void draw_knobs(void)
         ui.sig[2] = hg;
         ui.sig[3] = h;
         ui.ghost_t = now;
+        for (i = 0; i < 4; i++)
+            ui.ghost[i] = g[i];                  /* (as drawn) */
     }
     cv_begin(240, KNB_H, K_BG);
     cv_round(4, 2, 232, KNB_H - 6, 6, K_PANEL);

@@ -431,7 +431,7 @@ int wa_live(int k, float *v)
         *v = wa_state.harmonics;
         break;
     case P_GLIDE: case P_GDEPTH:       /* the glide CC adds to Glide, up to CC depth */
-        if (wc_cfg.glide_src == WC_SRC_OFF || (k == P_GLIDE && !wc_cfg.glide_depth))
+        if (wc_cfg.glide_src == WC_SRC_OFF || !wc_cfg.glide_depth)
             return 0;
         *v = wa_state.glide_ms - (k == P_GDEPTH ? (float)wc_cfg.glide : 0.0f);
         return 1;
