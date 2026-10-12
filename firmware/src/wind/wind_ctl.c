@@ -16,6 +16,7 @@ static struct {
     float breath_cc, breath;           /* raw 0..1, smoothed after the curve */
     float bend, mod, pressure, velocity;
     uint8_t glide_cc;                  /* the glide CC's value */
+    uint8_t glide_src;                 /* ...the CC it came on: another (or Off) and it's 0 */
 } w;
 
 void wc_reset(void)
@@ -47,9 +48,19 @@ void wc_init(void)
     wc_reset();
 }
 
+/* the glide CC chosen again (another, or Off): what the old one set no longer adds */
+static void glide_sync(void)
+{
+    if (w.glide_src != wc_cfg.glide_src) {
+        w.glide_src = wc_cfg.glide_src;
+        w.glide_cc = 0;
+    }
+}
+
 /* the glide time: Glide, and what the glide CC adds to it (only adds: at 0, Glide itself) */
 static float glide_s(void)
 {
+    glide_sync();
     return ((float)wc_cfg.glide + (float)wc_cfg.glide_depth * (float)w.glide_cc * (1.0f / 127.0f)) * 0.001f;
 }
 
@@ -118,6 +129,7 @@ static void cc(uint32_t n, uint32_t v)
         w.breath_raw = (uint16_t)(w.breath_msb << 7 | v);
         set_breath();
     }
+    glide_sync();
     if (n == wc_cfg.glide_src)
         w.glide_cc = (uint8_t)v;
     if (n == 1u)
@@ -210,6 +222,7 @@ void wc_block(uint32_t frames, float sr, wc_out_t *o)
     o->mod = w.mod;
     o->pressure = w.pressure;
     o->velocity = w.velocity;
+    o->glide_ms = glide_s() * 1000.0f;
 }
 
 
