@@ -1,0 +1,37 @@
+# Reverb 2: a note begun in the same 32 ms step its last tail went quiet in still draws its moving dots
+wait 200
+tap FX
+tap FX
+tap FX
+tap FX
+tap FX
+breath 0 120 20
+midi 90 45 64
+wait 300
+midi 80 45 00
+wait 1049
+midi 90 45 64
+wait 1
+expect stale 0
+wait 1
+expect stale 0
+wait 1
+expect stale 0
+wait 1
+expect stale 0
+wait 1
+expect stale 0
+wait 1
+expect stale 0
+wait 1
+expect stale 0
+wait 1
+expect stale 0
+wait 1
+expect stale 0
+wait 1
+expect stale 0
+wait 1
+expect stale 0
+wait 1
+expect stale 0

@@ -9,7 +9,10 @@
  *                 pitch, the last traces fading (view_scope.inc).
  *                 Mod 1-4: the slot as a cable from its source's live level
  *                 to the destination's value, and all that modulates the sound now; Setup: a tuner and
- *                 the controller monitor (view_route.inc)
+ *                 the controller monitor (view_route.inc).
+ *                 The FX pages draw their own (view_fx.inc): the chain along the top, then the
+ *                 distortion's curve, the modulation's sweep, the delay's echoes, the reverb's tail and
+ *                 its room
  *   HOME ENV LFO SEL SEQ GLO FX   the pages (pressed again: the button's next page): HOME Filter,
  *                 Engine (named for the engine: ALGORITHM picks it) and Noise, ENV Breath, LFO LFO and LFO 2, SEL Mod 1-4, SEQ Pitch and Pitch 2, GLO Setup, FX Distortion,
  *                 Modulation, Delay, Reverb and Reverb 2 (the order the sound goes through them). EDIT and
@@ -593,6 +596,7 @@ static void note_text(int n, char t[8])
 
 #include "view_scope.inc"
 #include "view_route.inc"
+#include "view_fx.inc"
 
 /* the instrument: the note (and how far the bite bends it) on the left; breath, cutoff and level */
 static void draw_main(void)
@@ -604,6 +608,8 @@ static void draw_main(void)
     if (vw_scope(ui.view))
         return;
     if (vw_route(ui.view)) return;
+    if (vw_fx(ui.view))
+        return;
     float note = wa_state.note, bend = wa_state.bend;
     int top = wa_state.top, gate = wa_state.gate > 0.5f;
     /* the note, its cents and the bite bar's end, as drawn; the bars by the pixel they fill to: so any
@@ -1077,6 +1083,7 @@ void ui_frame(void)
 {
     input();
     autosave();
+    fx_edges();                         /* (the FX views' note edges, on any page) */
     if (ui.stage)
         stage_peaks();
     draw_header();

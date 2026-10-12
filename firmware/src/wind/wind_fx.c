@@ -176,6 +176,12 @@ static float shimmer(float x)
     return y;
 }
 
+/* Tone as the ring's damping (1 kHz .. 10 kHz; Shimmer's higher, room to climb): the audio's and the screen's */
+static float rv_damp_hz(const rv_type_t *t, float tone)
+{
+    return 1000.0f * fm_exp2f(tone * 3.3219f) * (t->shimmer > 0.0f ? 1.6f : 1.0f);
+}
+
 float wf_decay_s(float decay) { return 0.2f * fm_exp2f(decay * 8.2288f); }   /* 0.2 x 300^decay */
 
 /* per block: everything the knobs set, for the samples of the block */
@@ -202,7 +208,7 @@ static void rv_block(rv_k_t *k)
         k->glow[i] = fm_exp2f(-9.9658f * l / (rt * lowm * SR2));
     }
     /* Tone: the ring's damping, 1 kHz .. 10 kHz, open at the top */
-    fc = 1000.0f * fm_exp2f(wf_cfg.rv_tone * 3.3219f) * (t->shimmer > 0.0f ? 1.6f : 1.0f);  /* (room to climb) */
+    fc = rv_damp_hz(t, wf_cfg.rv_tone);
     k->damp = wf_cfg.rv_tone >= 0.995f ? 1.0f : 1.0f - fm_expf(-FM_TWO_PI * fc / SR2);
     fc = fc * 1.5f;
     k->in_a = fc >= 10000.0f ? 1.0f : 1.0f - fm_expf(-FM_TWO_PI * fc / SR2);
@@ -411,10 +417,10 @@ typedef struct {
     float g, comp, lp_a, step;
 } ds_k_t;
 
-static void ds_block(ds_k_t *k)
+/* a type's gain at Drive d (and Crush's step and hold): the audio's, and the screen's curve */
+static void ds_gain(ds_k_t *k, uint32_t type, float d)
 {
-    float d = wf_cfg.ds_drive, fc;
-    k->type = wf_cfg.ds_type < WF_DS_NTYPE ? wf_cfg.ds_type : 0u;
+    k->type = type < WF_DS_NTYPE ? type : 0u;
     k->step = 1.0f;
     k->hold = 1u;
     switch (k->type) {
@@ -436,9 +442,17 @@ static void ds_block(ds_k_t *k)
         k->g *= k->type == WF_DS_FUZZ ? 2.0f : 1.0f;
         break;
     }
+}
+
+float wf_ds_tone_hz(float tone) { return tone >= 0.995f ? 0.0f : 700.0f * fm_exp2f(tone * 4.3219f); }
+
+static void ds_block(ds_k_t *k)
+{
+    float fc;
+    ds_gain(k, wf_cfg.ds_type, wf_cfg.ds_drive);
     /* Tone: a 12 dB low-pass after the shaper, 700 Hz .. 14 kHz, open at the top */
-    fc = 700.0f * fm_exp2f(wf_cfg.ds_tone * 4.3219f);
-    k->lp_a = wf_cfg.ds_tone >= 0.995f ? 1.0f : 1.0f - fm_expf(-FM_TWO_PI * fc / WV_SR);
+    fc = wf_ds_tone_hz(wf_cfg.ds_tone);
+    k->lp_a = fc <= 0.0f ? 1.0f : 1.0f - fm_expf(-FM_TWO_PI * fc / WV_SR);
 }
 
 static float shape(uint32_t type, float u)
@@ -855,4 +869,61 @@ void wf_process(int32_t *lr, uint32_t n)
         dl_on = 0;
     if (rw == 0.0f && g_rw == 0.0f)
         rv_on = 0;
+}
+
+/* ------------------------------------------------------- the screen --- */
+/* the effects' own numbers, for the pages that draw them (pure: no state, any thread) */
+float wf_ds_shape(uint32_t type, float drive, float x, uint32_t *hold)
+{
+    ds_k_t k;
+    ds_gain(&k, type, drive);
+    if (hold)
+        *hold = k.hold;
+    if (k.type == WF_DS_CRUSH)
+        return k.step * fm_floorf(x / k.step + 0.5f);
+    return shape(k.type, x * k.g);
+}
+
+float wf_rv_scale(uint32_t type, float size) { return TYPES[type < WF_RV_NTYPE ? type : 0u].size * (0.5f + size); }
+
+/* the time a tone at hz takes to fall 60 dB: Decay's, and faster above Tone as the ring's damping takes
+ * it a little more on every trip round (the bass control aside) */
+float wf_rv_rt_at(uint32_t type, float size, float decay, float tone, float hz)
+{
+    const rv_type_t *t = &TYPES[type < WF_RV_NTYPE ? type : 0u];
+    float rt = wf_decay_s(decay), l = 0.0f, fc, a, w, c, h2, lg, lh;
+    int i;
+    for (i = 0; i < 4; i++)
+        l += LEN[L_AP1 + i] + LEN[L_AP2 + i] + LEN[L_DL + i];
+    l *= 0.25f * t->size * (0.5f + size);
+    fc = rv_damp_hz(t, tone);
+    if (tone >= 0.995f)
+        return rt;
+    a = 1.0f - fm_expf(-FM_TWO_PI * fc / SR2);
+    w = FM_TWO_PI * (hz < SR2 * 0.49f ? hz : SR2 * 0.49f) / SR2;
+    c = 1.0f - a;
+    h2 = a * a / (1.0f - 2.0f * c * fm_cosf(w) + c * c);        /* the one-pole's gain, squared */
+    lg = -9.9658f * l / (rt * SR2);                              /* a trip's loss, log2: Decay's... */
+    lh = 0.5f * fm_log2f(h2);                                    /* ...and the damping's */
+    return rt * lg / (lg + lh);
+}
+
+/* a repeat's gain at hz through the feedback path's filters (a mode's darkening) */
+float wf_dl_pass_gain(uint32_t mode, float hz)
+{
+    const dl_mode_t *m = &MODES[mode < WF_DL_NMODE ? mode : 0u];
+    float w = FM_TWO_PI * hz / SR2, cw = fm_cosf(w), a, c, lp2, hp2;
+    a = 1.0f - fm_expf(-FM_TWO_PI * m->lp_hz / SR2);
+    c = 1.0f - a;
+    lp2 = a * a / (1.0f - 2.0f * c * cw + c * c);                /* one low-pass pole, squared */
+    a = 1.0f - fm_expf(-FM_TWO_PI * m->hp_hz / SR2);
+    c = 1.0f - a;
+    hp2 = c * c * (2.0f - 2.0f * cw) / (1.0f - 2.0f * c * cw + c * c);   /* x minus its low-pass */
+    return lp2 * fm_sqrtf(hp2);                                  /* (two low-pass poles, one high-pass) */
+}
+
+/* the longest Time a mode plays (ms): the line's, Ping-pong's half of it (its right tap reads 2t) */
+float wf_dl_max_ms(uint32_t mode)
+{
+    return (float)(DL_N - 64u) * (mode == WF_DL_PINGPONG ? 0.5f : 1.0f) * (1000.0f / SR2);
 }
