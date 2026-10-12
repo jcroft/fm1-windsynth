@@ -21,7 +21,6 @@
 #define SR2 (WV_SR * 0.5f)
 #define RV_N 65536u                     /* 2.97 s of reverb lines */
 #define RV_MASK (RV_N - 1u)
-#define RV_Q 8192.0f                    /* 16-bit, +-4 full scale */
 #define DL_N 49152u                     /* 2.23 s of delay */
 #define DL_Q 16384.0f                   /* +-2 */
 #define SH_N 4096u                      /* the shimmer's pitch shifter */
@@ -34,7 +33,7 @@ const char *const WF_DL_NAME[WF_DL_NMODE] = {"Digital", "Tape", "Analog", "Pingp
 
 volatile wf_cfg_t wf_cfg;
 
-static int16_t rv_buf[RV_N] WF_POOL;
+static uint16_t rv_buf[RV_N] WF_POOL;   /* half floats: a tail fades to nothing, not to a hiss */
 static int16_t dl_buf[DL_N] WF_POOL;
 static float sh_buf[SH_N] WF_POOL;
 
@@ -52,18 +51,19 @@ static const float LEN[L_N] = {
 #define PRE_MAX ((uint32_t)(WF_PRE_MAX_MS * SR2 / 1000.0f) + 4u)
 
 /* a Type: its size, input allpasses and their coefficient, the ring's two allpass coefficients, how
- * much the Mod knob moves the input and the ring, and whether the tail climbs in octaves (Shimmer) */
+ * much the Mod knob moves the input and the ring, whether the tail climbs in octaves (Shimmer), and the
+ * output taps' gain */
 typedef struct {
     float size;
     uint32_t nin;
-    float kin, k1, k2, mod_in, mod_ring, shimmer;
+    float kin, k1, k2, mod_in, mod_ring, shimmer, out;
 } rv_type_t;
 static const rv_type_t TYPES[WF_RV_NTYPE] = {
-    {1.00f, 8, 0.70f, 0.70f, 0.55f, 1.0f, 0.4f, 0.0f},     /* Cloud */
-    {0.80f, 4, 0.70f, 0.65f, 0.50f, 0.3f, 0.5f, 0.0f},     /* Hall */
-    {0.50f, 4, 0.75f, 0.70f, 0.50f, 0.0f, 0.5f, 0.0f},     /* Plate */
-    {0.28f, 2, 0.60f, 0.50f, 0.40f, 0.0f, 0.3f, 0.0f},     /* Room */
-    {1.00f, 8, 0.70f, 0.70f, 0.55f, 0.8f, 0.4f, 1.0f},     /* Shimmer */
+    {1.00f, 8, 0.70f, 0.70f, 0.55f, 1.0f, 0.4f, 0.0f, 0.30f},     /* Cloud */
+    {0.80f, 4, 0.70f, 0.65f, 0.50f, 0.3f, 0.5f, 0.0f, 0.33f},     /* Hall */
+    {0.50f, 4, 0.75f, 0.70f, 0.50f, 0.0f, 0.5f, 0.0f, 0.30f},     /* Plate */
+    {0.28f, 2, 0.60f, 0.50f, 0.40f, 0.0f, 0.3f, 0.0f, 0.14f},     /* Room */
+    {1.00f, 8, 0.70f, 0.70f, 0.55f, 0.8f, 0.4f, 1.0f, 0.30f},     /* Shimmer */
 };
 
 static uint32_t rv_base[L_N], rv_span, rv_wp;
@@ -85,17 +85,60 @@ static float sat(float x)               /* a soft clip: x below about 0.5, 1 at 
     return x * (27.0f + x * x) / (27.0f + 9.0f * x * x);
 }
 
+/* The reverb's lines hold IEEE half floats (11 bits, as the signal gets quieter so does their error): in
+ * 16-bit fixed point a tail fades into a hiss, or with truncation stops dead, 70 to 80 dB down. After
+ * Fabian Giesen's float_to_half_fast3 and half_to_float, with no infinities (the lines stay inside +-8). */
+typedef union {
+    float f;
+    uint32_t u;
+} fbits_t;
+
+static uint16_t h_enc(float v)
+{
+    fbits_t x, m;
+    uint32_t sign, o;
+    v = v > 8.0f ? 8.0f : v < -8.0f ? -8.0f : v;
+    x.f = v;
+    sign = x.u & 0x80000000u;
+    x.u ^= sign;
+    if (x.u < (113u << 23)) {          /* below half's normal range: a subnormal, rounded */
+        m.u = 126u << 23;
+        x.f += m.f;
+        o = x.u - m.u;
+    } else {                           /* rounded to the nearest, ties to even */
+        o = (x.u >> 13) & 1u;
+        x.u += 0xC8000FFFu + o;        /* (the exponent's rebias, 15 - 127, and the half step) */
+        o = x.u >> 13;
+    }
+    return (uint16_t)(o | sign >> 16);
+}
+
+static float h_dec(uint16_t h)
+{
+    fbits_t o, m;
+    o.u = (uint32_t)(h & 0x7FFFu) << 13;
+    if (!(o.u & 0x0F800000u)) {        /* a subnormal (or 0) */
+        m.u = 113u << 23;
+        o.u += 113u << 23;
+        o.f -= m.f;
+    } else {
+        o.u += 112u << 23;
+    }
+    o.u |= (uint32_t)(h & 0x8000u) << 16;
+    return o.f;
+}
+
 static float rv_rd(int l, float d)     /* line l, d samples back */
 {
     int32_t i = (int32_t)d;
     float f = d - (float)i, a, b;
     uint32_t p = rv_wp + rv_base[l] + (uint32_t)i;
-    a = (float)rv_buf[p & RV_MASK];
-    b = (float)rv_buf[(p + 1u) & RV_MASK];
-    return (a + f * (b - a)) * (1.0f / RV_Q);
+    a = h_dec(rv_buf[p & RV_MASK]);
+    b = h_dec(rv_buf[(p + 1u) & RV_MASK]);
+    return a + f * (b - a);
 }
 
-static void rv_wr(int l, float x) { rv_buf[(rv_wp + rv_base[l]) & RV_MASK] = q16(x * RV_Q); }
+static void rv_wr(int l, float x) { rv_buf[(rv_wp + rv_base[l]) & RV_MASK] = h_enc(x); }
 
 static float rv_ap(int l, float d, float k, float x)
 {
@@ -202,6 +245,7 @@ static void rv_sample(const rv_k_t *k, float x, float *l, float *r)
     x = rv_in_lp + sh_fb;
     for (i = 0; i < t->nin; i++)
         x = rv_ap(L_IN + (int)i, k->len[L_IN + i] + k->din * ph[0][i & 3u], t->kin, x);
+    x *= 0.7071f;                       /* (into four blocks, not two: the same power in all) */
     /* the ring: each block's delay out, damped, its bass kept longer or shorter */
     for (i = 0; i < 4; i++) {
         d[i] = rv_rd(L_DL + (int)i, k->len[L_DL + i]);
@@ -210,16 +254,22 @@ static void rv_sample(const rv_k_t *k, float x, float *l, float *r)
         fb[i] = k->g[i] * rv_lp[i] + (k->glow[i] - k->g[i]) * rv_low[i];
     }
     for (i = 0; i < 4; i++) {
-        float y = fb[(i + 3u) & 3u] + ((i & 1u) ? 0.0f : x);   /* the input into blocks 0 and 2 */
+        float y = fb[(i + 3u) & 3u] + ((i & 1u) ? -x : x);     /* the input into every block */
         y = rv_ap(L_AP1 + (int)i, k->len[L_AP1 + i] + k->dring * ph[1][i], -t->k1, y);
         y = rv_ap(L_AP2 + (int)i, k->len[L_AP2 + i], t->k2, y);
         a[i] = y;
         rv_wr(L_DL + (int)i, y);
     }
-    *l = 0.6f * (d[0] + 0.6f * a[1]);
-    *r = 0.6f * (d[2] + 0.6f * a[3]);
+    /* the outputs: taps all round the ring, as Dattorro's, so the tail is dense from the start and its
+     * round trip doesn't show (left and right from different points) */
+    *l = t->out * (d[0] + rv_rd(L_DL + 0, k->len[L_DL + 0] * 0.39f) - rv_rd(L_DL + 1, k->len[L_DL + 1] * 0.63f) +
+                 rv_rd(L_DL + 2, k->len[L_DL + 2] * 0.21f) - rv_rd(L_DL + 3, k->len[L_DL + 3] * 0.82f) +
+                 0.6f * (a[1] - a[3]));
+    *r = t->out * (d[2] + rv_rd(L_DL + 2, k->len[L_DL + 2] * 0.43f) - rv_rd(L_DL + 3, k->len[L_DL + 3] * 0.27f) +
+                 rv_rd(L_DL + 0, k->len[L_DL + 0] * 0.71f) - rv_rd(L_DL + 1, k->len[L_DL + 1] * 0.17f) +
+                 0.6f * (a[3] - a[0]));
     if (k->shg > 0.0f) {                /* the tail, an octave up, back into the input: it climbs */
-        float y = 0.5f * (*l + *r);
+        float y = 0.3f * (d[0] + d[2] - 0.6f * (a[1] + a[3]));   /* (blocks 1 and 3 take the input inverted) */
         sh_hp += k->sh_a * (y - sh_hp);
         sh_fb = 0.25f * sat(shimmer(y - sh_hp) * k->shg * 4.0f);   /* (held under 0.25: it can't run away) */
     } else {

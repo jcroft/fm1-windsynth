@@ -5,7 +5,10 @@
  *   lines        the reverb's lines at their longest fit its buffer
  *   reverb       every Type: the tail's decay matches the Decay knob's time, left and right differ, and
  *                it stays bounded at the longest Decay with Size moving
- *   shimmer      an octave above the note, where Cloud has next to nothing, and more with more Shimmer
+ *   tail         Cloud after a short note: its level falls along a straight line in dB, without steps,
+ *                and fades on past -100 dB to nothing (no hiss left circulating, and no dead stop)
+ *   shimmer      an octave above the note (four notes' average), where Cloud has next to nothing, and more
+ *                with more Shimmer
  *   delay        the echo lands at Time, the next one at Feedback x it; Ping-pong: left at Time, right
  *                at twice it; Tape: its echo is darker than Digital's */
 #include <stdio.h>
@@ -156,6 +159,57 @@ static void test_reverb(void)
     }
 }
 
+/* the level (dB, both sides) of 50 ms window w */
+static float win_db(uint32_t w)
+{
+    float l = rms(w * (SR / 20), SR / 20, 0), r = rms(w * (SR / 20), SR / 20, 1);
+    return 10.0f * fm_log2f(0.5f * (l * l + r * r) + 1e-30f) * 0.30103f;
+}
+
+static void test_tail(void)
+{
+    uint32_t i, nw = 12 * 20, pk = 0, st, en, at70, n = 0;
+    float ph = 0.0f, sx = 0.0f, sy = 0.0f, sxx = 0.0f, sxy = 0.0f, b, a, worst = 0.0f, e[12 * 20];
+    char m[200];
+    defaults();
+    wf_cfg.rv_mix = 1.0f;               /* Cloud, as it starts */
+    memset(buf, 0, sizeof buf);
+    for (i = 0; i < SR / 5; i++) {      /* a 200 ms saw, G3 */
+        ph += 196.0f / WV_SR;
+        ph -= ph >= 1.0f ? 1.0f : 0.0f;
+        buf[2 * i] = buf[2 * i + 1] = (int32_t)((2.0f * ph - 1.0f) * 0.25f * 8388607.0f);
+    }
+    run(12 * SR);
+    for (i = 0; i < nw; i++) {
+        e[i] = win_db(i);
+        pk = e[i] > e[pk] ? i : pk;
+    }
+    for (st = pk; st < nw && e[st] > e[pk] - 5.0f; st++)
+        ;
+    for (en = st; en < nw && e[en] > e[pk] - 45.0f; en++)
+        ;
+    for (i = st; i < en; i++, n++) {    /* a straight line through the tail, 5 to 45 dB down */
+        sx += (float)i;
+        sy += e[i];
+        sxx += (float)i * (float)i;
+        sxy += (float)i * e[i];
+    }
+    b = ((float)n * sxy - sx * sy) / ((float)n * sxx - sx * sx);
+    a = (sy - b * sx) / (float)n;
+    for (i = st; i < en; i++) {         /* the furthest the level strays from it, under it (a step down) */
+        float d = a + b * (float)i - e[i];
+        worst = d > worst ? d : worst;
+    }
+    snprintf(m, sizeof m, "Cloud's tail: falls %.0f dB/s, never more than %.1f dB under that line", b * -20.0f,
+             worst);
+    check(n > 20 && b < 0.0f && worst < 4.0f, m);
+    for (at70 = pk; at70 < nw && e[at70] > -70.0f; at70++)
+        ;
+    snprintf(m, sizeof m, "Cloud's tail: a second after -70 dB still there (%.0f dB), at 12 s gone (%.0f dB)",
+             at70 + 20 < nw ? e[at70 + 20] : 0.0f, e[nw - 1]);
+    check(at70 + 20 < nw && e[at70 + 20] > -110.0f && e[at70 + 20] < -75.0f && e[nw - 1] < -120.0f, m);
+}
+
 /* the level at f Hz, by correlation with a sine and a cosine over 1,024-sample windows (the shifter's
  * grains don't keep the phase across a longer one) */
 static float tone_at(uint32_t from, uint32_t len, float f)
@@ -179,19 +233,24 @@ static void test_shimmer(void)
     float o[3], f[3];
     char m[200];
     int k;
-    for (k = 0; k < 3; k++) {          /* Cloud; Shimmer; Shimmer turned down */
-        uint32_t i, n = 3 * SR;
-        defaults();
-        wf_cfg.rv_type = k ? WF_RV_SHIMMER : WF_RV_CLOUD;
-        wf_cfg.rv_shim = k == 2 ? 0.15f : 0.5f;
-        wf_cfg.rv_mix = 1.0f;
-        wf_cfg.rv_decay = 0.6f;
-        wf_cfg.rv_mod = 0.0f;
-        for (i = 0; i < n; i++)
-            buf[2 * i] = buf[2 * i + 1] = (int32_t)(fm_sinf(FM_TWO_PI * 330.0f * (float)i / WV_SR) * 0.3f * 8388607.0f);
-        run(n);
-        o[k] = tone_at(2 * SR, SR / 2, 660.0f);
-        f[k] = tone_at(2 * SR, SR / 2, 330.0f);
+    static const float NOTE[4] = {262.0f, 330.0f, 392.0f, 494.0f};   /* (one note alone: wherever the */
+    for (k = 0; k < 3; k++) {          /* Cloud; Shimmer; Shimmer turned down      unmoving tank's peaks fall) */
+        uint32_t i, n = 3 * SR, j;
+        o[k] = f[k] = 0.0f;
+        for (j = 0; j < 4; j++) {
+            defaults();
+            wf_cfg.rv_type = k ? WF_RV_SHIMMER : WF_RV_CLOUD;
+            wf_cfg.rv_shim = k == 2 ? 0.15f : 0.5f;
+            wf_cfg.rv_mix = 1.0f;
+            wf_cfg.rv_decay = 0.6f;
+            wf_cfg.rv_mod = 0.0f;
+            for (i = 0; i < n; i++)
+                buf[2 * i] = buf[2 * i + 1] =
+                    (int32_t)(fm_sinf(FM_TWO_PI * NOTE[j] * (float)i / WV_SR) * 0.3f * 8388607.0f);
+            run(n);
+            o[k] += 0.25f * tone_at(2 * SR, SR / 2, 2.0f * NOTE[j]);
+            f[k] += 0.25f * tone_at(2 * SR, SR / 2, NOTE[j]);
+        }
     }
     snprintf(m, sizeof m, "Shimmer: an octave up, %.4f against Cloud's %.4f (the note: %.3f, %.3f); turned down %.4f",
              o[1], o[0], f[1], f[0], o[2]);
@@ -272,6 +331,7 @@ int main(void)
 {
     test_off();
     test_reverb();
+    test_tail();
     test_shimmer();
     test_delay();
     if (fails)

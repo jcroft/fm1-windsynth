@@ -1,12 +1,13 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
 /* The effects after the voice: a delay, then a reverb, both at half the FM-1's rate (22,059 Hz, 16-bit
- * lines in the .pool RAM region), mixed back with the dry voice at full rate.
+ * lines in the .pool RAM region: the reverb's half floats, the delay's fixed point), mixed back with the dry voice at full rate.
  *
  *   Reverb   one tank, several voicings (Type): pre-delay, a chain of modulated input allpasses, then a
  *            ring of four blocks (a modulated allpass, an allpass, a delay, damping and a low-end
- *            control), after Griesinger and Dattorro, as Mutable's Clouds and Rings reverbs are, widened
- *            to four blocks. Cloud: eight long, moving input diffusers into a big ring, after Strymon's
- *            description of BigSky's Cloud. Shimmer: Cloud whose tail goes through an octave-up pitch
+ *            control; the input goes into each, and the outputs are tapped all round it), after
+ *            Griesinger and Dattorro, as Mutable's Clouds and Rings reverbs are, widened to four blocks.
+ *            Cloud: eight long, moving input diffusers into a big ring, after Strymon's description of
+ *            BigSky's Cloud. Shimmer: Cloud whose tail goes through an octave-up pitch
  *            shifter and back into its input, so it climbs an octave at a time (as BigSky's and
  *            Valhalla's shimmers do), high-passed so the bass stays clear.
  *   Delay    one mono line: Digital, Tape (wow and flutter, darker, saturating), Analog (darker still)

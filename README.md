@@ -106,6 +106,7 @@ you save).
 - 0.0.8: CC depth, the longest glide the glide CC reaches.
 - 0.0.9: Shimmer rebuilt: the tail climbs in octaves, with a Shimmer amount.
 - 0.0.10: five more Plaits engines: 6-op FM (96 DX7 patches), Formant, Waveshape, VA and Swarm.
+- 0.0.11: a smoother reverb tail that fades to silence.
 
 ## Building and testing
 

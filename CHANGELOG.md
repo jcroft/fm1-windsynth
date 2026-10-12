@@ -4,6 +4,13 @@ A release is a push to `main` that changes `VERSION` to a version with no tag ye
 release build, tags the commit `vX.Y.Z` and publishes the GitHub Release with that version's notes,
 taken from its section below. Add the section in the same pull request as the `VERSION` change.
 
+## 0.0.11
+
+- **A smoother reverb tail**, Cloud's above all. The tail used to bloom, then fall away in steps
+  as its sound went round the tank, and at the end fade into a faint hiss. Now the input goes into
+  the whole tank and the outputs are taken from all round it, so the tail falls evenly for as long
+  as Decay says, and its lines keep floating-point detail, so it fades all the way out to silence.
+
 ## 0.0.10
 
 - **Five more Plaits engines**, on ALGORITHM or the Engine page: **6-op** FM (Plaits' 96 DX7
