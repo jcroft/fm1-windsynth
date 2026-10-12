@@ -1,0 +1,452 @@
+# The factory presets: the first 17 slots, until something is saved over them. Each is the init sound's
+# playing (breath to cutoff +75, attack, release, bend, glide) with its own tone; PRESETS shows its name.
+wait 200
+expect preset 1
+expect edited 0
+expect preset 1
+expect edited 0
+expect par30 0
+expect par67 75
+expect par6 5
+expect par7 60
+expect par8 2
+expect par10 4
+expect par11 0
+expect par64 0
+midi 90 3C 64
+breath 0 100 100
+wait 400
+expect level >5
+expect peak_db_max <-1
+breath 100 0 50
+midi 80 3C 0
+wait 600
+peakreset
+spin PRESET 1
+expect msg0 P02
+expect msg1 Simple_Square
+expect preset 2
+expect edited 0
+expect par30 0
+expect par67 75
+expect par6 5
+expect par7 60
+expect par8 2
+expect par10 4
+expect par11 0
+expect par64 0
+midi 90 3C 64
+breath 0 100 100
+wait 400
+expect level >5
+expect peak_db_max <-1
+breath 100 0 50
+midi 80 3C 0
+wait 600
+peakreset
+spin PRESET 1
+expect msg0 P03
+expect msg1 Simple_Pulse
+expect preset 3
+expect edited 0
+expect par30 0
+expect par67 75
+expect par6 5
+expect par7 60
+expect par8 2
+expect par10 4
+expect par11 0
+expect par64 0
+midi 90 3C 64
+breath 0 100 100
+wait 400
+expect level >5
+expect peak_db_max <-1
+breath 100 0 50
+midi 80 3C 0
+wait 600
+peakreset
+spin PRESET 1
+expect msg0 P04
+expect msg1 Simple_Sub
+expect preset 4
+expect edited 0
+expect par30 0
+expect par67 75
+expect par6 5
+expect par7 60
+expect par8 2
+expect par10 4
+expect par11 0
+expect par64 0
+midi 90 3C 64
+breath 0 100 100
+wait 400
+expect level >5
+expect peak_db_max <-1
+breath 100 0 50
+midi 80 3C 0
+wait 600
+peakreset
+spin PRESET 1
+expect msg0 P05
+expect msg1 Simple_Triangle
+expect preset 5
+expect edited 0
+expect par30 4
+expect par67 75
+expect par6 5
+expect par7 60
+expect par8 2
+expect par10 4
+expect par11 0
+expect par64 0
+midi 90 3C 64
+breath 0 100 100
+wait 400
+expect level >5
+expect peak_db_max <-1
+breath 100 0 50
+midi 80 3C 0
+wait 600
+peakreset
+spin PRESET 1
+expect msg0 P06
+expect msg1 Truth
+expect preset 6
+expect edited 0
+expect par30 5
+expect par67 75
+expect par6 5
+expect par7 60
+expect par8 2
+expect par10 4
+expect par11 0
+expect par64 0
+midi 90 3C 64
+breath 0 100 100
+wait 400
+expect level >5
+expect peak_db_max <-1
+breath 100 0 50
+midi 80 3C 0
+wait 600
+peakreset
+spin PRESET 1
+expect msg0 P07
+expect msg1 EWI_Doubler
+expect preset 7
+expect edited 0
+expect par30 5
+expect par67 75
+expect par6 5
+expect par7 60
+expect par8 2
+expect par10 4
+expect par11 0
+expect par64 0
+midi 90 3C 64
+breath 0 100 100
+wait 400
+expect level >5
+expect peak_db_max <-1
+breath 100 0 50
+midi 80 3C 0
+wait 600
+peakreset
+spin PRESET 1
+expect msg0 P08
+expect msg1 Brecker_Rays
+expect preset 8
+expect edited 0
+expect par30 0
+expect par67 75
+expect par6 5
+expect par7 60
+expect par8 2
+expect par10 4
+expect par11 0
+expect par64 0
+midi 90 3C 64
+breath 0 100 100
+wait 400
+expect level >5
+expect peak_db_max <-1
+breath 100 0 50
+midi 80 3C 0
+wait 600
+peakreset
+spin PRESET 1
+expect msg0 P09
+expect msg1 Sentimental
+expect preset 9
+expect edited 0
+expect par30 0
+expect par67 75
+expect par6 5
+expect par7 60
+expect par8 2
+expect par10 4
+expect par11 0
+expect par64 0
+midi 90 3C 64
+breath 0 100 100
+wait 400
+expect level >5
+expect peak_db_max <-1
+breath 100 0 50
+midi 80 3C 0
+wait 600
+peakreset
+spin PRESET 1
+expect msg0 P10
+expect msg1 Brecker_Octave
+expect preset 10
+expect edited 0
+expect par30 0
+expect par67 75
+expect par6 5
+expect par7 60
+expect par8 2
+expect par10 4
+expect par11 0
+expect par64 0
+midi 90 3C 64
+breath 0 100 100
+wait 400
+expect level >5
+expect peak_db_max <-1
+breath 100 0 50
+midi 80 3C 0
+wait 600
+peakreset
+spin PRESET 1
+expect msg0 P11
+expect msg1 Lyricon
+expect preset 11
+expect edited 0
+expect par30 5
+expect par67 75
+expect par6 5
+expect par7 60
+expect par8 2
+expect par10 4
+expect par11 0
+expect par64 0
+midi 90 3C 64
+breath 0 100 100
+wait 400
+expect level >5
+expect peak_db_max <-1
+breath 100 0 50
+midi 80 3C 0
+wait 600
+peakreset
+spin PRESET 1
+expect msg0 P12
+expect msg1 FM_Reed
+expect preset 12
+expect edited 0
+expect par30 1
+expect par67 75
+expect par6 5
+expect par7 60
+expect par8 2
+expect par10 4
+expect par11 0
+expect par64 0
+midi 90 3C 64
+breath 0 100 100
+wait 400
+expect level >5
+expect peak_db_max <-1
+breath 100 0 50
+midi 80 3C 0
+wait 600
+peakreset
+spin PRESET 1
+expect msg0 P13
+expect msg1 DX_Brass
+expect preset 13
+expect edited 0
+expect par30 2
+expect par67 75
+expect par6 5
+expect par7 60
+expect par8 2
+expect par10 4
+expect par11 0
+expect par64 0
+midi 90 3C 64
+breath 0 100 100
+wait 400
+expect level >5
+expect peak_db_max <-1
+breath 100 0 50
+midi 80 3C 0
+wait 600
+peakreset
+spin PRESET 1
+expect msg0 P14
+expect msg1 DX_CS-80
+expect preset 14
+expect edited 0
+expect par30 2
+expect par67 75
+expect par6 5
+expect par7 60
+expect par8 2
+expect par10 4
+expect par11 0
+expect par64 0
+midi 90 3C 64
+breath 0 100 100
+wait 400
+expect level >5
+expect peak_db_max <-1
+breath 100 0 50
+midi 80 3C 0
+wait 600
+peakreset
+spin PRESET 1
+expect msg0 P15
+expect msg1 Formant_Vox
+expect preset 15
+expect edited 0
+expect par30 3
+expect par67 75
+expect par6 5
+expect par7 60
+expect par8 2
+expect par10 4
+expect par11 0
+expect par64 0
+midi 90 3C 64
+breath 0 100 100
+wait 400
+expect level >5
+expect peak_db_max <-1
+breath 100 0 50
+midi 80 3C 0
+wait 600
+peakreset
+spin PRESET 1
+expect msg0 P16
+expect msg1 CZ_Lead
+expect preset 16
+expect edited 0
+expect par30 6
+expect par67 75
+expect par6 5
+expect par7 60
+expect par8 2
+expect par10 4
+expect par11 0
+expect par64 0
+midi 90 3C 64
+breath 0 100 100
+wait 400
+expect level >5
+expect peak_db_max <-1
+breath 100 0 50
+midi 80 3C 0
+wait 600
+peakreset
+spin PRESET 1
+expect msg0 P17
+expect msg1 Air_Pipe
+expect preset 17
+expect edited 0
+expect par30 7
+expect par67 75
+expect par6 5
+expect par7 60
+expect par8 2
+expect par10 4
+expect par11 0
+expect par64 0
+midi 90 3C 64
+breath 0 100 100
+wait 400
+expect level >5
+expect peak_db_max <-1
+breath 100 0 50
+midi 80 3C 0
+wait 600
+peakreset
+# past them, the init sound, by number
+spin PRESET 1
+expect preset 18
+expect msg0 PRESET
+expect msg1 P18
+expect par30 0
+expect par2 25
+expect par34 3
+# Simple is exactly the init sound; Simple Square only its waveform
+spin PRESET -17
+expect msg1 Simple
+expect par2 25
+expect par0 15
+expect par34 3
+expect par41 0
+spin PRESET 1
+expect par2 50
+expect par0 15
+# Truth: VA's two saws (its AUX), 12 dB, Ping-pong delay into a hall
+spin PRESET 4
+expect msg1 Truth
+expect par31 52
+expect par32 0
+expect par60 100
+expect par3 0
+expect par41 3
+expect par33 1
+# a sound saved over a factory preset keeps its slot's number, not its name
+expect view 0
+spin K1 10
+expect edited 1
+tap SAVE
+tap SAVE
+expect store_writes 1
+expect preset 6
+expect edited 0
+spin PRESET 1
+spin PRESET -1
+expect msg0 PRESET
+expect msg1 P06
+expect par0 25
+# ...and the others in its bank are still theirs, across a restart
+spin PRESET 1
+expect msg1 EWI_Doubler
+wait 5000
+reboot
+wait 200
+expect preset 7
+expect par0 8
+spin PRESET -1
+expect par0 25
+spin PRESET 2
+expect msg1 Brecker_Rays
+# a bank 0.0.20 saved held the init sound where nothing was saved: those slots take their factory presets,
+# the saved one stays
+wait 5000
+oldbank 0
+reboot
+wait 200
+expect preset 8
+expect edited 0
+expect par2 40
+spin PRESET -2
+expect preset 6
+expect par0 25
+expect par31 52
+spin PRESET -4
+expect msg1 Simple_Square
+expect par2 50
+# Slot 17, in the second bank, never saved: Air Pipe
+spin PRESET 15
+expect msg1 Air_Pipe
+expect par30 7
+expect par56 20
+wait 50
+expect stale 0

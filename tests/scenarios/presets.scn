@@ -1,4 +1,4 @@
-# Presets: 64 slots, all the init sound until saved. PRESETS picks one; SAVE, then SAVE again, saves the
+# Presets: 64 slots, the first 17 the factory presets (factory.scn), the rest the init sound until saved. PRESETS picks one; SAVE, then SAVE again, saves the
 # sound into one ("SAVE TO", PRESETS picks where); the rig's settings stay out of them.
 wait 200
 expect preset 1

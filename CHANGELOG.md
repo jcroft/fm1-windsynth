@@ -4,6 +4,21 @@ A release is a push to `main` that changes `VERSION` to a version with no tag ye
 release build, tags the commit `vX.Y.Z` and publishes the GitHub Release with that version's notes,
 taken from its section below. Add the section in the same pull request as the `VERSION` change.
 
+## 0.0.21
+
+- **Factory presets.** The first 17 slots now hold factory presets, named on the screen as PRESETS turns
+  to them. All of them play the same way as the init sound: breath to cutoff +75, the same attack and
+  release, bend ±2 and 4 ms of glide. Only the tone changes.
+  - **The basics** (1 to 5): Simple (the init sound), Simple Square, Simple Pulse, Simple Sub and
+    Simple Triangle.
+  - **Famous wind leads:** Truth (T-Square's Lyricon sound: two saws through a 12 dB filter, then
+    delays and a hall), EWI Doubler (the late-80s EWI sound), and three of Michael Brecker's EWI
+    sounds: Brecker Rays, Sentimental (after "In a Sentimental Mood") and Brecker Octave. Also Lyricon.
+  - **One for each other engine:** FM Reed, DX Brass, DX CS-80, Formant Vox, CZ Lead and Air Pipe.
+- Saving over a factory preset replaces it; the slot then shows its number instead of a name. Presets
+  saved with an earlier version stay as they are. A slot that was never saved, and so still held the
+  init sound, now holds its factory preset.
+
 ## 0.0.20
 
 - **The Engine page follows the engine.** Turning ALGORITHM on the Engine page now always redraws its

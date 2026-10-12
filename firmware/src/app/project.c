@@ -102,15 +102,31 @@ static bank_t bank;
 static int bank_at = -1;                 /* the bank in `bank`, -1 none */
 static int16_t snd[P_NPARAMS];           /* the project's preset as stored: what "edited" compares with */
 
-/* one bank into `bank`: from flash, or (never saved, or not ours) every preset the init sound */
+#include "factory.inc"
+
+/* the same sound: every setting but the rig's */
+static int same_sound(const int16_t *a, const int16_t *b)
+{
+    int k;
+    for (k = 0; k < P_NPARAMS; k++)
+        if (!wa_param_global(k) && a[k] != b[k])
+            return 0;
+    return 1;
+}
+
+/* one bank into `bank`: from flash, or (never saved, or not ours) the factory presets, the rest the init
+ * sound. A bank saved before there were factory presets (format 2) held the init sound in every slot not
+ * saved: those slots take theirs. */
 static void bank_read(int b)
 {
-    int n, i, k;
+    int n, i, k, fresh;
+    int16_t init[P_NPARAMS], fac[P_NPARAMS];
     if (bank_at == b)
         return;
     memset(&bank, 0, sizeof bank);
     n = plat_store_load(OBJ_BANK0 + (uint32_t)b, &bank, sizeof bank);
-    if (n < 8 || bank.magic != BANK_MAGIC || bank.npar > PRESET_NPAR) {
+    fresh = n < 8 || bank.magic != BANK_MAGIC || bank.npar > PRESET_NPAR;
+    if (fresh) {
         memset(&bank, 0, sizeof bank);
         bank.npar = 0;
     }
@@ -129,8 +145,14 @@ static void bank_read(int b)
     if (bank.npar > P_M4AMT && bank.npar <= P_BRCUT)
         for (i = 0; i < BANK_N; i++)
             breath_knob(bank.p[i].par);
+    factory_sound(-1, init);
+    for (i = 0; i < BANK_N; i++)
+        if (fresh || (bank.format < 3u && same_sound(bank.p[i].par, init))) {
+            factory_sound(b * BANK_N + i, fac);
+            memcpy(bank.p[i].par, fac, sizeof fac);
+        }
     bank.magic = BANK_MAGIC;
-    bank.format = 2;
+    bank.format = 3;
     bank.npar = P_NPARAMS;
     bank_at = b;
 }
@@ -179,11 +201,13 @@ int preset_store(int slot)
     return 0;
 }
 
-int preset_edited(void)
+int preset_edited(void) { return !same_sound(proj.par, snd); }
+
+const char *preset_title(int slot)
 {
-    int k;
-    for (k = 0; k < P_NPARAMS; k++)
-        if (!wa_param_global(k) && proj.par[k] != snd[k])
-            return 1;
-    return 0;
+    int16_t fac[P_NPARAMS];
+    if (slot < 0 || slot >= NFACTORY)
+        return 0;
+    factory_sound(slot, fac);
+    return same_sound(preset_par(slot), fac) ? FACTORY[slot].name : 0;
 }

@@ -28,6 +28,8 @@
  *                                 lines) knob1..knob4 (a knob's name on this page, "-" none) val1..val4 (its value as shown))
  *   reboot                       re-run boot from the simulated flash (persistence test)
  *   oldproject F                 rewrite the saved project as format F saved it (its values, then its preset)
+ *   oldbank B                    rewrite saved bank B (0..3) as 0.0.20 saved it: the init sound in each slot
+ *                                holding its factory preset
  */
 #define OM_HOST 1
 #ifndef _POSIX_C_SOURCE
@@ -302,7 +304,9 @@ static void run_ms(uint32_t ms)
             dt = now_ns() - t0;
             render_ns_total += dt;
             render_budget_ns_total += 256.0 * 1e9 / WV_SR;
+#ifdef OM_WEB
             cpu_pct = (uint32_t)(100.0 * dt / (256.0 * 1e9 / WV_SR));
+#endif                                          /* (a script's run stays 0%: the screen the same every run) */
             for (k = 0; k < 256; k++) {
                 float l = (float)blk[2 * k] / 8388608.0f, r = (float)blk[2 * k + 1] / 8388608.0f;
                 int16_t s[2];
@@ -579,6 +583,7 @@ int main(int argc, char **argv)
             fails += expect(a, b);
         else if (!strcmp(cmd, "reboot")) {
             memset(&proj, 0, sizeof proj);
+            bank_at = -1;                           /* (RAM: only flash survives) */
             boot();
         } else if (!strcmp(cmd, "oldproject")) {   /* the layout an older version wrote: fewer values */
             int f = atoi(a), n = PROJ_NPAR_OF((uint32_t)f);
@@ -591,6 +596,20 @@ int main(int argc, char **argv)
             o[8 + 2 * n] = old.preset;
             store_len[OBJ_PROJ] = 8 + 2 * n + 32;
             store_have[OBJ_PROJ] = 1;
+        } else if (!strcmp(cmd, "oldbank")) {      /* bank B as 0.0.20 wrote it: the init sound where a factory one is */
+            static bank_t o;
+            int b = atoi(a), i;
+            int16_t fac[P_NPARAMS], init[P_NPARAMS];
+            memcpy(&o, store[OBJ_BANK0 + (uint32_t)b], sizeof o);
+            factory_sound(-1, init);
+            for (i = 0; i < BANK_N; i++) {
+                factory_sound(b * BANK_N + i, fac);
+                if (same_sound(o.p[i].par, fac))
+                    memcpy(o.p[i].par, init, sizeof init);
+            }
+            o.format = 2;
+            memcpy(store[OBJ_BANK0 + (uint32_t)b], &o, sizeof o);
+            bank_at = -1;
         } else if (!strcmp(cmd, "echo"))
             printf("%s", line + 5);
         else {
