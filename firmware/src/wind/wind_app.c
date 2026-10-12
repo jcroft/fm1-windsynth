@@ -29,7 +29,8 @@ static const wa_param_t PARAMS[P_NPARAMS] = {
 
 const wa_param_t *wa_param_info(int i) { return &PARAMS[(unsigned)i < P_NPARAMS ? i : 0]; }
 
-const char *const WA_ENGINE_NAME[WV_NENGINE] = {"Classic", "FM", "6-op", "Formant", "Waveshape", "VA"};
+const char *const WA_ENGINE_NAME[WV_NENGINE] = {"Classic", "FM", "6-op", "Formant", "Waveshape", "VA",
+                                                 "PD", "Harmonic"};
 static int engine;                     /* the engine playing: its knobs' names */
 
 /* What HARMONICS (Ratio), TIMBRE (Index) and MORPH do on each engine, after Plaits' manual. Classic has
@@ -41,6 +42,8 @@ static const char *const ENGINE_KNOB[WV_NENGINE][3] = {
     {"Ratio", "Formant", "Width"},        /* granular formant: the two formants' ratio, the first, their width */
     {"Shape", "Fold", "Asym"},            /* waveshaping: the shaper's curve, the folder, the asymmetry */
     {"Detune", "Square", "Saw"},          /* virtual analog: the two oscillators' detune and shapes */
+    {"Ratio", "Amount", "Asym"},          /* phase distortion: the modulator's ratio, how much, its asymmetry */
+    {"Bumps", "Peak", "Shape"},           /* additive: the spectrum's bumps, its loudest harmonic, their shape */
 };
 
 const char *wa_param_name(int i)

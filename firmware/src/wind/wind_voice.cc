@@ -20,6 +20,8 @@
 #include "plaits/dsp/engine/grain_engine.h"
 #include "plaits/dsp/engine/waveshaping_engine.h"
 #include "plaits/dsp/engine/virtual_analog_engine.h"
+#include "plaits/dsp/engine2/phase_distortion_engine.h"
+#include "plaits/dsp/engine/additive_engine.h"
 #include "plaits/resources.h"
 #include "stmlib/utils/random.h"
 
@@ -43,6 +45,8 @@ WV_MEM(SixOpEngine, six);
 WV_MEM(GrainEngine, grain);
 WV_MEM(WaveshapingEngine, shape);
 WV_MEM(VirtualAnalogEngine, va);
+WV_MEM(PhaseDistortionEngine, pd);
+WV_MEM(AdditiveEngine, harm);
 static union {
     char raw[16384];                    /* what the engines allocate: 6-op's patches */
     double align;
@@ -136,6 +140,8 @@ extern "C" void wv_init(void)
     engines[WV_GRAIN] = new (grain_mem.raw) GrainEngine();
     engines[WV_SHAPE] = new (shape_mem.raw) WaveshapingEngine();
     engines[WV_VA] = new (va_mem.raw) VirtualAnalogEngine();
+    engines[WV_PD] = new (pd_mem.raw) PhaseDistortionEngine();
+    engines[WV_HARM] = new (harm_mem.raw) AdditiveEngine();
     for (i = 0; i < WV_NENGINE; i++) {
         engines[i]->Init(&a);
         engines[i]->Reset();

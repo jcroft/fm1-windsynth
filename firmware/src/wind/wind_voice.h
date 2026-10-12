@@ -18,9 +18,10 @@ typedef struct {            /* control state, per 64-frame block */
 } wind_frame_t;
 
 /* Plaits' engines: VA-VCF; then, into our filter, 2-op FM, 6-op FM (DX7 patches), granular formant,
- * waveshaping and virtual analog (two oscillators). Add new ones at the end. (0.0.10 had swarm, 6,
- * dropped in 0.0.12: a saved 6 is out of range, so it loads as Classic.) */
-enum { WV_CLASSIC, WV_FM, WV_SIXOP, WV_GRAIN, WV_SHAPE, WV_VA, WV_NENGINE };
+ * waveshaping, virtual analog (two oscillators), phase distortion and additive (Harmonic). Add new
+ * ones at the end. (0.0.10 and 0.0.11 had swarm at 6, dropped in 0.0.12: a sound saved on it then
+ * loads as Classic, see project.c.) */
+enum { WV_CLASSIC, WV_FM, WV_SIXOP, WV_GRAIN, WV_SHAPE, WV_VA, WV_PD, WV_HARM, WV_NENGINE };
 #define WV_DX_NPATCH 96                 /* 6-op: Plaits' three banks of 32 */
 enum { WV_SLOPE_12, WV_SLOPE_24 };      /* VA-VCF's filter: 12 dB/oct (LP) or 24 dB/oct (LP>LP) */
 

@@ -26,8 +26,11 @@ static int project_valid(int bytes)
     proj.preset = at < bytes ? ((const uint8_t *)&proj)[at] : 0u;
     if (proj.format == 4u && have > P_GDEPTH)    /* 0.0.8 kept CC depth as a Glide value: now it's ms */
         proj.par[P_GDEPTH] = (int16_t)((proj.par[P_GDEPTH] * proj.par[P_GDEPTH] * 2000 + 5000) / 10000);
-    if (proj.format <= 6u)                       /* Glide was where the glide CC last left it: now it's */
+    if (proj.format <= 6u) {                     /* Glide was where the glide CC last left it: now it's */
         proj.par[P_GLIDE] = wa_param_info(P_GLIDE)->def;   /* the least time, and the CC adds to it */
+        if (have > P_ENGINE && proj.par[P_ENGINE] == 6)    /* (and 6 was Swarm, now gone: Classic) */
+            proj.par[P_ENGINE] = WV_CLASSIC;
+    }
     proj.format = PROJ_FORMAT;
     if (proj.preset >= NPRESETS)
         proj.preset = 0;
@@ -91,9 +94,12 @@ static void bank_read(int b)
         memset(&bank, 0, sizeof bank);
         bank.npar = 0;
     }
-    if (bank.format < 2u)                /* (to 0.0.11: Glide as the glide CC left it; see project_valid) */
-        for (i = 0; i < BANK_N; i++)
+    if (bank.format < 2u)                /* (to 0.0.11: Glide as the glide CC left it, 6 Swarm; see project_valid) */
+        for (i = 0; i < BANK_N; i++) {
             bank.p[i].par[P_GLIDE] = wa_param_info(P_GLIDE)->def;
+            if (bank.p[i].par[P_ENGINE] == 6)
+                bank.p[i].par[P_ENGINE] = WV_CLASSIC;
+        }
     for (i = 0; i < BANK_N; i++)          /* what a preset lacks (newer settings), or holds out of range: defaults */
         for (k = 0; k < P_NPARAMS; k++) {
             const wa_param_t *p = wa_param_info(k);

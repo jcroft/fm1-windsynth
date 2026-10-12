@@ -53,6 +53,8 @@ WIND_UNITS = ["src/wind/wind_voice.cc",
               "third_party/mutable/plaits/dsp/engine/grain_engine.cc",
               "third_party/mutable/plaits/dsp/engine/waveshaping_engine.cc",
               "third_party/mutable/plaits/dsp/engine/virtual_analog_engine.cc",
+              "third_party/mutable/plaits/dsp/engine2/phase_distortion_engine.cc",
+              "third_party/mutable/plaits/dsp/engine/additive_engine.cc",
               "third_party/mutable/stmlib/utils/random.cc",
               "third_party/mutable/plaits/resources.cc",
               "third_party/mutable/stmlib/dsp/units.cc"]

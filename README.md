@@ -6,7 +6,7 @@ It runs in the browser first, as the firmware's own C code compiled to WebAssemb
 FM-1 itself.
 
 > **Status: in development (0.0.x).** It plays: notes, breath, bite and glide from any windsynth
-> drive a Plaits voice (six engines), with 64 presets, a reverb and a delay, in the browser and on
+> drive a Plaits voice (eight engines), with 64 presets, a reverb and a delay, in the browser and on
 > the FM-1. Nothing is released yet. The plan is in [docs/PLAN.md](docs/PLAN.md).
 
 ![Full breath on A3](docs/img/wind_voice.png) ![The Breath page](docs/img/wind_breath.png) ![Mod 1: breath to cutoff](docs/img/wind_mod.png)
@@ -58,6 +58,8 @@ engine's names.
 | Formant | Ratio (between the two formants), Formant | Width |
 | Waveshape | Shape (the shaper's curve), Fold | Asym (asymmetry) |
 | VA | Detune (between the two oscillators), Square (pulse width, then sync) | Saw (triangle to saw) |
+| PD (phase distortion) | Ratio (the distorting modulator's, to the note), Amount | Asym (asymmetry) |
+| Harmonic (additive) | Bumps (how many peaks in the spectrum), Peak (the loudest harmonic) | Shape (wide and flat to narrow and peaked) |
 
 6-op starts its envelopes at the start of each breath, not each note, so a slurred phrase stays one
 gesture.
@@ -107,6 +109,7 @@ you save).
 - 0.0.10: five more Plaits engines: 6-op FM (96 DX7 patches), Formant, Waveshape, VA and Swarm.
 - 0.0.11: a smoother reverb tail that fades to silence.
 - 0.0.12: Glide is a set time that CC5 adds to; 6-op in tune and smooth; Swarm dropped.
+- 0.0.13: two more Plaits engines, PD (phase distortion) and Harmonic (additive).
 
 ## Building and testing
 

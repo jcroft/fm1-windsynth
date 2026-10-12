@@ -93,7 +93,8 @@ static void wav_write(const char *path, uint32_t n)
     fclose(f);
 }
 
-static const char *const ENGINE_NAME[WV_NENGINE] = {"VA-VCF", "FM", "6-op", "Formant", "Waveshaping", "VA"};
+static const char *const ENGINE_NAME[WV_NENGINE] = {"VA-VCF", "FM", "6-op", "Formant", "Waveshaping", "VA",
+                                                    "Phase distortion", "Harmonic"};
 
 /* engine's sweep against upstream Plaits' (refdir/ref_N.f32, from wind_ref) */
 static void test_sweep(uint32_t engine, const char *refdir, const char *dir)

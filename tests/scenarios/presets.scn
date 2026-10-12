@@ -95,3 +95,15 @@ oldproject 6
 reboot
 wait 200
 expect par10 4
+# and 6 was Swarm (0.0.10, 0.0.11), since dropped: a sound saved on it comes back on Classic
+spin ALGO 1
+spin ALGO 1
+spin ALGO 1
+spin ALGO 1
+spin ALGO 1
+spin ALGO 1
+expect par30 6
+oldproject 6
+reboot
+wait 200
+expect par30 0
