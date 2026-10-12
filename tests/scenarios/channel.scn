@@ -21,3 +21,6 @@ wait 20
 expect note 7150
 midi 83 3C 00
 wait 100
+# nothing on the screen is stale
+wait 50
+expect stale 0

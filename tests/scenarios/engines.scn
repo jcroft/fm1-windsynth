@@ -104,3 +104,36 @@ reboot
 wait 200
 expect par30 2
 expect par47 89
+# turning ALGORITHM redraws the Engine page each step: its title, knob names and values, nothing left over
+# from the engine before (Formant, Waveshape, VA, PD and Harmonic share their knobs' values)
+wait 100
+tap HOME
+wait 100
+expect view 1
+spin ALGO -1
+spin ALGO -1
+wait 100
+expect par30 0
+expect stale 0
+spin ALGO 1
+wait 100
+expect stale 0
+spin ALGO 1
+wait 100
+expect stale 0
+spin ALGO 1
+wait 100
+expect stale 0
+spin ALGO 1
+wait 100
+expect stale 0
+spin ALGO 1
+wait 100
+expect stale 0
+spin ALGO 1
+wait 100
+expect stale 0
+spin ALGO 1
+wait 100
+expect stale 0
+expect title Harmonic

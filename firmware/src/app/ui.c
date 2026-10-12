@@ -495,9 +495,12 @@ static void draw_header(void)
 }
 
 /* a vertical bar 0..1 with its name under it */
+#define BAR_H 100
+static int32_t bar_px(float v) { return (int32_t)((v > 1.0f ? 1.0f : v) * (float)(BAR_H - 4) + 0.5f); }
+
 static void bar(int32_t x, int32_t y, int32_t h, float v, const char *name, uint16_t c)
 {
-    int32_t f = (int32_t)(v * (float)(h - 4) + 0.5f);
+    int32_t f = bar_px(v);
     cv_round(x, y, 22, h, 5, K_PANEL);
     if (f > 0)
         cv_round(x + 3, y + h - 2 - f, 16, f, 4, c);
@@ -509,8 +512,9 @@ static void draw_main(void)
 {
     float note = wa_state.note, bend = wa_state.bend;
     int top = wa_state.top, gate = wa_state.gate > 0.5f;
-    uint32_t qb = (uint32_t)(wa_state.breath * 60.0f), qc = (uint32_t)(wa_state.cutoff * 60.0f),
-             ql = (uint32_t)(wa_state.level * 60.0f), qn = (uint32_t)(int32_t)(note * 10.0f + 2000.0f),
+    /* (the bars by the pixel they fill to, so any change that shows is drawn) */
+    uint32_t qb = (uint32_t)bar_px(wa_state.breath), qc = (uint32_t)bar_px(wa_state.cutoff),
+             ql = (uint32_t)bar_px(wa_state.level), qn = (uint32_t)(int32_t)(note * 10.0f + 2000.0f),
              qe = (uint32_t)(int32_t)(bend * 30.0f + 30.0f);
     uint32_t h = hash(hash(hash(2166136261u, qb | qc << 8 | ql << 16 | (uint32_t)gate << 24 |
                                                  (uint32_t)proj.par[P_THEME] << 25),
@@ -556,16 +560,17 @@ static void draw_main(void)
         if (gate)
             cv_round(122, 12, 10, 10, 5, K_ACC);
     }
-    bar(150, 8, 100, wa_state.breath, "BRTH", K_ACC);
-    bar(180, 8, 100, wa_state.cutoff, "CUT", K_BLUE);
-    bar(210, 8, 100, wa_state.level > 1.0f ? 1.0f : wa_state.level, "OUT", K_TEXT);
+    bar(150, 8, BAR_H, wa_state.breath, "BRTH", K_ACC);
+    bar(180, 8, BAR_H, wa_state.cutoff, "CUT", K_BLUE);
+    bar(210, 8, BAR_H, wa_state.level > 1.0f ? 1.0f : wa_state.level, "OUT", K_TEXT);
     cv_blit(0, MAIN_Y);
 }
 
 static void draw_knobs(void)
 {
-    uint32_t h = hash(2166136261u, ui.view | (uint32_t)ui.touched << 8 | (uint32_t)proj.par[P_THEME] << 16 |
-                                       (uint32_t)proj.par[P_ENGINE] << 20), i;
+    /* (each in its own hash: touched is -1 untouched, and shifted in with the rest it hid the engine) */
+    uint32_t h = hash(hash(hash(2166136261u, ui.view), (uint32_t)(uint8_t)ui.touched),
+                      (uint32_t)proj.par[P_THEME] | (uint32_t)proj.par[P_ENGINE] << 8), i;
     int now_touch = plat_ms() < ui.touch_until;
     for (i = 0; i < 4; i++) {
         int k = knob_of((int)i);
@@ -658,3 +663,14 @@ void ui_frame(void)
 }
 
 void ui_input_only(void) { input(); }
+
+#ifdef OM_HOST
+/* the screen drawn from scratch, for the host's check that nothing on it is stale */
+void ui_repaint(void)
+{
+    memset(ui.sig, 0, sizeof ui.sig);
+    draw_header();
+    draw_main();
+    draw_knobs();
+}
+#endif

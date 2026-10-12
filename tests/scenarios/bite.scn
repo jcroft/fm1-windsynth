@@ -22,3 +22,6 @@ expect note 7600
 midi E0 00 40
 midi 80 45 00
 wait 100
+# nothing on the screen is stale
+wait 50
+expect stale 0

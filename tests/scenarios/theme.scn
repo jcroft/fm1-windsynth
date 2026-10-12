@@ -6,3 +6,6 @@ expect par29 1
 wait 50
 expect luma100 <60
 shot dark.png
+# nothing on the screen is stale
+wait 50
+expect stale 0

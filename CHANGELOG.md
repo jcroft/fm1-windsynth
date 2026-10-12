@@ -4,6 +4,13 @@ A release is a push to `main` that changes `VERSION` to a version with no tag ye
 release build, tags the commit `vX.Y.Z` and publishes the GitHub Release with that version's notes,
 taken from its section below. Add the section in the same pull request as the `VERSION` change.
 
+## 0.0.20
+
+- **The Engine page follows the engine.** Turning ALGORITHM on the Engine page now always redraws its
+  knobs. Before, it could keep showing the previous engine's knob names, from Waveshape onward, whose
+  knobs start at the same values as Formant's. The engine itself was changing; only the screen was stale.
+- The breath, cutoff and output bars now redraw on every change that shows, not just larger ones.
+
 ## 0.0.19
 
 - **Filter and Engine pages.** HOME's first page is now Filter: Cutoff, Resonance, Slope and Breath.

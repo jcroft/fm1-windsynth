@@ -70,3 +70,6 @@ expect note <6700
 wait 300
 expect note 6000
 midi 80 3C 00
+# nothing on the screen is stale
+wait 50
+expect stale 0

@@ -30,3 +30,6 @@ expect gate 0
 # the voice is silent; what's left is the init sound's touch of reverb
 expect level <2
 wavstop
+# nothing on the screen is stale
+wait 50
+expect stale 0

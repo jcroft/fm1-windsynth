@@ -88,3 +88,6 @@ turn SELECT -4
 expect view 17
 tap HOME
 expect view 0
+# nothing on the screen is stale
+wait 50
+expect stale 0

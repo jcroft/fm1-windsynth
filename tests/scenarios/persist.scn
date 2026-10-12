@@ -28,3 +28,6 @@ release SAVE
 tap SAVE
 expect par0 15
 expect par1 0
+# nothing on the screen is stale
+wait 50
+expect stale 0

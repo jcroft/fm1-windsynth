@@ -36,3 +36,6 @@ expect par53 0
 expect dirty 0
 expect luma100 >200
 shot boot.png
+# nothing on the screen is stale
+wait 50
+expect stale 0
