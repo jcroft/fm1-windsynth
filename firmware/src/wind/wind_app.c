@@ -33,6 +33,7 @@ static const wa_param_t PARAMS[P_NPARAMS] = {
     {"Dest", 0, WM_DST_PITCH, WM_DST_PITCH}, {"Amount", -100, 100, 0},  /* (Pitch: cents) */
     {"Fade", 0, 2000, 0}, {"Sync", 0, 1, 0},
     {"Breath", -100, 100, 75},             /* breath to cutoff */
+    {"Row", 0, 2, 0},                      /* Stage: Filter, Engine, FX */
 };
 
 const wa_param_t *wa_param_info(int i) { return &PARAMS[(unsigned)i < P_NPARAMS ? i : 0]; }
@@ -71,7 +72,7 @@ int wa_param_global(int i)
 {
     switch (i) {
     case P_BSRC: case P_CURVE: case P_GSRC: case P_GDEPTH: case P_KEYBREATH: case P_OCTAVE:
-    case P_TRANSPOSE: case P_TUNE: case P_MIDICH: case P_THEME:
+    case P_TRANSPOSE: case P_TUNE: case P_MIDICH: case P_THEME: case P_STAGEROW:
         return 1;
     default:
         return 0;

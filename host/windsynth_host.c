@@ -18,12 +18,14 @@
  *   wav FILE | wavstop           start / stop recording the output
  *   peakreset                    restart the output peak (expect peak_db_min / peak_db_max)
  *   shot FILE.png                save the screen
- *   leds                         print the lit buttons and keys
+ *   leds                         print the lit buttons and keys (keys: # lit, - dim)
  *   expect WHAT VALUE            check state: exit 1 on mismatch; VALUE "<N" / ">N" is a bound
  *                                (WHAT: view dirty store_writes store_tries preset edited parN gate top (the note sounding)
  *                                 note (x100) breath cutoff res amp morph timbre noise level (x100) litkeys (bits)
  *                                 stale (pixels a redraw from scratch changes: 0, or the screen missed a change)
- *                                 ghostN (knob N's ghost tick: its x on the screen, -1 none)
+ *                                 ghostN (knob N's ghost tick: its x on the screen, -1 none; on Stage:
+ *                                 the lit row's dial N, its place along the ring 0..42)
+ *                                 stage (1: Stage is showing) dimkeys (how many keys are lit dim)
  *                                 glide (the glide time in force, ms) txtX_Y (1: the pixel is the text colour)
  *                                 accX_Y (1: the pixel at X, Y is the theme's accent colour)
  *                                 lumaY (brightness 0..255 of the screen at x 2, row Y: the theme)
@@ -367,7 +369,7 @@ static int expect(const char *what, const char *val)
             want[i] = val[i] == '_' ? ' ' : val[i];
         want[i] = 0;
         if (what[0] == 't') {
-            s = view_name(ui.view);
+            s = title_now();
         } else if (what[0] == 'n') {
             note_text((int)(wa_state.note + 0.5f + 1200.0f) - 1200, txt);
             s = txt;
@@ -450,6 +452,13 @@ static int expect(const char *what, const char *val)
         got = ui.ghost[(atoi(what + 5) - 1) & 3];
     else if (!strcmp(what, "litkeys"))            /* the keys lit (bit per key) */
         got = (int)lit_keys;
+    else if (!strcmp(what, "dimkeys")) {          /* how many keys are lit dim */
+        uint32_t d = dim_keys;
+        for (got = 0; d; d &= d - 1u)
+            got++;
+    }
+    else if (!strcmp(what, "stage"))              /* 1: Stage is showing */
+        got = ui.stage;
     else if (!strcmp(what, "stale")) {            /* pixels that change when the screen is drawn from scratch */
         static uint16_t was[240 * 240];
         uint32_t i;
@@ -603,7 +612,7 @@ int main(int argc, char **argv)
                     printf(" %s", BTN_N[i]);
             printf(" | keys ");
             for (i = 0; i < NKEYS; i++)
-                printf("%c", (lit_keys >> i & 1u) ? '#' : '.');
+                printf("%c", (lit_keys >> i & 1u) ? '#' : (dim_keys >> i & 1u) ? '-' : '.');
             printf("\n");
         } else if (!strcmp(cmd, "storefail")) {
             store_fail = atoi(a);

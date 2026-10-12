@@ -15,12 +15,13 @@ const url = "file://" + page;
 const p = spawn(chrome, ["--headless=new", "--disable-gpu", "--autoplay-policy=no-user-gesture-required", "--no-first-run",
   `--user-data-dir=${profile}`, "--remote-debugging-port=9333", "about:blank"], { stdio: "ignore" });
 const done = (code, msg) => { console.log(msg); p.kill("SIGKILL"); process.exit(code); };
-setTimeout(() => done(2, "TIMEOUT"), 60000);
+setTimeout(() => done(2, "TIMEOUT"), 90000);
 let target;
-for (let i = 0; i < 50 && !target; i++) {
+for (let i = 0; i < 200 && !target; i++) {   // (up to 40 s: a cold runner can be slow to start Chrome)
   await new Promise((r) => setTimeout(r, 200));
   try { target = (await (await fetch("http://127.0.0.1:9333/json")).json()).find((t) => t.type === "page"); } catch {}
 }
+if (!target) done(2, "FAIL Chrome's DevTools never came up");
 const ws = new WebSocket(target.webSocketDebuggerUrl);
 let id = 0; const pending = new Map(); const logs = [];
 const call = (method, params = {}) => new Promise((res) => { const i = ++id; pending.set(i, res); ws.send(JSON.stringify({ id: i, method, params })); });
