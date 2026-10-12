@@ -4,6 +4,14 @@ A release is a push to `main` that changes `VERSION` to a version with no tag ye
 release build, tags the commit `vX.Y.Z` and publishes the GitHub Release with that version's notes,
 taken from its section below. Add the section in the same pull request as the `VERSION` change.
 
+## 0.0.14
+
+- **Distortion and Modulation**, ahead of the delay and the reverb, so FX runs Distortion, Modulation,
+  Delay, Reverb (and Reverb 2), the order the sound goes through them. Distortion has Overdrive,
+  Distort, Fuzz, Fold and Crush, with Drive and Tone; it runs at twice the rate so high notes don't
+  alias, and keeps its level near the dry sound's. Modulation has Chorus, Ensemble, Flanger and Phaser,
+  with Rate and Depth, and turns the sound stereo. Both start at Mix 0, so saved sounds are unchanged.
+
 ## 0.0.13
 
 - **Two more Plaits engines**, after VA on ALGORITHM: **PD**, phase distortion as on Casio's CZ

@@ -1,19 +1,33 @@
-# The effects: FX opens Reverb, then Reverb 2, then Delay. Both start at Mix 0 (the init sound is dry);
-# with the reverb's Mix up, a note keeps sounding after it stops, and Mix back at 0 is dry again.
+# The effects: FX opens Distortion, then Modulation, Delay, Reverb and Reverb 2, the order the sound goes
+# through them. All start at Mix 0 (the init sound is dry); with the reverb's Mix up, a note keeps
+# sounding after it stops, and Mix back at 0 is dry again.
 wait 200
 tap FX
 expect view 11
-expect par33 0
-expect par34 0
-expect par35 50
-spin K2 40
-expect par34 40
+expect par49 0
+expect par50 40
+expect knob3 Drive
+expect val1 Overdrive
+spin K1 2
+expect par48 2
+expect val1 Fuzz
+spin K2 50
+expect par49 50
 wait 50
-shot reverb_page.png
+shot distortion_page.png
 tap FX
 expect view 12
+expect par53 0
+expect knob3 Rate
+spin K3 1
+expect val3 0.44Hz
+spin K3 -1
+spin K1 3
+expect val1 Phaser
+spin K2 50
+expect par53 50
 wait 50
-shot reverb2_page.png
+shot modulation_page.png
 tap FX
 expect view 13
 spin K1 3
@@ -23,32 +37,49 @@ expect par42 30
 wait 50
 shot delay_page.png
 tap FX
+expect view 14
+expect par33 0
+expect par34 0
+expect par35 50
+spin K2 40
+expect par34 40
+wait 50
+shot reverb_page.png
+tap FX
+expect view 15
+wait 50
+shot reverb2_page.png
+tap FX
 expect view 11
-# a note, then its tail
+# a note through all four, then its tail
 midi 90 45 64
 breath 0 127 50
 wait 300
+expect level >5
 midi 80 45 00
 breath 127 0 20
 wait 400
 expect gate 0
 expect level >1
 # dry again: the voice's own release, then silence
-spin K2 -40
-expect par34 0
+spin K2 -50
+expect par49 0
 tap FX
+spin K2 -50
+expect par53 0
 tap FX
 spin K2 -30
 expect par42 0
+tap FX
+spin K2 -40
+expect par34 0
 wait 600
 expect level 0
 # Shimmer: on Reverb 2, Mod's knob is the shimmer's amount
-tap FX
-expect view 11
 spin K1 4
 expect par33 4
 tap FX
-expect view 12
+expect view 15
 spin K3 30
 expect par46 80
 expect par39 50
@@ -56,11 +87,13 @@ wait 50
 shot shimmer_page.png
 tap FX
 tap FX
-expect view 11
+tap FX
+tap FX
+expect view 14
 spin K1 -4
 expect par33 0
 tap FX
-expect view 12
+expect view 15
 spin K3 -10
 expect par39 40
 expect par46 80

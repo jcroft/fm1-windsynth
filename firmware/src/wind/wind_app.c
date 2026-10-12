@@ -25,6 +25,8 @@ static const wa_param_t PARAMS[P_NPARAMS] = {
     {"Feedback", 0, 100, 35}, {"CC depth", 0, 2000, 400},
     {"Shimmer", 0, 100, 50},
     {"Patch", 0, WV_DX_NPATCH - 1, 94},    /* 6-op: BRASS 6 BC (bank 3), one that holds while you blow */
+    {"Type", 0, WF_DS_NTYPE - 1, WF_DS_OVERDRIVE}, {"Mix", 0, 100, 0}, {"Drive", 0, 100, 40}, {"Tone", 0, 100, 60},
+    {"Type", 0, WF_MO_NTYPE - 1, WF_MO_CHORUS}, {"Mix", 0, 100, 0}, {"Rate", 0, 100, 40}, {"Depth", 0, 100, 50},
 };
 
 const wa_param_t *wa_param_info(int i) { return &PARAMS[(unsigned)i < P_NPARAMS ? i : 0]; }
@@ -129,6 +131,26 @@ void wa_param_text(int i, int v, char *b)
     case P_ATTACK: case P_RELEASE: case P_RVPRE: case P_DLTIME: put_ms(b, v); return;
     case P_RVTYPE: copy_s(b, WF_RV_NAME[(unsigned)v < WF_RV_NTYPE ? v : 0]); return;
     case P_DLMODE: copy_s(b, WF_DL_NAME[(unsigned)v < WF_DL_NMODE ? v : 0]); return;
+    case P_DSTYPE: copy_s(b, WF_DS_NAME[(unsigned)v < WF_DS_NTYPE ? v : 0]); return;
+    case P_MOTYPE: copy_s(b, WF_MO_NAME[(unsigned)v < WF_MO_NTYPE ? v : 0]); return;
+    case P_MORATE: {                                     /* the LFO: "0.42Hz", "2.5Hz", "10Hz" */
+        uint32_t h = (uint32_t)(wf_rate_hz((float)v * 0.01f) * 100.0f + 0.5f);
+        if (h < 100u) {
+            *b++ = '0';
+            *b++ = '.';
+            *b++ = (char)('0' + h / 10u);
+            *b++ = (char)('0' + h % 10u);
+        } else if (h < 1000u) {
+            h = (h + 5u) / 10u;
+            b = put_u(b, h / 10u);
+            *b++ = '.';
+            *b++ = (char)('0' + h % 10u);
+        } else {
+            b = put_u(b, (h + 50u) / 100u);
+        }
+        copy_s(b, "Hz");
+        return;
+    }
     case P_RVDECAY: {                                    /* the reverb time: "0.8s", "3.5s", "17s" */
         uint32_t t = (uint32_t)(wf_decay_s((float)v * 0.01f) * 10.0f + 0.5f);
         if (t < 100u) {
@@ -256,6 +278,14 @@ void wa_set(int k, int v)
     case P_DLMIX: wf_cfg.dl_mix = (float)v * 0.01f; break;
     case P_DLTIME: wf_cfg.dl_ms = (float)v; break;
     case P_DLFB: wf_cfg.dl_fb = (float)v * 0.01f; break;
+    case P_DSTYPE: wf_cfg.ds_type = (uint8_t)v; break;
+    case P_DSMIX: wf_cfg.ds_mix = (float)v * 0.01f; break;
+    case P_DSDRIVE: wf_cfg.ds_drive = (float)v * 0.01f; break;
+    case P_DSTONE: wf_cfg.ds_tone = (float)v * 0.01f; break;
+    case P_MOTYPE: wf_cfg.mo_type = (uint8_t)v; break;
+    case P_MOMIX: wf_cfg.mo_mix = (float)v * 0.01f; break;
+    case P_MORATE: wf_cfg.mo_hz = wf_rate_hz((float)v * 0.01f); break;
+    case P_MODEPTH: wf_cfg.mo_depth = (float)v * 0.01f; break;
     case P_SLOPE: wv_slope(v ? WV_SLOPE_24 : WV_SLOPE_12); break;
     case P_BSRC: wc_cfg.breath_src = (uint8_t)v; break;
     case P_CURVE: wc_cfg.breath_curve = (int8_t)v; break;

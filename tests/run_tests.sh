@@ -45,7 +45,8 @@ run wind sh -c "mkdir -p $OUT/wind && $CXX -O2 -ffp-contract=off -DTEST -Ifirmwa
 run wind-ctl sh -c "$CC -O2 -ffp-contract=off -std=c99 -Wall -Wextra -Wdouble-promotion -Werror -Ifirmware/src \
     -o $OUT/wind/wind_ctl_test tests/host/wind_ctl_test.c firmware/src/wind/wind_ctl.c firmware/src/wind/wind_matrix.c \
     firmware/src/wind/wind_app.c firmware/src/wind/wind_fx.c \$(sh tools/wind_cxx.sh $CXX $OUT/wind -Werror) && $OUT/wind/wind_ctl_test"
-# the delay and the reverb: off is bit-exact, decay times, stereo, shimmer, echo times, Ping-pong; no libm
+# the effects: off is bit-exact, decay times, stereo, shimmer, echo times, Ping-pong, distortion level,
+# latency and aliasing, modulation; no libm
 run wind-fx sh -c "$CC -O2 -ffp-contract=off -std=c99 -Wall -Wextra -Wdouble-promotion -Werror -Ifirmware/src \
     -c -o $OUT/wind/wind_fx.o firmware/src/wind/wind_fx.c && \
     $CC -O2 -ffp-contract=off -std=c99 -Wall -Wextra -Werror -Ifirmware/src -o $OUT/wind/wind_fx_test \

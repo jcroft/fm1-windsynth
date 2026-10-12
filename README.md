@@ -6,7 +6,7 @@ It runs in the browser first, as the firmware's own C code compiled to WebAssemb
 FM-1 itself.
 
 > **Status: in development (0.0.x).** It plays: notes, breath, bite and glide from any windsynth
-> drive a Plaits voice (eight engines), with 64 presets, a reverb and a delay, in the browser and on
+> drive a Plaits voice (eight engines), with 64 presets, a distortion, a chorus/flanger/phaser, a delay and a reverb, in the browser and on
 > the FM-1. Nothing is released yet. The plan is in [docs/PLAN.md](docs/PLAN.md).
 
 ![Full breath on A3](docs/img/wind_voice.png) ![The Breath page](docs/img/wind_breath.png) ![Mod 1: breath to cutoff](docs/img/wind_mod.png)
@@ -42,9 +42,11 @@ step through every page.
 | SEL | Mod 1–4 (press again for the next) | Source (breath, bite, mod wheel, pressure, velocity), Destination (cutoff, resonance, amp, morph, timbre: the Engine page's second knob, FM's Index), Amount (−100 to +100) |
 | SEQ | Keys | Key breath, Octave |
 | GLO | Setup | Transpose, Tune, MIDI channel (Omni by default), Theme (Light or Dark); the version |
-| FX | Reverb | Type (Cloud, Hall, Plate, Room, Shimmer), Mix, Decay (0.2 s to 60 s), Tone |
-| FX again | Reverb 2 | Pre-delay (up to 500 ms), Size, Mod (how much the reverb moves; on Shimmer, Shimmer: how much of the tail climbs), Low end (the bass's decay, shorter or longer) |
+| FX | Distortion | Type (Overdrive, Distort, Fuzz, Fold, Crush), Mix, Drive, Tone |
+| FX again | Modulation | Type (Chorus, Ensemble, Flanger, Phaser), Mix, Rate (0.05 Hz to 10 Hz), Depth |
 | FX again | Delay | Mode (Digital, Tape, Analog, Ping-pong), Mix, Time (20 ms to 2 s; Ping-pong to 1.1 s), Feedback |
+| FX again | Reverb | Type (Cloud, Hall, Plate, Room, Shimmer), Mix, Decay (0.2 s to 60 s), Tone |
+| FX again | Reverb 2 | Pre-delay (up to 500 ms), Size, Mod (how much the reverb moves; on Shimmer, Shimmer: how much of the tail climbs), Low end (the bass's decay, shorter or longer) |
 
 The engines are Plaits' own, played by breath. Classic has its own filter, and every other engine goes
 through one like it, so breath on cutoff works the same way on all of them. Their knobs take the
@@ -68,9 +70,18 @@ gesture.
 
 ## Effects
 
-The delay feeds the reverb, and both are stereo out. Mix works the same on each: at 0 the effect is
-off, at 50 you hear the dry sound and the effect at full level, and at 100 only the effect. Both start
+The voice goes through four effects in order: Distortion, Modulation, Delay, Reverb. Modulation turns
+it stereo, and the delay and the reverb are stereo out. Mix works the same on each: at 0 the effect is
+off, at 50 you hear the dry sound and the effect at full level, and at 100 only the effect. All start
 at 0, so the init sound is dry, and a preset keeps its effects.
+
+The distortion has five types. **Overdrive** is a soft, slightly asymmetric clip, **Distort** a hard
+one, **Fuzz** hard on one side and soft on the other with more gain, **Fold** a wavefolder, and
+**Crush** fewer bits and a lower sample rate. Drive sets how hard, and Tone is a low-pass after it.
+The level stays near the dry sound's as Drive goes up, and all but Crush run at twice the rate, so
+high notes don't alias. **Chorus** on Modulation is two moving taps, left and right; **Ensemble**
+three, with a fast vibrato, like a string machine's; **Flanger** a short swept delay fed back; and
+**Phaser** six swept allpasses fed back. Both sides move differently, which makes the stereo.
 
 The reverb is one tank with five voicings. **Cloud** is the big ambient one, after Strymon's BigSky
 Cloud: a long chain of moving diffusers in front of a large loop, so notes bloom rather than echo.
@@ -110,6 +121,7 @@ you save).
 - 0.0.11: a smoother reverb tail that fades to silence.
 - 0.0.12: Glide is a set time that CC5 adds to; 6-op in tune and smooth; Swarm dropped.
 - 0.0.13: two more Plaits engines, PD (phase distortion) and Harmonic (additive).
+- 0.0.14: Distortion and Modulation (chorus, ensemble, flanger, phaser) before the delay and the reverb.
 
 ## Building and testing
 

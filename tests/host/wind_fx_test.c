@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
-/* The delay and the reverb (wind_fx), on the host, linked without libm:
+/* The effects (wind_fx), on the host, linked without libm:
  *
- *   off          Mix 0 on both: the voice, bit for bit; switched on again, they start from silence
+ *   off          Mix 0 on all four: the voice, bit for bit; switched on again, they start from silence
  *   lines        the reverb's lines at their longest fit its buffer
  *   reverb       every Type: the tail's decay matches the Decay knob's time, left and right differ, and
  *                it stays bounded at the longest Decay with Size moving
@@ -10,7 +10,12 @@
  *   shimmer      an octave above the note (four notes' average), where Cloud has next to nothing, and more
  *                with more Shimmer
  *   delay        the echo lands at Time, the next one at Feedback x it; Ping-pong: left at Time, right
- *                at twice it; Tape: its echo is darker than Digital's */
+ *                at twice it; Tape: its echo is darker than Digital's
+ *   distortion   every type holds the level near the dry's at any Drive and stays bounded; with no Drive,
+ *                Distort is the dry WF_DS_LATENCY samples late (so Mix 50 doesn't comb); Drive adds
+ *                harmonics; the oversampling keeps a 5 kHz tone's aliases down; Crush has few levels
+ *   modulation   every type stays bounded and near the dry's level, left and right differ; Phaser and
+ *                Flanger notch the spectrum at Mix 50 */
 #include <stdio.h>
 #include <string.h>
 #include "wind/wind_fx.h"
@@ -61,6 +66,8 @@ static void defaults(void)
     wf_init();
     wf_cfg.rv_mix = 0.0f;
     wf_cfg.dl_mix = 0.0f;
+    wf_cfg.ds_mix = 0.0f;
+    wf_cfg.mo_mix = 0.0f;
 }
 
 static void test_off(void)
@@ -74,14 +81,14 @@ static void test_off(void)
         same &= buf[2 * i] == (int32_t)(i * 2654435761u) >> 8 && buf[2 * i + 1] == buf[2 * i];
     check(same, "Mix 0: the voice, bit for bit");
     /* a tail, then off, then on again with nothing playing: silence, not the old tail */
-    wf_cfg.rv_mix = 1.0f;
-    wf_cfg.dl_mix = 1.0f;
+    wf_cfg.rv_mix = wf_cfg.dl_mix = wf_cfg.ds_mix = wf_cfg.mo_mix = 1.0f;
+    wf_cfg.mo_type = WF_MO_FLANGER;
     fill_click(SR / 2);
     run(SR / 2);
-    wf_cfg.rv_mix = wf_cfg.dl_mix = 0.0f;
+    wf_cfg.rv_mix = wf_cfg.dl_mix = wf_cfg.ds_mix = wf_cfg.mo_mix = 0.0f;
     memset(buf, 0, sizeof buf);
     run(256);
-    wf_cfg.rv_mix = wf_cfg.dl_mix = 1.0f;
+    wf_cfg.rv_mix = wf_cfg.dl_mix = wf_cfg.ds_mix = wf_cfg.mo_mix = 1.0f;
     memset(buf, 0, sizeof buf);
     run(SR);
     for (i = 0; i < SR; i++)
@@ -327,6 +334,172 @@ static void test_delay(void)
     }
 }
 
+static void fill_sine(uint32_t n, float f, float a)
+{
+    uint32_t i;
+    for (i = 0; i < n; i++)
+        buf[2 * i] = buf[2 * i + 1] = (int32_t)(a * fm_sinf(FM_TWO_PI * f * (float)i / WV_SR) * 8388607.0f);
+}
+
+static float peak_abs(uint32_t from, uint32_t len)
+{
+    float p = 0.0f;
+    uint32_t i;
+    for (i = from; i < from + len; i++) {
+        p = fm_fabsf(at(i, 0)) > p ? fm_fabsf(at(i, 0)) : p;
+        p = fm_fabsf(at(i, 1)) > p ? fm_fabsf(at(i, 1)) : p;
+    }
+    return p;
+}
+
+static void test_distortion(void)
+{
+    char m[160];
+    uint32_t t, i, n = SR / 2;
+    int ok_lvl = 1, ok_bound = 1;
+    float worst_lo = 0.0f, worst_hi = -99.0f;
+    for (t = 0; t < WF_DS_NTYPE; t++) {
+        int d;
+        for (d = 0; d <= 4; d++) {
+            float db;
+            defaults();
+            wf_cfg.ds_mix = 1.0f;
+            wf_cfg.ds_type = (uint8_t)t;
+            wf_cfg.ds_drive = (float)d * 0.25f;
+            wf_cfg.ds_tone = 1.0f;
+            fill_sine(n, 220.0f, 0.3f);
+            run(n);
+            db = 20.0f * 0.30103f * fm_log2f(rms(SR / 10, SR / 4, 0) / (0.3f * 0.7071f));
+            worst_lo = db < worst_lo ? db : worst_lo;
+            worst_hi = db > worst_hi ? db : worst_hi;
+            ok_lvl &= db > -8.0f && db < 6.0f;
+            ok_bound &= peak_abs(0, n) < 0.99f;
+        }
+    }
+    snprintf(m, sizeof m, "every type at every Drive: within -8..+6 dB of the dry (%.1f .. %.1f dB), unclipped",
+             worst_lo, worst_hi);
+    check(ok_lvl && ok_bound, m);
+    {   /* Distort with no Drive: the dry, WF_DS_LATENCY samples late (1 kHz: the DC blocker barely turns it) */
+        double e = 0.0, r = 0.0;
+        defaults();
+        wf_cfg.ds_mix = 1.0f;
+        wf_cfg.ds_type = WF_DS_DISTORT;
+        wf_cfg.ds_drive = 0.0f;
+        wf_cfg.ds_tone = 1.0f;
+        fill_sine(n, 1000.0f, 0.3f);
+        run(n);
+        for (i = SR / 10; i < SR / 10 + SR / 4; i++) {
+            float want = 0.3f * fm_sinf(FM_TWO_PI * 1000.0f * (float)(i - WF_DS_LATENCY) / WV_SR), d = at(i, 0) - want;
+            e += (double)d * d;
+            r += (double)want * want;
+        }
+        snprintf(m, sizeof m, "Distort, no Drive: the dry %d samples late (the rest %.1f dB down)", WF_DS_LATENCY,
+                 10.0 * 0.30103 * fm_log2f((float)(e / r)));
+        check(e < r * 0.003, m);
+    }
+    {   /* Drive: the third harmonic */
+        float h[2];
+        int d;
+        for (d = 0; d < 2; d++) {
+            defaults();
+            wf_cfg.ds_mix = 1.0f;
+            wf_cfg.ds_drive = (float)d;
+            wf_cfg.ds_tone = 1.0f;
+            fill_sine(n, 1000.0f, 0.3f);
+            run(n);
+            h[d] = tone_at(SR / 10, 8192, 3000.0f) / tone_at(SR / 10, 8192, 1000.0f);
+        }
+        snprintf(m, sizeof m, "Overdrive: Drive adds harmonics (the 3rd at %.3f, at full Drive %.3f)", h[0], h[1]);
+        check(h[0] < 0.03f && h[1] > 0.15f, m);
+    }
+    {   /* aliasing: Distort, full Drive, 5 kHz: its 7th, 35 kHz, would fold to 9.1 kHz */
+        float a, f;
+        defaults();
+        wf_cfg.ds_mix = 1.0f;
+        wf_cfg.ds_type = WF_DS_DISTORT;
+        wf_cfg.ds_drive = 1.0f;
+        wf_cfg.ds_tone = 1.0f;
+        fill_sine(n, 5000.0f, 0.3f);
+        run(n);
+        f = tone_at(SR / 10, 8192, 5000.0f);
+        a = tone_at(SR / 10, 8192, WV_SR - 35000.0f);
+        snprintf(m, sizeof m, "Distort at 5 kHz: the 7th's alias %.1f dB under the note",
+                 20.0f * 0.30103f * fm_log2f(f / (a + 1e-9f)));
+        check(a < f * 0.03f, m);
+    }
+    {   /* Crush at full Drive: a handful of levels */
+        int32_t seen[64];
+        int ns = 0, k, over = 0;
+        defaults();
+        wf_cfg.ds_mix = 1.0f;
+        wf_cfg.ds_type = WF_DS_CRUSH;
+        wf_cfg.ds_drive = 1.0f;
+        wf_cfg.ds_tone = 1.0f;
+        wf_cfg.mo_mix = 0.0f;
+        fill_sine(n, 220.0f, 0.6f);
+        /* (the DC blocker and the low-pass smear the steps: look before them, at what the hold holds) */
+        run(n);
+        for (i = SR / 10; i < SR / 10 + 4410u; i++) {
+            int32_t v = (int32_t)(at(i, 0) * 16.0f + (at(i, 0) < 0.0f ? -0.5f : 0.5f));
+            for (k = 0; k < ns && seen[k] != v; k++)
+                ;
+            if (k == ns) {
+                if (ns < 64)
+                    seen[ns++] = v;
+                else
+                    over = 1;
+            }
+        }
+        snprintf(m, sizeof m, "Crush: few levels (%d at 1/16 resolution)", ns);
+        check(!over && ns <= 24, m);
+    }
+}
+
+static void test_modulation(void)
+{
+    char m[160];
+    uint32_t t, i, n = SR * 2;
+    for (t = 0; t < WF_MO_NTYPE; t++) {
+        float db, diff = 0.0f, pk;
+        uint32_t r = 777;
+        defaults();
+        wf_cfg.mo_mix = 1.0f;
+        wf_cfg.mo_type = (uint8_t)t;
+        wf_cfg.mo_depth = 1.0f;
+        wf_cfg.mo_hz = wf_rate_hz(0.6f);
+        for (i = 0; i < n; i++) {        /* noise, -16 dB */
+            r = r * 1664525u + 1013904223u;
+            buf[2 * i] = buf[2 * i + 1] = (int32_t)((float)(int32_t)r * (1.0f / 2147483648.0f) * 0.27f * 8388607.0f);
+        }
+        run(n);
+        db = 20.0f * 0.30103f * fm_log2f(rms(SR / 4, SR, 0) / (0.27f * 0.57735f));
+        pk = peak_abs(0, n);
+        for (i = SR / 4; i < SR / 4 + SR; i++)
+            diff += fm_fabsf(at(i, 0) - at(i, 1));
+        snprintf(m, sizeof m, "%s: %.1f dB against the dry, its peak %.2f, left and right differ", WF_MO_NAME[t], db, pk);
+        check(db > -6.0f && db < 6.0f && pk < 0.99f && diff > 0.01f * (float)SR, m);
+    }
+    for (t = WF_MO_FLANGER; t <= WF_MO_PHASER; t++) {   /* Mix 50: notches, a sine moves in and out of them */
+        float lo = 99.0f, hi = 0.0f;
+        uint32_t w;
+        defaults();
+        wf_cfg.mo_mix = 0.5f;
+        wf_cfg.mo_type = (uint8_t)t;
+        wf_cfg.mo_depth = 1.0f;
+        wf_cfg.mo_hz = 0.5f;
+        fill_sine(n, 1000.0f, 0.2f);
+        run(n);
+        for (w = 0; w < 40u; w++) {
+            float v = rms(SR / 4 + w * (SR / 24), SR / 100, 0);
+            lo = v < lo ? v : lo;
+            hi = v > hi ? v : hi;
+        }
+        snprintf(m, sizeof m, "%s at Mix 50: the note swells and dips %.1f dB", WF_MO_NAME[t],
+                 20.0f * 0.30103f * fm_log2f(hi / lo));
+        check(hi > lo * 4.0f, m);
+    }
+}
+
 int main(void)
 {
     test_off();
@@ -334,6 +507,8 @@ int main(void)
     test_tail();
     test_shimmer();
     test_delay();
+    test_distortion();
+    test_modulation();
     if (fails)
         printf("wind_fx: %d FAILED\n", fails);
     else

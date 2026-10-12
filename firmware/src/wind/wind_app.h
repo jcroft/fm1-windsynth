@@ -29,6 +29,8 @@ enum {
     P_GDEPTH,                                        /* Pitch 2 page (0.0.8) */
     P_RVSHIM,                                        /* Reverb 2, in Mod's place on Shimmer (0.0.9) */
     P_DXPATCH,                                       /* Engine page, in Ratio's place on 6-op (0.0.10) */
+    P_DSTYPE, P_DSMIX, P_DSDRIVE, P_DSTONE,          /* Distortion page (0.0.14) */
+    P_MOTYPE, P_MOMIX, P_MORATE, P_MODEPTH,          /* Modulation page */
     P_NPARAMS
 };
 typedef struct {
