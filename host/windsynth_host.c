@@ -22,7 +22,11 @@
  *   expect WHAT VALUE            check state: exit 1 on mismatch; VALUE "<N" / ">N" is a bound
  *                                (WHAT: view dirty store_writes store_tries preset edited parN gate top (the note sounding)
  *                                 note (x100) breath cutoff res amp morph timbre noise level (x100) litkeys (bits)
- *                                 stale (pixels a redraw from scratch changes: 0, or the screen missed a change)
+ *                                 stale (pixels a redraw from scratch changes: 0, or the screen missed a change;
+ *                                 this ms's whole ui_frame runs first, input and autosave too, then
+ *                                 the redraw, at the same ms)
+ *                                 blits (screen transfers since the last blits check, or the start)
+ *                                 pxX_Y (the pixel at X, Y as RGB565)
  *                                 ghostN (knob N's ghost tick: its x on the screen, -1 none; on Stage:
  *                                 the lit row's dial N, its place along the ring 0..42)
  *                                 stage (1: Stage is showing) dimkeys (how many keys are lit dim)
@@ -36,12 +40,15 @@
  *                                 scope_since (the same, from the one scopemark kept: it doesn't drift)
  *                                 scope_height (px from its newest trace's top to its bottom; 0 none)
  *                                 scope_note (the note its traces show, MIDI) scope_trail (traces it shows, 0..3)
- *                                 blits (the screen's redraws since the last expect blits)
  *                                 scope_label (text: its label on the right, "Square_40", "-" none)
  *                                 offbgY0_Y1 (pixels in rows Y0..Y1 that aren't the background); text: rtrowN
  *                                 rtoff rtdst rtmonN (the Mod and Setup views' rows, see view_route.inc)
  *                                 themepxX_Y (the theme colour at (X, Y): 0 bg 1 panel 2 line 3 dim 4 text
  *                                 5 white 6 accent 7 accent tint 8 blue 9 blue tint, -1 none of them)
+ *                                 colX_Y (the theme's colour at pixel X,Y: 0 bg 1 panel 2 line 3 dim 4 text
+ *                                 5 white 6 accent 7 accent tint 8 blue 9 blue tint, -1 none of them)
+ *                                 topX_C (the top row of the middle band, 28..171, in column X that is theme
+ *                                 colour C, as colX_Y numbers them; -1 none) botX_C (the same, the bottom row)
  *                                 peak_db_max peak_db_min; text, "_" a space: msg0 msg1 (the message's
  *                                 lines) knob1..knob4 (a knob's name on this page, "-" none) val1..val4 (its value as shown))
  *   scopemark                    keep the Engine page's newest scope trace (expect scope_since)
@@ -463,6 +470,15 @@ static int expect(const char *what, const char *val)
         got = (int)(wa_state.pitch * 100.0f + (wa_state.pitch < 0.0f ? -0.5f : 0.5f));
     else if (!strcmp(what, "level"))
         got = (int)(wa_state.level * 100.0f + 0.5f);
+    else if (!strncmp(what, "px", 2)) {           /* pxX_Y: the pixel's RGB565 value */
+        uint16_t p = fb[(atoi(strchr(what, '_') ? strchr(what, '_') + 1 : "0") % 240) * 240 + atoi(what + 2) % 240];
+        got = (uint16_t)((p >> 8) | (p << 8));
+    }
+    else if (!strcmp(what, "blits")) {            /* transfers since the last check */
+        static uint32_t blits_seen;
+        got = (int)(blits - blits_seen);
+        blits_seen = blits;
+    }
     else if (!strncmp(what, "acc", 3)) {          /* accX_Y: 1 when the pixel at (X, Y) is the accent colour */
         int x = atoi(what + 3) % 240, y = atoi(strchr(what, '_') ? strchr(what, '_') + 1 : "0") % 240;
         uint16_t p = fb[y * 240 + x];
@@ -493,11 +509,6 @@ static int expect(const char *what, const char *val)
         got = vs.note;
     else if (!strcmp(what, "scope_trail"))
         got = vs.n;
-    else if (!strcmp(what, "blits")) {
-        static uint32_t was;
-        got = (int)(blits - was);
-        was = blits;
-    }
     else if (!strcmp(what, "scope_height")) {
         int i, lo = 999, hi = -999;
         for (i = 0; vs.n && i < VS_N; i++) {
@@ -518,7 +529,8 @@ static int expect(const char *what, const char *val)
     else if (!strcmp(what, "stale")) {            /* pixels that change when the screen is drawn from scratch */
         static uint16_t was[240 * 240];
         uint32_t i;
-        memcpy(was, fb, sizeof fb);
+        ui_frame();                               /* this ms's frame, then the same ms from scratch: a */
+        memcpy(was, fb, sizeof fb);               /* moving view draws the same time in both */
         ui_repaint();
         uint32_t x0 = 240, y0 = 240, x1 = 0, y1 = 0;
         got = 0;
@@ -530,6 +542,25 @@ static int expect(const char *what, const char *val)
             }
         if (got)
             printf("  stale pixels in x %u..%u, y %u..%u\n", x0, x1, y0, y1);
+    }
+    else if (!strncmp(what, "col", 3) || !strncmp(what, "top", 3) || !strncmp(what, "bot", 3)) {
+        /* colX_Y, topX_C, botX_C: the theme's colours */
+        const uint16_t tc[10] = {K_BG, K_PANEL, K_LINE, K_DIM, K_TEXT, K_WHITE, K_ACC, K_ACC_T, K_BLUE, K_BLUE_T};
+        int x = atoi(what + 3) % 240, a = strchr(what, '_') ? atoi(strchr(what, '_') + 1) : 0, y, c;
+        got = -1;
+        for (y = what[0] == 'c' ? a % 240 : MAIN_Y; y < (what[0] == 'c' ? a % 240 + 1 : MAIN_Y + MAIN_H); y++) {
+            uint16_t p = fb[y * 240 + x];
+            p = (uint16_t)((p >> 8) | (p << 8));
+            for (c = 0; c < 10 && tc[c] != p; c++)
+                ;
+            if (what[0] == 'c') {
+                got = c < 10 ? c : -1;
+            } else if (c == a) {
+                got = y;
+                if (what[0] == 't')
+                    break;
+            }
+        }
     }
     else if (!strncmp(what, "luma", 4)) {         /* lumaY: the screen's brightness at (2, Y) */
         uint16_t p = fb[(atoi(what + 4) % 240) * 240 + 2];

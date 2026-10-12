@@ -67,6 +67,14 @@ void wf_process(int32_t *lr, uint32_t n);
 float wf_decay_s(float decay);         /* Decay 0..1 as the reverb time (RT60, s): 0.2 .. 60 */
 float wf_rate_hz(float rate);          /* the modulation's Rate 0..1 as its LFO's (Hz): 0.05 .. 10 */
 uint32_t wf_reverb_span(void);         /* the reverb's lines at their longest, in samples (tests) */
+/* for the screen: the effects' own numbers */
+float wf_ds_shape(uint32_t type, float drive, float x, uint32_t *hold);   /* the shaper (Crush: its steps), x
+                                       * -1..1 at Drive 0..1, before Tone and the level; *hold: Crush's samples held */
+float wf_ds_tone_hz(float tone);       /* the distortion's low-pass (0: open) */
+float wf_rv_scale(uint32_t type, float size);   /* the reverb's lines' length, a Type's own at Size 50 x 0.5 .. 1.5 */
+float wf_rv_rt_at(uint32_t type, float size, float decay, float tone, float hz);   /* RT60 (s) of a tone at hz */
+float wf_dl_pass_gain(uint32_t mode, float hz); /* a delay repeat's gain at hz through its feedback filters */
+float wf_dl_max_ms(uint32_t mode);    /* the longest Time a mode plays (ms; Ping-pong about 1,112) */
 
 #ifdef __cplusplus
 }

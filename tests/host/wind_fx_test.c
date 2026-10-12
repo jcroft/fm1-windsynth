@@ -552,8 +552,62 @@ static void test_switching(void)
     }
 }
 
+/* the screen's numbers (wf_ds_shape, wf_rv_rt_at, wf_dl_pass_gain) against the sound */
+static void test_screen(void)
+{
+    char m[160];
+    float want, got, a, b;
+    uint32_t i, hold;
+    int32_t x = (int32_t)(0.3f * 8388608.0f);
+    /* Crush, Mix 100 and Tone open: one sample through it is the shaper's step, as the screen's curve has it */
+    defaults();
+    wf_cfg.ds_type = WF_DS_CRUSH;
+    wf_cfg.ds_drive = 0.25f;
+    wf_cfg.ds_tone = 1.0f;
+    wf_cfg.ds_mix = 1.0f;
+    memset(buf, 0, sizeof buf);
+    run(64);                            /* (the gains up to the wet alone) */
+    buf[0] = buf[1] = x;
+    for (i = 1; i < 64; i++)
+        buf[2 * i] = buf[2 * i + 1] = 0;
+    wf_process(buf, 64);
+    want = wf_ds_shape(WF_DS_CRUSH, 0.25f, (float)x * (1.0f / 8388608.0f), &hold);
+    snprintf(m, sizeof m, "Crush: a sample out %d is the screen's step %d (held %u)", (int)buf[2 * WF_DS_LATENCY],
+             (int)(want * 8388607.0f), (unsigned)hold);
+    check(buf[2 * WF_DS_LATENCY] == (int32_t)(want * 8388607.0f) && hold == 1u &&
+              want != (float)x * (1.0f / 8388608.0f), m);
+    check(wf_ds_shape(WF_DS_DISTORT, 0.4f, 0.5f, 0) == 1.0f && wf_ds_shape(WF_DS_FUZZ, 0.4f, 0.9f, 0) == 0.6f,
+          "Distort clips at 1, Fuzz's top at 0.6");
+    check(wf_ds_tone_hz(1.0f) == 0.0f && wf_ds_tone_hz(0.0f) == 700.0f, "Tone: open at 100, 700 Hz at 0");
+    /* the reverb: open Tone, Decay's time at every pitch; the highs' time at Tone 30, as measured */
+    for (i = 0; i < WF_RV_NTYPE; i++)
+        if (wf_rv_rt_at(i, 0.5f, 0.45f, 1.0f, 4000.0f) != wf_decay_s(0.45f))
+            break;
+    check(i == WF_RV_NTYPE, "Reverb: at Tone 100 the highs fall in Decay's time");
+    defaults();
+    wf_cfg.rv_type = WF_RV_HALL;
+    wf_cfg.rv_mix = 1.0f;
+    wf_cfg.rv_decay = 0.45f;
+    wf_cfg.rv_tone = 0.3f;
+    wf_cfg.rv_pre_ms = 0.0f;
+    fill_click(2 * SR);
+    run(2 * SR);
+    want = wf_rv_rt_at(WF_RV_HALL, 0.5f, 0.45f, 0.3f, 4000.0f);
+    a = tone_at(SR / 5, SR / 5, 4000.0f);
+    b = tone_at(SR * 6 / 10, SR / 5, 4000.0f);
+    got = 0.4f * 60.0f / (20.0f * fm_log2f(a / b) * 0.30103f);
+    snprintf(m, sizeof m, "Reverb: 4 kHz at Tone 30 falls 60 dB in %.2f s, the screen says %.2f s (Decay %.2f s)", got, want,
+             wf_decay_s(0.45f));
+    check(got > want * 0.7f && got < want * 1.4f && want < 0.8f * wf_decay_s(0.45f), m);
+    check(wf_dl_pass_gain(WF_DL_TAPE, 3000.0f) < wf_dl_pass_gain(WF_DL_DIGITAL, 3000.0f) &&
+              wf_dl_pass_gain(WF_DL_ANALOG, 3000.0f) < wf_dl_pass_gain(WF_DL_TAPE, 3000.0f) &&
+              wf_dl_pass_gain(WF_DL_DIGITAL, 3000.0f) > 0.9f,
+          "Delay: Tape and Analog repeats darker than Digital's");
+}
+
 int main(void)
 {
+    test_screen();
     test_off();
     test_reverb();
     test_tail();

@@ -4,6 +4,31 @@ A release is a push to `main` that changes `VERSION` to a version with no tag ye
 release build, tags the commit `vX.Y.Z` and publishes the GitHub Release with that version's notes,
 taken from its section below. Add the section in the same pull request as the `VERSION` change.
 
+## 0.0.27
+
+The FX pages show what each effect does to the sound, instead of the note and the bars:
+
+- **The chain**, along the top of all five: DIST, MOD, DELAY and VERB in the order the sound goes
+  through them, this page's lit, and a bar under each one whose Mix is up (full at 50, where the effect
+  is at full level).
+- **Distortion:** the Type's curve at this Drive, with a dot where the note you're playing lands on it,
+  and a sine wave before and after it, Tone's darkening included.
+- **Modulation:** how the left and right delay times sweep over the last few seconds (Phaser: its
+  notches), moving while you play.
+- **Delay:** the echoes laid out in time from Time and Feedback, the dry note first. Ping-pong goes left,
+  right, left (Time past its longest, about 1.1 s, says "max"); Tape and Analog get darker each repeat. Each
+  echo lights as it sounds.
+- **Reverb:** the tail falling away in dB over a time scale from 50 ms to 80 s, so Decay moves where it
+  reaches -60 dB from 0.2 s all the way to 60 s; it starts after the Pre-delay, and a dashed line shows
+  the highs, which fall faster as Tone goes down. It shows the note feeding it while you play, then a marker runs
+  down the tail.
+- **Reverb 2:** the room, sized by Size and the Type, its walls moving with Mod; the pre-delay on the
+  direct path, Shimmer's octaves climbing, and Low end as a bass line above or below flat.
+
+An effect whose Mix is 0 draws in grey. The pictures come from the effects' own numbers, so they match
+what you hear. The pictures only redraw when something on them changes, and moving parts step at most
+30 times a second.
+
 ## 0.0.26
 
 New screens for the Mod and Setup pages:
