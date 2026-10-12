@@ -4,6 +4,20 @@ A release is a push to `main` that changes `VERSION` to a version with no tag ye
 release build, tags the commit `vX.Y.Z` and publishes the GitHub Release with that version's notes,
 taken from its section below. Add the section in the same pull request as the `VERSION` change.
 
+## 0.0.26
+
+New screens for the Mod and Setup pages:
+
+- **Mod 1-4: the routing, live.** The slot is drawn as a cable from its source to its destination: the
+  source's level as you play it, the amount on the cable (thicker and brighter the harder you blow), and
+  the destination's knob value with a mark where it is now, "40 → 67". Under it, everything modulating
+  the sound at the moment: the Mod slots in use, the LFO and the Filter page's Breath, each with its
+  source's level, and which slots are off.
+- **Setup: a tuner and a controller monitor.** The note you're sounding, big, with a needle and how many
+  cents off it is, with Transpose, Tune and the bite applied. Under it, what your controller is sending
+  as it arrives: the breath CC (or aftertouch, if that's the breath source), pitch bend, the glide CC and
+  the last note with its velocity, each with a dot that lights as a value comes in.
+
 ## 0.0.25
 
 - **Engine page: a scope.** The middle of the screen shows the engine's wave as you play: two periods of

@@ -8,6 +8,7 @@
 #pragma once
 #include <stdint.h>
 #include "wind_matrix.h"
+#include "wind_ctl.h"
 
 #define WA_BLOCK 64                    /* frames per control block (1.45 ms) */
 
@@ -73,6 +74,8 @@ typedef struct {
     float glide_ms;                    /* the glide time in force (Glide, plus the glide CC's share) */
     int top;                           /* the note sounding (MIDI number), -1 none yet */
     uint32_t midi_seen;                /* packets received */
+    float src[WM_NSRC];                /* the matrix's sources now (WM_SRC_*; Bite -1..1, the LFO faded) */
+    wc_mon_t mon;                      /* the controller monitor: raw values in, and when (wind_ctl) */
 } wa_state_t;
 extern volatile wa_state_t wa_state;
 

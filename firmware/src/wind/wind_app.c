@@ -617,6 +617,9 @@ void wa_render(int32_t *out, uint32_t n, uint32_t gain_q12, int (*midi_in)(uint3
         wa_state.pitch = f.note;
         wa_state.top = wc_top_note();
         wa_state.glide_ms = c.glide_ms;
+        for (i = 0; i < WM_NSRC; i++)
+            wa_state.src[i] = src[i];
+        wa_state.mon = *wc_monitor();
         out += 2 * k;
         n -= k;
     }

@@ -38,6 +38,8 @@
  *                                 scope_note (the note its traces show, MIDI) scope_trail (traces it shows, 0..3)
  *                                 blits (the screen's redraws since the last expect blits)
  *                                 scope_label (text: its label on the right, "Square_40", "-" none)
+ *                                 themepxX_Y (the theme colour at (X, Y): 0 bg 1 panel 2 line 3 dim 4 text
+ *                                 5 white 6 accent 7 accent tint 8 blue 9 blue tint, -1 none of them)
  *                                 peak_db_max peak_db_min; text, "_" a space: msg0 msg1 (the message's
  *                                 lines) knob1..knob4 (a knob's name on this page, "-" none) val1..val4 (its value as shown))
  *   scopemark                    keep the Engine page's newest scope trace (expect scope_since)
@@ -524,6 +526,20 @@ static int expect(const char *what, const char *val)
         uint16_t p = fb[(atoi(what + 4) % 240) * 240 + 2];
         p = (uint16_t)((p >> 8) | (p << 8));
         got = (int)((((p >> 11) & 31) * 255 / 31 * 3 + ((p >> 5) & 63) * 255 / 63 * 6 + (p & 31) * 255 / 31) / 10);
+    }
+    else if (!strncmp(what, "themepx", 7)) {      /* themepxX_Y: which theme colour the pixel at (X, Y) is */
+        const uint16_t *k = &THEME->bg;           /* (0 bg 1 panel 2 line 3 dim 4 text 5 white 6 accent */
+        uint16_t p;                               /*  7 accent tint 8 blue 9 blue tint; -1 none of them) */
+        int x = atoi(what + 7) % 240, y = 0, i;
+        const char *u = strchr(what, '_');
+        if (u)
+            y = atoi(u + 1) % 240;
+        p = fb[y * 240 + x];
+        p = (uint16_t)((p >> 8) | (p << 8));
+        got = -1;
+        for (i = 0; i < 10 && got < 0; i++)
+            if (k[i] == p)
+                got = i;
     }
     else if (!strcmp(what, "peak_db_max") || !strcmp(what, "peak_db_min")) {
         double db = 20.0 * log10(peak_out > 1e-9f ? peak_out : 1e-9f);

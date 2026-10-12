@@ -160,6 +160,45 @@ static void test_bend(void)
     CHECK(NEAR(o.note, 60.0f + 7.0f * 2048.0f / 8191.0f, 1e-4f), "part bend: %g", (double)o.note);
 }
 
+/* the controller monitor (Setup): the raw values as they came, and the block each came in */
+static void test_monitor(void)
+{
+    const wc_mon_t *m = wc_monitor();
+    uint32_t t0;
+    wc_init();
+    CHECK(m->clock == 1u && !m->t_breath && !m->t_bend && !m->t_glide && !m->t_note, "monitor at init: clock %u",
+          (unsigned)m->clock);
+    run(10);                                          /* 10 ms: 7 blocks of 64 */
+    CHECK(m->clock == 8u, "clock after 10 ms: %u", (unsigned)m->clock);
+    t0 = m->clock;
+    wc_midi(0xB0, 2, 100);
+    CHECK(m->breath == (100u << 7 | 100u) && m->t_breath == t0, "breath CC: %u at %u", (unsigned)m->breath,
+          (unsigned)m->t_breath);
+    wc_midi(0xB0, 34, 5);                             /* its LSB */
+    CHECK(m->breath == (100u << 7 | 5u), "breath LSB: %u", (unsigned)m->breath);
+    wc_midi(0xB0, 11, 50);                            /* not the source: not breath */
+    CHECK(m->breath == (100u << 7 | 5u), "CC11 taken for breath");
+    wc_midi(0xE0, 0x00, 0x30);
+    CHECK(m->bend == -2048 && m->t_bend == t0, "bend: %d", m->bend);
+    run(1);
+    wc_midi(0xB0, 5, 77);
+    CHECK(m->glide == 77u && m->t_glide == t0 + 1u, "glide CC: %u at %u", (unsigned)m->glide, (unsigned)m->t_glide);
+    wc_midi(0x90, 65, 90);
+    CHECK(m->note == 65u && m->velocity == 90u && m->on && m->t_note == t0 + 1u, "note on: %u %u %u", m->note,
+          m->velocity, m->on);
+    wc_midi(0x90, 65, 0);                             /* velocity 0: off */
+    CHECK(m->note == 65u && !m->on, "note off");
+    wc_key(60, 1);                                    /* the panel's keys too, at their fixed velocity */
+    CHECK(m->note == 60u && m->velocity == 100u && m->on, "panel key: %u %u", m->note, m->velocity);
+    wc_key(60, 0);
+    wc_cfg.breath_src = WC_SRC_AT;                    /* pressure as the breath */
+    wc_midi(0xD0, 33, 0);
+    CHECK(m->breath == (33u << 7 | 33u), "pressure as breath: %u", (unsigned)m->breath);
+    wc_cfg.glide_src = WC_SRC_OFF;
+    wc_midi(0xB0, 5, 10);
+    CHECK(m->glide == 77u, "glide CC with the glide source off");
+}
+
 static void test_glide(void)
 {
     wc_init();
@@ -388,6 +427,7 @@ int main(void)
     test_notes();
     test_breath();
     test_bend();
+    test_monitor();
     test_glide();
     test_matrix();
     test_app();

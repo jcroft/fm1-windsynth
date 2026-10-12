@@ -18,6 +18,7 @@ static struct {
     uint8_t glide_cc;                  /* the glide CC's value */
     uint8_t glide_src;                 /* ...the CC it came on: another (or Off) and it's 0 */
 } w;
+static wc_mon_t mon;                   /* the controller monitor */
 
 void wc_reset(void)
 {
@@ -46,6 +47,11 @@ void wc_init(void)
     w.rate = 0.0f;
     w.velocity = 0.0f;
     wc_reset();
+    mon.t_breath = mon.t_bend = mon.t_glide = mon.t_note = 0u;
+    mon.breath = 0u;
+    mon.bend = 0;
+    mon.glide = mon.note = mon.velocity = mon.on = 0u;
+    mon.clock = 1u;
 }
 
 /* the glide CC chosen again (another, or Off): what the old one set no longer adds */
@@ -93,6 +99,15 @@ static void drop(int note)
         }
 }
 
+/* a note on or off, for the monitor */
+static void seen_note(int note, int vel, int on)
+{
+    mon.note = (uint8_t)note;
+    mon.velocity = (uint8_t)vel;
+    mon.on = (uint8_t)on;
+    mon.t_note = mon.clock;
+}
+
 static void note_on(int note, int key)
 {
     int legato = w.n > 0;
@@ -116,6 +131,8 @@ static void note_off(int note)
 
 static void set_breath(void)
 {
+    mon.breath = w.breath_raw;
+    mon.t_breath = mon.clock;
     w.breath_cc = (float)w.breath_raw * (1.0f / 16383.0f);
 }
 
@@ -130,8 +147,11 @@ static void cc(uint32_t n, uint32_t v)
         set_breath();
     }
     glide_sync();
-    if (n == wc_cfg.glide_src)
+    if (n == wc_cfg.glide_src) {
         w.glide_cc = (uint8_t)v;
+        mon.glide = (uint8_t)v;
+        mon.t_glide = mon.clock;
+    }
     if (n == 1u)
         w.mod = (float)v * (1.0f / 127.0f);
     if (n == 120u || n == 123u) {      /* all sound off, all notes off */
@@ -152,12 +172,17 @@ void wc_midi(uint32_t st, uint32_t d1, uint32_t d2)
     case 0x90u:
         if (d2) {
             w.velocity = (float)d2 * (1.0f / 127.0f);
+            seen_note((int)d1, (int)d2, 1);
             note_on((int)d1, 0);
         } else {
+            seen_note((int)d1, 0, 0);
             note_off((int)d1);         /* velocity 0: a note off */
         }
         break;
-    case 0x80u: note_off((int)d1); break;
+    case 0x80u:
+        seen_note((int)d1, (int)d2, 0);
+        note_off((int)d1);
+        break;
     case 0xB0u: cc(d1, d2); break;
     case 0xD0u:
         w.pressure = (float)d1 * (1.0f / 127.0f);
@@ -169,6 +194,8 @@ void wc_midi(uint32_t st, uint32_t d1, uint32_t d2)
     case 0xE0u: {
         int b = (int)(d2 << 7 | d1) - 8192;
         w.bend = (float)b * (b > 0 ? 1.0f / 8191.0f : 1.0f / 8192.0f);
+        mon.bend = (int16_t)b;
+        mon.t_bend = mon.clock;
         break;
     }
     default: break;
@@ -181,10 +208,12 @@ void wc_key(int note, int on)
         return;
     if (on) {
         w.velocity = 100.0f / 127.0f;   /* the panel's keys have no velocity: a fixed one, not the last MIDI note's */
+        seen_note(note, 100, 1);
         note_on(note, 1);
-    }
-    else
+    } else {
+        seen_note(note, 0, 0);
         note_off(note);
+    }
 }
 
 static float curve(float x)
@@ -201,6 +230,8 @@ static float curve(float x)
 void wc_block(uint32_t frames, float sr, wc_out_t *o)
 {
     float t = (float)frames / sr, b = curve(w.breath_cc), a;
+    if (!++mon.clock)                  /* (0 is "never") */
+        mon.clock = 1u;
     if (w.keys && wc_cfg.key_breath > b)
         b = wc_cfg.key_breath;
     a = 1.0f - fm_expf(-t * (1000.0f / BREATH_MS));
@@ -228,3 +259,4 @@ void wc_block(uint32_t frames, float sr, wc_out_t *o)
 
 int wc_held(void) { return w.n; }
 int wc_top_note(void) { return w.top; }
+const wc_mon_t *wc_monitor(void) { return &mon; }
