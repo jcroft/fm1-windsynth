@@ -17,6 +17,7 @@ run() {
         echo "  ok   $name"
     else
         echo "  FAIL $name (see $OUT/$name.log)"
+        grep 'FAIL' "$OUT/$name.log" | head -10 | sed 's/^/       /'
         tail -15 "$OUT/$name.log" | sed 's/^/       /'
         FAIL=1
     fi
