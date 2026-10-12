@@ -49,7 +49,8 @@ step through every page.
 | FX again | Reverb 2 | Pre-delay (up to 500 ms), Size, Mod (how much the reverb moves; on Shimmer, Shimmer: how much of the tail climbs), Low end (the bass's decay, shorter or longer) |
 
 The engines are Plaits' own, played by breath. Classic has its own filter, and every other engine goes
-through one like it, so breath on cutoff works the same way on all of them. Their knobs take the
+through an exact copy of it, drive and saturation included, so breath on cutoff works and sounds the
+same way on all of them. Their knobs take the
 engine's names.
 
 | Engine | Engine page | Morph (Voice page) |
@@ -122,6 +123,7 @@ you save).
 - 0.0.12: Glide is a set time that CC5 adds to; 6-op in tune and smooth; Swarm dropped.
 - 0.0.13: two more Plaits engines, PD (phase distortion) and Harmonic (additive).
 - 0.0.14: Distortion and Modulation (chorus, ensemble, flanger, phaser) before the delay and the reverb.
+- 0.0.15: every engine goes through Classic's filter exactly, its drive and saturation included.
 
 ## Building and testing
 

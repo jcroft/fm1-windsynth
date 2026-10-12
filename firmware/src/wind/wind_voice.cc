@@ -1,7 +1,9 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
 /* The wind voice: a Plaits engine into a gate envelope and VCA, a DC blocker and a soft clip.
- * Classic (VA-VCF) has its own filter; every other engine goes through ours, the same two SVFs
- * VA-VCF uses, key-tracked and scaled the same way, so Cutoff, Resonance and Slope mean the same on all.
+ * Classic (VA-VCF) has its own filter; every other engine goes through ours, which is VA-VCF's, line for
+ * line: the same two SVFs, key-tracked and scaled the same way, driven the same way (soft clipping into
+ * the first, between the two and in the second, the drive easing off as resonance rises), so Cutoff,
+ * Resonance and Slope mean and sound the same on all. (A test holds it to VA-VCF bit for bit.)
  * The others take Plaits' own HARMONICS, TIMBRE and MORPH. 6-op plays a DX7 patch from Plaits' three
  * banks, its envelopes started by each new breath (the gate) and held through legato notes; the rest
  * have no envelope of their own.
@@ -68,9 +70,12 @@ static union {
     char raw[2 * sizeof(stmlib::Svf)];
     double align;
 } post_mem;
-static stmlib::Svf *post;               /* FM's filter: LP, then LP for 24 dB (built in wv_init: a static
+static stmlib::Svf *post;               /* our filter: LP, then LP for 24 dB (built in wv_init: a static
                                          * object with a constructor would need one run at boot) */
-static float post_f, post_q;            /* its cutoff and Q at the end of the last block */
+typedef struct {
+    float f, q, gain, stage2;           /* its targets for a block (and, kept, at the end of the last) */
+} post_k_t;
+static post_k_t post_at;
 static uint32_t slope;
 static float env, env_up, env_down;     /* the gate envelope: 5 ms up, 60 ms down by default */
 static float dc_x, dc_y;                /* DC blocker state */
@@ -103,30 +108,46 @@ static void params_for(const wind_frame_t *f, EngineParameters *p)
     p->harmonics = slope == WV_SLOPE_24 ? 0.375f - 0.375f * r : 0.625f + 0.375f * r;
 }
 
-/* FM's filter, as VA-VCF's: the cutoff tracks the note (TIMBRE 0.2 at the note, 10 octaves a unit),
- * the resonance is its HARMONICS curve, and the second stage barely resonates */
-static void post_targets(const wind_frame_t *f, float *fc, float *q)
+/* Our filter's settings for a block, as VA-VCF works out its own from TIMBRE and HARMONICS (the cutoff
+ * tracks the note, TIMBRE 0.2 at it and 10 octaves a unit; HARMONICS, as params_for sets it, picks the
+ * slope and the resonance and sets the drive) */
+static void post_targets(const wind_frame_t *f, post_k_t *k)
 {
-    float r = clamp01(f->res), r2 = r * r;
-    *fc = NoteToFrequency(f->note + WV_TUNE) * stmlib::SemitonesToRatio((clamp01(f->cutoff) - 0.2f) * 120.0f);
-    *fc = *fc < 0.25f ? *fc : 0.25f;
-    *q = r2 * r2 * 48.0f;
+    float r = clamp01(f->res);
+    float h = slope == WV_SLOPE_24 ? 0.375f - 0.375f * r : 0.625f + 0.375f * r;
+    float res = 2.667f * fm_maxf(fm_fabsf(h - 0.5f) - 0.125f, 0.0f), res2 = res * res;
+    k->f = NoteToFrequency(f->note + WV_TUNE) * stmlib::SemitonesToRatio((clamp01(f->cutoff) - 0.2f) * 120.0f);
+    k->stage2 = 1.0f - (h - 0.4f) * 4.0f;
+    CONSTRAIN(k->stage2, 0.0f, 1.0f);
+    k->q = res2 * res2 * 48.0f;
+    k->gain = (h - 0.7f) + 0.85f;
+    CONSTRAIN(k->gain, 0.7f - res2 * 0.3f, 1.0f);
 }
 
-static void post_filter(float *x, uint32_t n, float fc, float q)
+/* VA-VCF's filter loop, on the engine's output */
+static void post_filter(float *x, uint32_t n, const post_k_t *k)
 {
-    stmlib::ParameterInterpolator fi(&post_f, fc, (size_t)n), qi(&post_q, q, (size_t)n);
+    stmlib::ParameterInterpolator fi(&post_at.f, k->f, (size_t)n), qi(&post_at.q, k->q, (size_t)n),
+        si(&post_at.stage2, k->stage2, (size_t)n), gi(&post_at.gain, k->gain, (size_t)n);
     uint32_t i;
     for (i = 0; i < n; i++) {
-        float f = fi.Next(), qq = qi.Next(), y;
-        post[0].set_f_q<stmlib::FREQUENCY_FAST>(f, 0.5f + qq);
-        y = post[0].Process<stmlib::FILTER_MODE_LOW_PASS>(x[i] * 0.7f);
-        if (slope == WV_SLOPE_24) {
-            post[1].set_f_q<stmlib::FREQUENCY_FAST>(f, 0.5f + 0.025f * qq);
-            y = post[1].Process<stmlib::FILTER_MODE_LOW_PASS>(y);
-        }
-        x[i] = stmlib::SoftClip(y);
+        float f = fi.Next(), q = qi.Next(), s2 = si.Next(), g, lp;
+        f = f < 0.25f ? f : 0.25f;
+        post[0].set_f_q<stmlib::FREQUENCY_FAST>(f, 0.5f + q);
+        post[1].set_f_q<stmlib::FREQUENCY_FAST>(f, 0.5f + 0.025f * q);
+        g = gi.Next();
+        lp = post[0].Process<stmlib::FILTER_MODE_LOW_PASS>(stmlib::SoftClip(x[i] * g));
+        lp = stmlib::SoftClip(lp * g);
+        lp += s2 * (stmlib::SoftClip(post[1].Process<stmlib::FILTER_MODE_LOW_PASS>(lp)) - lp);
+        x[i] = lp;
     }
+}
+
+static void post_reset(void)
+{
+    post[0].Init();
+    post[1].Init();
+    post_at.f = post_at.q = post_at.gain = post_at.stage2 = 0.0f;   /* (as VA-VCF's Init) */
 }
 
 extern "C" void wv_init(void)
@@ -153,10 +174,7 @@ extern "C" void wv_init(void)
     engine = WV_CLASSIC;
     post = new (post_mem.raw) stmlib::Svf();
     new (post_mem.raw + sizeof(stmlib::Svf)) stmlib::Svf();
-    post[0].Init();
-    post[1].Init();
-    post_f = 0.25f;
-    post_q = 0.0f;
+    post_reset();
     slope = WV_SLOPE_12;
     env = vca = dc_x = dc_y = 0.0f;
     wv_env(0.005f, 0.060f);
@@ -218,7 +236,8 @@ extern "C" void wv_slope(uint32_t s) { slope = s == WV_SLOPE_24 ? WV_SLOPE_24 : 
 extern "C" void wv_render(const wind_frame_t *f, int32_t *out_lr, uint32_t frames)
 {
     EngineParameters p;
-    float out[WV_BLK], aux[WV_BLK], fc = 0.0f, q = 0.0f;
+    float out[WV_BLK], aux[WV_BLK];
+    post_k_t pk;
     float amp = f->amp < 0.0f ? 0.0f : f->amp > 1.0f ? 1.0f : f->amp;
     float dvca = (amp - vca) / (float)(frames ? frames : 1);   /* the VCA ramps across the block */
     bool enveloped;
@@ -227,7 +246,7 @@ extern "C" void wv_render(const wind_frame_t *f, int32_t *out_lr, uint32_t frame
     params_for(f, &p);
     last_gate = f->gate;
     if (engine != WV_CLASSIC)
-        post_targets(f, &fc, &q);
+        post_targets(f, &pk);
     while (frames) {
         uint32_t k = frames > WV_BLK ? WV_BLK : frames, i;
         if (engine == WV_SIXOP) {       /* always Plaits' 12 (see six_q), handed out k at a time */
@@ -246,7 +265,7 @@ extern "C" void wv_render(const wind_frame_t *f, int32_t *out_lr, uint32_t frame
                 p.trigger = TRIGGER_HIGH;   /* (the edge: once) */
         }
         if (engine != WV_CLASSIC)
-            post_filter(out, k, fc, q);
+            post_filter(out, k, &pk);
         for (i = 0; i < k; i++) {
             float x, y;
             if (f->gate > 0.5f)
@@ -309,5 +328,40 @@ extern "C" void wv_render_raw(float note, float timbre, float morph, float harmo
         vcf->Render(p, out, aux, k, &enveloped);
         out += k;
         n -= k;
+    }
+}
+
+/* Classic playing f, from its start, into ref; and its own oscillator alone (the same saw, Morph 25: no
+ * sub) through our filter, from its start, into ours: the two the same means our filter is VA-VCF's.
+ * (Tests: it starts Classic over. wv_init after.) */
+extern "C" void wv_filter_check(const wind_frame_t *f, float *ref, float *ours, uint32_t n)
+{
+    EngineParameters p;
+    float aux[WV_BLK];
+    bool enveloped;
+    uint32_t keep = engine, i;
+    post_k_t k;
+    VariableShapeOscillator osc;
+    stmlib::BufferAllocator a(arena.raw, sizeof arena.raw);
+    float shape, pw;
+    engine = WV_CLASSIC;
+    params_for(f, &p);
+    engine = keep;
+    vcf->Init(&a);
+    for (i = 0; i < n; i += WV_BLK)
+        vcf->Render(p, ref + i, aux, n - i < WV_BLK ? n - i : WV_BLK, &enveloped);
+    shape = (p.morph - 0.25f) * 2.0f + 0.5f;          /* (VA-VCF's, from MORPH) */
+    CONSTRAIN(shape, 0.5f, 1.0f);
+    pw = (p.morph - 0.5f) * 2.0f + 0.5f;
+    if (p.morph > 0.75f)
+        pw = 2.5f - p.morph * 2.0f;
+    CONSTRAIN(pw, 0.5f, 0.98f);
+    osc.Init();
+    post_reset();
+    post_targets(f, &k);
+    for (i = 0; i < n; i += WV_BLK) {
+        uint32_t m = n - i < WV_BLK ? n - i : WV_BLK;
+        osc.Render(NoteToFrequency(p.note), pw, shape, ours + i, m);
+        post_filter(ours + i, m, &k);
     }
 }

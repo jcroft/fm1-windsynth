@@ -40,6 +40,8 @@ void wv_render(const wind_frame_t *f, int32_t *out_lr, uint32_t frames);
 void wv_render_raw(float note, float timbre, float morph, float harmonics, float *out, uint32_t n);
 void wv_render_raw_engine(uint32_t id, float note, float timbre, float morph, float harmonics, float *out,
                           uint32_t n);
+/* Classic playing f into ref, its oscillator through our filter into ours, both from their start (tests) */
+void wv_filter_check(const wind_frame_t *f, float *ref, float *ours, uint32_t n);
 
 #ifdef __cplusplus
 }
