@@ -135,6 +135,7 @@ static void itoa_u(uint32_t v, char *b)
 }
 
 static void mark_dirty(void) { ui.dirty = 1; }
+void ui_mark_dirty(void) { mark_dirty(); }
 
 /* (no C library on the device: libc.c has only mem*) */
 static int32_t s_len(const char *s)
@@ -422,7 +423,9 @@ static const char *view_name(int v)
 static void draw_header(void)
 {
     char t[24];
-    int msg = plat_ms() < ui.msg_until, midi = wa_state.midi_seen != 0u, edited = preset_edited();
+    int msg = ui.msg_until && (int32_t)(ui.msg_until - plat_ms()) > 0, midi = wa_state.midi_seen != 0u, edited = preset_edited();
+    if (!msg)
+        ui.msg_until = 0u;              /* (over: 0, so a wrap of the ms count can't bring it back) */
     uint32_t h = hash(hash(2166136261u, ui.view | (uint32_t)proj.par[P_THEME] << 8 | (uint32_t)ui.dirty << 10 |
                                             (uint32_t)msg << 11 | (uint32_t)midi << 12),
                       (uint32_t)proj.par[P_MIDICH] | (uint32_t)(proj.par[P_TRANSPOSE] + 24) << 8 |
@@ -507,18 +510,37 @@ static void bar(int32_t x, int32_t y, int32_t h, float v, const char *name, uint
     text_c(x + 11, y + h + 4, &FONT_XS, name, K_DIM);
 }
 
+/* a note's name, "C4", "F#-2", "G11": MIDI 60 is C4 */
+static void note_text(int n, char t[8])
+{
+    int oct = (n >= 0 ? n / 12 : (n - 11) / 12) - 1, i = 0;     /* (rounded down below 0: C-2 is -12) */
+    const char *nm = WA_NOTE_NAME[((n % 12) + 12) % 12];
+    t[i++] = nm[0];
+    if (nm[1])
+        t[i++] = nm[1];
+    if (oct < 0)
+        t[i++] = '-', oct = -oct;
+    if (oct >= 10)
+        t[i++] = (char)('0' + oct / 10 % 10);
+    t[i++] = (char)('0' + oct % 10);
+    t[i] = 0;
+}
+
 /* the instrument: the note (and how far the bite bends it) on the left; breath, cutoff and level */
 static void draw_main(void)
 {
     float note = wa_state.note, bend = wa_state.bend;
     int top = wa_state.top, gate = wa_state.gate > 0.5f;
-    /* (the bars by the pixel they fill to, so any change that shows is drawn) */
+    /* the note, its cents and the bite bar's end, as drawn; the bars by the pixel they fill to: so any
+     * change that shows is drawn */
+    int n = (int)(note + 0.5f + 1200.0f) - 1200, c = (int)((note - (float)n) * 100.0f);
+    int32_t cx = 73 + (int32_t)(bend * 54.0f);
     uint32_t qb = (uint32_t)bar_px(wa_state.breath), qc = (uint32_t)bar_px(wa_state.cutoff),
-             ql = (uint32_t)bar_px(wa_state.level), qn = (uint32_t)(int32_t)(note * 10.0f + 2000.0f),
-             qe = (uint32_t)(int32_t)(bend * 30.0f + 30.0f);
-    uint32_t h = hash(hash(hash(2166136261u, qb | qc << 8 | ql << 16 | (uint32_t)gate << 24 |
-                                                 (uint32_t)proj.par[P_THEME] << 25),
-                           qn | qe << 16),
+             ql = (uint32_t)bar_px(wa_state.level);
+    uint32_t h = hash(hash(hash(hash(2166136261u, qb | qc << 8 | ql << 16 | (uint32_t)gate << 24 |
+                                                      (uint32_t)proj.par[P_THEME] << 25),
+                                (uint32_t)(n + 2000) | (uint32_t)(c + 100) << 16),
+                           (uint32_t)(cx + 1000)),
                       (uint32_t)(top + 1));
     if (h == ui.sig[1])
         return;
@@ -530,16 +552,8 @@ static void draw_main(void)
         text_c(73, 60, &FONT_S, "or press a key", K_DIM);
     } else {
         char t[8];
-        int n = (int)(note + 0.5f + 1200.0f) - 1200, oct = n / 12 - 1, c = (int)((note - (float)n) * 100.0f);
-        const char *nm = WA_NOTE_NAME[((n % 12) + 12) % 12];
-        int32_t i = 0, cx;
-        t[i++] = nm[0];
-        if (nm[1])
-            t[i++] = nm[1];
-        if (oct < 0)
-            t[i++] = '-', oct = -oct;
-        t[i++] = (char)('0' + oct % 10);
-        t[i] = 0;
+        int32_t i;
+        note_text(n, t);
         text_c(73, 18, &FONT_L, t, gate ? K_TEXT : K_DIM);
         if (c) {                                     /* off the note: "+37c" */
             char d[8];
@@ -554,7 +568,6 @@ static void draw_main(void)
         /* the bite: a bar from the middle, a semitone to a tick */
         cv_rect(18, 92, 110, 2, K_LINE);
         cv_rect(72, 86, 2, 14, K_DIM);
-        cx = 73 + (int32_t)(bend * 54.0f);
         cv_round(cx < 73 ? cx : 73, 89, (cx < 73 ? 73 - cx : cx - 73) + 2, 8, 3, K_BLUE);
         text_c(73, 102, &FONT_XS, "BITE", K_DIM);
         if (gate)
@@ -571,7 +584,9 @@ static void draw_knobs(void)
     /* (each in its own hash: touched is -1 untouched, and shifted in with the rest it hid the engine) */
     uint32_t h = hash(hash(hash(2166136261u, ui.view), (uint32_t)(uint8_t)ui.touched),
                       (uint32_t)proj.par[P_THEME] | (uint32_t)proj.par[P_ENGINE] << 8), i;
-    int now_touch = plat_ms() < ui.touch_until;
+    int now_touch = ui.touch_until && (int32_t)(ui.touch_until - plat_ms()) > 0;
+    if (!now_touch)
+        ui.touch_until = 0u;
     for (i = 0; i < 4; i++) {
         int k = knob_of((int)i);
         h = hash(h, k == K_NONE ? 0xFFFFu : (uint32_t)(uint16_t)proj.par[k] | (uint32_t)k << 16);
@@ -642,6 +657,8 @@ static void autosave(void)
         return;
     if (project_save() == 0)
         ui.dirty = 0;
+    else
+        ui.act_t = now;                 /* failed: the next try after another quiet spell, not every frame */
 }
 
 void ui_init(void)

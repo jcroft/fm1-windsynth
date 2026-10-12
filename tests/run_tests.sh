@@ -51,6 +51,16 @@ run wind-fx sh -c "$CC -O2 -ffp-contract=off -std=c99 -Wall -Wextra -Wdouble-pro
     -c -o $OUT/wind/wind_fx.o firmware/src/wind/wind_fx.c && \
     $CC -O2 -ffp-contract=off -std=c99 -Wall -Wextra -Werror -Ifirmware/src -o $OUT/wind/wind_fx_test \
     tests/host/wind_fx_test.c $OUT/wind/wind_fx.o && $OUT/wind/wind_fx_test"
+# the same, and the maths, with every out-of-bounds read and undefined operation an error (where the
+# compiler has the sanitizers)
+SAN="-fsanitize=address,undefined -fno-sanitize-recover=all"
+if echo 'int main(void){return 0;}' | $CC $SAN -x c -o $OUT/san_probe - >/dev/null 2>&1; then
+    run wind-fx-sanitized sh -c "$CC -O1 -g -ffp-contract=off -std=c99 $SAN -Ifirmware/src -o $OUT/wind/wind_fx_san \
+        tests/host/wind_fx_test.c firmware/src/wind/wind_fx.c && $OUT/wind/wind_fx_san && \
+        $CC -O1 -g -ffp-contract=off $SAN -o $OUT/fastmath_san tests/host/fastmath_test.c -lm && $OUT/fastmath_san"
+else
+    echo "  skip wind-fx-sanitized (no -fsanitize=address,undefined)"
+fi
 run vendor python3 tools/check_vendor.py
 run storage sh -c "$CC -O2 -o $OUT/storage_test tests/storage_test.c && $OUT/storage_test"
 # the update path, against the firmware package (Felucca's tests; needs ./build.sh)
@@ -84,8 +94,14 @@ if command -v emcc >/dev/null 2>&1; then
         run standalone node tests/host/standalone_test.mjs "$CHROME"
         if [ -f build/windsynth.fwsc ]; then       # the installer's buttons, end to end (needs a firmware build)
             run installer-page node tests/web/installer_page_test.mjs "$CHROME"
+        else
+            echo "  skip installer-page (no build/windsynth.fwsc)"
         fi
+    else
+        echo "  skip standalone, installer-page (no Chrome; CI runs them in its browser job)"
     fi
+else
+    echo "  skip emu, wind-wasm, updater, standalone (no emcc)"
 fi
 for s in tests/scenarios/*.scn; do
     n=$(basename "$s" .scn)

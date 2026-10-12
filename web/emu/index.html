@@ -568,7 +568,7 @@ function listInputs() {
 }
 midiIn.addEventListener("change", () => {
   try { localStorage.setItem(MIDI_PICK, midiIn.value); } catch {}
-  if (node) send({ type: "midi", st: 0xB0, d1: 123, d2: 0 });            // all notes off: nothing left hanging
+  if (node) for (let c = 0; c < 16; c++) send({ type: "midi", st: 0xB0 | c, d1: 123, d2: 0 });  // all notes off, on every channel
   listInputs();
 });
 document.getElementById("midi").addEventListener("click", async () => {

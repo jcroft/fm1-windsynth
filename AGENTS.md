@@ -43,6 +43,9 @@ Browser first, then the device. The plan and its milestones (M0 to M5) are in `d
 ## Workflow
 
 - Work on a branch, open a PR, and drive CI to green.
+- Before merging, every PR gets a deep review: fresh-context reviewers with different lenses, each
+  finding checked by skeptics. Post it as a GitHub review on the PR, listing blockers and
+  non-blockers. Fix every blocker; fix each non-blocker or reply with why it's declined.
 - Then merge it yourself; don't wait for a human to merge. To take a PR out of draft, use
   the GitHub API (`update_pull_request`, draft false); `gh pr ready` doesn't work here.
 - Commit subjects: `Area: what changed`.

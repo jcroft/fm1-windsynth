@@ -162,8 +162,15 @@ static void fm1_fault(const fm1_crash_t *c)
     fm1_reboot();
 }
 
+/* the last edits, if autosave hasn't written them yet: before a reset or an update takes the RAM copy */
+static int save_pending(void)
+{
+    return ui_dirty() && flash_ok ? project_save() : 0;
+}
+
 static void enter_uboot(const char *why)
 {
+    save_pending();
     fm1_audio_stop();
     lcd_fill(0, 0, 240, 240, C_BLACK);
     draw_text_box(0, 110, 240, &FONT_S, why, C_WHITE, 1);
@@ -233,10 +240,11 @@ static void splash(void)
     lcd_fill(0, 0, 240, 240, RGB(250, 244, 232));
     cv_begin(240, 84, RGB(250, 244, 232));
     {
+        static const char sub[] = "A windsynth for the FM-1";
         int32_t w = text_w(&FONT_L, "Windsynth");
         cv_text((240 - w) / 2, 0, &FONT_L, "Windsynth", RGB(196, 142, 92));
-        w = text_w(&FONT_S, "A thumb piano for the FM-1");
-        cv_text((240 - w) / 2, 42, &FONT_S, "A thumb piano for the FM-1", RGB(150, 132, 110));
+        w = text_w(&FONT_S, sub);
+        cv_text((240 - w) / 2, 42, &FONT_S, sub, RGB(150, 132, 110));
         w = text_w(&FONT_XS, OM_VERSION);              /* "DEV", or a release's "0.1.0 BETA" */
         cv_text((240 - w) / 2, 66, &FONT_XS, OM_VERSION, RGB(170, 152, 130));
     }
@@ -339,11 +347,15 @@ static void fm1_main(void)
         }
         ota_service();                              /* M-UPGRADE handshake (other SysEx is dropped) */
         if (usb.ota_req) {
+            int unsaved;
             usb.ota_req = 0;
             wa_panic();
+            unsaved = save_pending() != 0;          /* (an update that commits resets without returning) */
             if (flash_ok)
                 ota_session();                      /* returns only if nothing was committed */
             ui_init();
+            if (unsaved)
+                ui_mark_dirty();                    /* autosave tries again */
         }
         if (usb.uboot_req)
             enter_uboot("UBOOT (USB)");
