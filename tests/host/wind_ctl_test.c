@@ -321,6 +321,7 @@ static void test_app(void)
     float dark, bright, f;
     int i;
     wa_init();
+    wa_set(P_RVMIX, 0);                               /* (the init sound's touch of reverb: off, to hear the voice stop) */
     play(SR / 10);
     CHECK(wa_state.level == 0.0f && wa_state.gate == 0.0f, "sound before a note: %g", (double)wa_state.level);
     midi(0x90, 57, 100);                              /* a note, no breath yet: the cutoff stays shut */
