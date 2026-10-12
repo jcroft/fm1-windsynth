@@ -4,6 +4,18 @@ A release is a push to `main` that changes `VERSION` to a version with no tag ye
 release build, tags the commit `vX.Y.Z` and publishes the GitHub Release with that version's notes,
 taken from its section below. Add the section in the same pull request as the `VERSION` change.
 
+## 0.0.18
+
+- **An LFO.** The LFO key now holds two LFO pages: Shape (Sine, Triangle, Saw, Square, S&H), Rate
+  (0.05 to 20 Hz, 5 Hz to start), Dest and Amount, then Fade (how long it takes to come in after a note
+  starts from silence) and Sync (Free, or Note: each new phrase restarts it). Its destinations are the
+  Mod slots' plus Pitch, where Amount is in cents. Amount starts at 0, so it's off until you turn it up.
+- **Harmonics and Aux are Mod destinations.** Harmonics moves on Formant, Waveshape, VA and Harmonic,
+  where it changes smoothly. On Classic, FM, 6-op and PD it would jump in steps, so there it reads
+  "Harm off" and does nothing.
+- **Pages rearranged.** The Pitch pages moved to the SEQ key, where the Keys page was. Key breath and the
+  Octave knob are gone: the panel keys play at full breath, and OCT- / OCT+ still move them.
+
 ## 0.0.17
 
 - **Aux: each engine's second output.** Every Plaits engine but 6-op has a second output (AUX), and

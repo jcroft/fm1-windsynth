@@ -20,7 +20,7 @@ enum {
     P_M2SRC, P_M2DST, P_M2AMT,
     P_M3SRC, P_M3DST, P_M3AMT,
     P_M4SRC, P_M4DST, P_M4AMT,
-    P_KEYBREATH, P_OCTAVE,                           /* Keys page (the panel's keys) */
+    P_KEYBREATH, P_OCTAVE,                           /* the panel's keys (0.0.18: Key breath unused, Octave on OCT-/+) */
     P_TRANSPOSE, P_TUNE, P_MIDICH, P_THEME,          /* Setup page */
     P_ENGINE, P_RATIO, P_INDEX,                      /* Engine page (0.0.6) */
     P_RVTYPE, P_RVMIX, P_RVDECAY, P_RVTONE,          /* Reverb page (0.0.7) */
@@ -33,6 +33,8 @@ enum {
     P_MOTYPE, P_MOMIX, P_MORATE, P_MODEPTH,          /* Modulation page */
     P_NZLEVEL, P_NZTYPE, P_NZFREQ, P_NZRESO,         /* Noise page (0.0.16) */
     P_AUX,                                           /* Engine page: Plaits' AUX output, mixed in (0.0.17) */
+    P_LFOSHAPE, P_LFORATE, P_LFODST, P_LFOAMT,       /* LFO page (0.0.18) */
+    P_LFOFADE, P_LFOSYNC,                            /* LFO 2 page */
     P_NPARAMS
 };
 typedef struct {
@@ -45,6 +47,8 @@ int wa_param_global(int i);            /* 1: the rig's, not the sound's (kept ou
 void wa_param_text(int i, int v, char *buf);   /* the value as the screen shows it (12 bytes) */
 
 enum { THEME_LIGHT, THEME_DARK, THEME_N };
+enum { WA_LFO_SINE, WA_LFO_TRI, WA_LFO_SAW, WA_LFO_SQUARE, WA_LFO_SH, WA_LFO_NSHAPE };
+int wa_harm_smooth(int engine);        /* 1: HARMONICS can be modulated on it (Formant, Waveshape, VA, Harmonic) */
 extern const char *const WA_NOTE_NAME[12];
 extern const char *const WA_ENGINE_NAME[];   /* (WV_NENGINE) */
 
@@ -60,7 +64,9 @@ void wa_render(int32_t *out_lr, uint32_t n, uint32_t gain_q12, int (*midi_in)(ui
 typedef struct {
     float note, gate, breath, bend;    /* wind_ctl's */
     float cutoff, res, amp, morph;     /* after the matrix */
-    float timbre, noise;
+    float timbre, noise, harmonics, aux;
+    float lfo;                         /* the LFO, -1..1 (faded in) */
+    float pitch;                       /* the note sounding, with the LFO's vibrato (note: without it) */
     float level;                       /* the output's peak in the last block, 0..1 */
     int top;                           /* the note sounding (MIDI number), -1 none yet */
     uint32_t midi_seen;                /* packets received */

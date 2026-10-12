@@ -1,4 +1,4 @@
-# The panel's keys play notes (F3 up), with Key breath for breath; OCT- / OCT+ move them
+# The panel's keys play notes (F3 up), at full breath; OCT- / OCT+ move them
 wait 200
 key 4 down
 wait 30
@@ -22,13 +22,7 @@ tap OCT-
 expect par25 -1
 tapkey 0
 expect top 41
-# Key breath at 0: a key plays with the filter shut, as a windsynth with no breath
+# no Key breath any more: the keys always play at full breath (they sense no pressure); SEQ is the Pitch pages
 tap SEQ
-spin K1 -100
-expect par24 0
-key 4 down
-wait 30
-expect breath 0
-expect cutoff 15
-key 4 up
-wait 100
+expect view 10
+expect knob1 Bend

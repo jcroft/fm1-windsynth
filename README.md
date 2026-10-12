@@ -15,8 +15,8 @@ FM-1 itself.
 
 Plug in your windsynth (USB, or the FM-1's MIDI jack) and blow. It listens on every channel by
 default. Last note wins: overlapping notes play legato, without a new attack, and letting one go
-returns to the one still held. The FM-1's own keys play too, every key its printed note from F3, as if
-blown at the **Key breath** level.
+returns to the one still held. The FM-1's own keys play too, every key its printed note from F3, at
+full breath (they're switches, so they sense no pressure). **OCT−** / **OCT+** shift them.
 
 | Control | Default | Options |
 | --- | --- | --- |
@@ -35,13 +35,14 @@ step through every page.
 | Button | Page | Knobs |
 | --- | --- | --- |
 | HOME | Voice | Cutoff, Resonance, Morph (named for what it does on the engine; Classic: the waveform, a saw up to 25, a square at 50, then a pulse that narrows and widens again, with a sub-octave below 20 and above 80; FM: the feedback, none at 50), Slope (12 or 24 dB) |
-| HOME again | Engine | Engine (also the ALGORITHM knob), then the engine's two own knobs (Classic has none). See the engines below. |
+| HOME again | Engine | Engine (also the ALGORITHM knob), then the engine's two own knobs (Classic has none), then Aux: from the engine's main output (0) to its second output alone (100; not on 6-op, whose second output is the same). See the engines below. |
 | HOME again | Noise | Level (0 is off), Type (low-pass through band-pass to high-pass), Freq (the noise filter's pitch, in semitones from the note), Reso |
 | ENV | Breath | Source (a CC, or aftertouch), Curve, Attack, Release |
-| LFO | Pitch | Bend range, Glide (the glide time with the glide CC at 0: 4 ms by default, up to 2 s), Glide CC, Glide mode (always or legato) |
-| LFO again | Pitch 2 | CC depth: how much the glide CC adds to Glide at full (400 ms by default, up to 2 s) |
-| SEL | Mod 1–4 (press again for the next) | Source (breath, bite, mod wheel, pressure, velocity), Destination (cutoff, resonance, amp, morph, timbre: the Engine page's second knob, FM's Index; noise: the noise layer's level), Amount (−100 to +100) |
-| SEQ | Keys | Key breath, Octave |
+| LFO | LFO | Shape (Sine, Triangle, Saw, Square, S&H), Rate (0.05 to 20 Hz, 5 Hz by default), Dest (the Mod slots' destinations, plus Pitch), Amount (−100 to +100; on Pitch, in cents; 0 by default, so it's off) |
+| LFO again | LFO 2 | Fade (how long it takes to come in after a note starts from silence), Sync (Free, or Note: each new phrase restarts it) |
+| SEL | Mod 1–4 (press again for the next) | Source (breath, bite, mod wheel, pressure, velocity), Destination (cutoff, resonance, amp, morph, timbre: the Engine page's third knob, FM's Index; noise: the noise layer's level; harmonics: the Engine page's second knob, on Formant, Waveshape, VA and Harmonic only, "Harm off" elsewhere; aux: the Aux mix), Amount (−100 to +100) |
+| SEQ | Pitch | Bend range, Glide (the glide time with the glide CC at 0: 4 ms by default, up to 2 s), Glide CC, Glide mode (always or legato) |
+| SEQ again | Pitch 2 | CC depth: how much the glide CC adds to Glide at full (400 ms by default, up to 2 s) |
 | GLO | Setup | Transpose, Tune, MIDI channel (Omni by default), Theme (Light or Dark); the version |
 | FX | Distortion | Type (Overdrive, Distort, Fuzz, Fold, Crush), Mix, Drive, Tone |
 | FX again | Modulation | Type (Chorus, Ensemble, Flanger, Phaser), Mix, Rate (0.05 Hz to 10 Hz), Depth |
@@ -106,8 +107,9 @@ another; the header shows which, with a `*` once you've changed its sound. To ke
 press **SAVE** again (any other button leaves the presets alone). What you're playing, edits
 included, is also kept by itself a few seconds after you stop, so it comes back after a restart.
 
-A preset holds the sound: the Voice, Pitch and Mod pages, and Attack and Release. Your rig's settings
-stay put when you change presets: breath source and curve, the glide CC and its depth, the Keys page and Setup.
+A preset holds the sound: the Voice, Engine, Noise, LFO, Pitch and Mod pages, the effects, and Attack and
+Release. Your rig's settings stay put when you change presets: breath source and curve, the glide CC and its
+depth, the keys' octave and Setup.
 Hold **SAVE** for 1.5 s, then press it again, for the init sound (the preset slot is untouched until
 you save).
 

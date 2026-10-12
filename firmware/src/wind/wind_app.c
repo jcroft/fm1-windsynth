@@ -12,10 +12,10 @@ static const wa_param_t PARAMS[P_NPARAMS] = {
     {"Cutoff", 0, 100, 15}, {"Reso", 0, 100, 0}, {"Morph", 0, 100, 25}, {"Slope", 0, 1, 1},
     {"Breath", 0, 128, 2}, {"Curve", -100, 100, 0}, {"Attack", 1, 200, 5}, {"Release", 5, 2000, 60},
     {"Bend", 0, 12, 2}, {"Glide CC", 0, 128, 5}, {"Glide", 0, 2000, 4}, {"Glide on", 0, 1, 0},
-    {"Source", 0, WM_NSRC - 1, WM_SRC_BREATH}, {"Dest", 0, WM_NDST - 1, WM_DST_CUTOFF}, {"Amount", -100, 100, 75},
-    {"Source", 0, WM_NSRC - 1, WM_SRC_OFF}, {"Dest", 0, WM_NDST - 1, WM_DST_CUTOFF}, {"Amount", -100, 100, 0},
-    {"Source", 0, WM_NSRC - 1, WM_SRC_OFF}, {"Dest", 0, WM_NDST - 1, WM_DST_CUTOFF}, {"Amount", -100, 100, 0},
-    {"Source", 0, WM_NSRC - 1, WM_SRC_OFF}, {"Dest", 0, WM_NDST - 1, WM_DST_CUTOFF}, {"Amount", -100, 100, 0},
+    {"Source", 0, WM_SRC_LFO - 1, WM_SRC_BREATH}, {"Dest", 0, WM_NDST - 1, WM_DST_CUTOFF}, {"Amount", -100, 100, 75},
+    {"Source", 0, WM_SRC_LFO - 1, WM_SRC_OFF}, {"Dest", 0, WM_NDST - 1, WM_DST_CUTOFF}, {"Amount", -100, 100, 0},
+    {"Source", 0, WM_SRC_LFO - 1, WM_SRC_OFF}, {"Dest", 0, WM_NDST - 1, WM_DST_CUTOFF}, {"Amount", -100, 100, 0},
+    {"Source", 0, WM_SRC_LFO - 1, WM_SRC_OFF}, {"Dest", 0, WM_NDST - 1, WM_DST_CUTOFF}, {"Amount", -100, 100, 0},
     {"Key brth", 0, 100, 100}, {"Octave", -3, 3, 0},
     {"Transpose", -24, 24, 0}, {"Tune", -100, 100, 0}, {"MIDI ch", 0, 16, 0}, {"Theme", 0, THEME_N - 1, 0},
     {"Engine", 0, WV_NENGINE - 1, WV_CLASSIC}, {"Ratio", 0, 100, 24}, {"Index", 0, 100, 40},
@@ -29,6 +29,9 @@ static const wa_param_t PARAMS[P_NPARAMS] = {
     {"Type", 0, WF_MO_NTYPE - 1, WF_MO_CHORUS}, {"Mix", 0, 100, 0}, {"Rate", 0, 100, 40}, {"Depth", 0, 100, 50},
     {"Level", 0, 100, 0}, {"Type", 0, 100, 50}, {"Freq", -48, 48, 24}, {"Reso", 0, 100, 0},
     {"Aux", 0, 100, 0},
+    {"Shape", 0, WA_LFO_NSHAPE - 1, WA_LFO_SINE}, {"Rate", 0, 100, 77},   /* (77: 5 Hz) */
+    {"Dest", 0, WM_DST_PITCH, WM_DST_PITCH}, {"Amount", -100, 100, 0},  /* (Pitch: cents) */
+    {"Fade", 0, 2000, 0}, {"Sync", 0, 1, 0},
 };
 
 const wa_param_t *wa_param_info(int i) { return &PARAMS[(unsigned)i < P_NPARAMS ? i : 0]; }
@@ -36,6 +39,7 @@ const wa_param_t *wa_param_info(int i) { return &PARAMS[(unsigned)i < P_NPARAMS 
 const char *const WA_ENGINE_NAME[WV_NENGINE] = {"Classic", "FM", "6-op", "Formant", "Waveshape", "VA",
                                                  "PD", "Harmonic"};
 static int engine;                     /* the engine playing: its knobs' names */
+int wa_harm_smooth(int e) { return e == WV_GRAIN || e == WV_SHAPE || e == WV_VA || e == WV_HARM; }
 
 /* What HARMONICS (Ratio), TIMBRE (Index) and MORPH do on each engine, after Plaits' manual. Classic has
  * no Ratio or Index (the Engine page hides them). */
@@ -113,6 +117,42 @@ static void put_src(char *b, int v, const char *none)   /* a CC number, "Press" 
     put_u(b + 2, (uint32_t)v);
 }
 
+static wm_slot_t slot[WM_NSLOT];       /* the Mod pages' four, then the LFO page's */
+
+static float lfo_hz(float x) { return 0.05f * fm_exp2f(x * 8.6439f); }   /* 0.05 x 400^x: 0.05..20 Hz */
+
+static void put_hz(char *b, float hz)                    /* "0.42Hz", "2.5Hz", "10Hz" */
+{
+    uint32_t h = (uint32_t)(hz * 100.0f + 0.5f);
+    if (h < 100u) {
+        *b++ = '0';
+        *b++ = '.';
+        *b++ = (char)('0' + h / 10u);
+        *b++ = (char)('0' + h % 10u);
+    } else if (h < 1000u) {
+        h = (h + 5u) / 10u;
+        b = put_u(b, h / 10u);
+        *b++ = '.';
+        *b++ = (char)('0' + h % 10u);
+    } else {
+        b = put_u(b, (h + 50u) / 100u);
+    }
+    copy_s(b, "Hz");
+}
+
+
+static void put_dst(char *b, int v)                      /* a destination; Harmonics where it's stepped: "Harm off" */
+{
+    if (v == WM_DST_PITCH)
+        copy_s(b, "Pitch");
+    else if (v == WM_DST_HARM && !wa_harm_smooth(engine))
+        copy_s(b, "Harm off");
+    else
+        copy_s(b, WM_DST_NAME[(unsigned)v < WM_NDST ? v : 0]);
+}
+
+static const char *const LFO_SHAPE_NAME[WA_LFO_NSHAPE] = {"Sine", "Triangle", "Saw", "Square", "S&H"};
+
 static void put_ms(char *b, int ms)                      /* "60ms", "1.2s" */
 {
     if (ms < 1000) {
@@ -139,24 +179,23 @@ void wa_param_text(int i, int v, char *b)
         return;
     case P_NZFREQ: copy_s(put_i(b, v, 1), " st"); return;
     case P_MOTYPE: copy_s(b, WF_MO_NAME[(unsigned)v < WF_MO_NTYPE ? v : 0]); return;
-    case P_MORATE: {                                     /* the LFO: "0.42Hz", "2.5Hz", "10Hz" */
-        uint32_t h = (uint32_t)(wf_rate_hz((float)v * 0.01f) * 100.0f + 0.5f);
-        if (h < 100u) {
-            *b++ = '0';
-            *b++ = '.';
-            *b++ = (char)('0' + h / 10u);
-            *b++ = (char)('0' + h % 10u);
-        } else if (h < 1000u) {
-            h = (h + 5u) / 10u;
-            b = put_u(b, h / 10u);
-            *b++ = '.';
-            *b++ = (char)('0' + h % 10u);
-        } else {
-            b = put_u(b, (h + 50u) / 100u);
-        }
-        copy_s(b, "Hz");
+    case P_MORATE: put_hz(b, wf_rate_hz((float)v * 0.01f)); return;
+    case P_LFORATE: put_hz(b, lfo_hz((float)v * 0.01f)); return;
+    case P_LFOSHAPE: copy_s(b, LFO_SHAPE_NAME[(unsigned)v < WA_LFO_NSHAPE ? v : 0]); return;
+    case P_LFODST: put_dst(b, v); return;
+    case P_LFOAMT:                                       /* on Pitch, in cents */
+        if (slot[WM_NSLOT - 1].dst == WM_DST_PITCH)
+            copy_s(put_i(b, v, 1), "c");
+        else
+            put_i(b, v, 1);
         return;
-    }
+    case P_LFOFADE:
+        if (!v)
+            copy_s(b, "Off");
+        else
+            put_ms(b, v);
+        return;
+    case P_LFOSYNC: copy_s(b, v ? "Note" : "Free"); return;
     case P_RVDECAY: {                                    /* the reverb time: "0.8s", "3.5s", "17s" */
         uint32_t t = (uint32_t)(wf_decay_s((float)v * 0.01f) * 10.0f + 0.5f);
         if (t < 100u) {
@@ -181,7 +220,7 @@ void wa_param_text(int i, int v, char *b)
         copy_s(b, WM_SRC_NAME[(unsigned)v < WM_NSRC ? v : 0]);
         return;
     case P_M1DST: case P_M2DST: case P_M3DST: case P_M4DST:
-        copy_s(b, WM_DST_NAME[(unsigned)v < WM_NDST ? v : 0]);
+        put_dst(b, v);
         return;
     case P_M1AMT: case P_M2AMT: case P_M3AMT: case P_M4AMT: case P_CURVE: case P_OCTAVE: case P_TRANSPOSE:
     case P_RVLOW:
@@ -215,10 +254,13 @@ void wa_param_text(int i, int v, char *b)
 
 /* ------------------------------------------------------------- state --- */
 static float base[WM_NDST];
-static wm_slot_t slot[WM_NSLOT];
 static int attack_ms = 5, release_ms = 60;
 static float ratio = 0.24f;            /* FM's HARMONICS */
-static float aux_mix;                  /* Aux: 0 the engine's main output, 1 its AUX output */
+/* the LFO: its rate, shape, fade-in after a note starts from silence, and whether a note restarts it */
+static struct {
+    float hz, fade_s, ph, fade, sh, last_gate;
+    uint32_t shape, sync, rnd;
+} lfo = {5.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, WA_LFO_SINE, 0u, 22222u};
 static int nz_par[3] = {50, 24, 0};    /* the noise layer's Type, Freq, Reso */
 volatile wa_state_t wa_state;
 
@@ -240,12 +282,43 @@ static void kq_put(uint32_t v)
 void wa_key(int note, int on) { kq_put((uint32_t)(note & 0x7F) | (on ? 0x100u : 0u)); }
 void wa_panic(void) { kq_put(KQ_PANIC); }
 
+/* the LFO's value for a block of n frames, -1..1: advanced by the block, faded in after a note starts from
+ * silence, restarted by it on Sync Note */
+static float lfo_block(float gate, uint32_t n)
+{
+    float t = (float)n * (1.0f / WV_SR), x, ph;
+    if (gate > 0.5f && lfo.last_gate <= 0.5f) {
+        if (lfo.sync)
+            lfo.ph = 0.0f;
+        lfo.fade = lfo.fade_s > 0.0f ? 0.0f : 1.0f;
+    }
+    lfo.last_gate = gate;
+    lfo.ph += lfo.hz * t;
+    if (lfo.ph >= 1.0f) {                  /* a new cycle: S&H takes a new value */
+        lfo.ph -= fm_floorf(lfo.ph);
+        lfo.rnd = lfo.rnd * 1664525u + 1013904223u;
+        lfo.sh = (float)(lfo.rnd >> 8) * (2.0f / 16777216.0f) - 1.0f;
+    }
+    if (lfo.fade < 1.0f)
+        lfo.fade = fm_minf(lfo.fade + t / lfo.fade_s, 1.0f);
+    ph = lfo.ph;
+    switch (lfo.shape) {
+    case WA_LFO_TRI: x = 1.0f - 4.0f * fm_fabsf(ph + 0.25f - fm_floorf(ph + 0.25f) - 0.5f); break;   /* from 0, up first */
+    case WA_LFO_SAW: x = 2.0f * ph - 1.0f; break;
+    case WA_LFO_SQUARE: x = ph < 0.5f ? 1.0f : -1.0f; break;
+    case WA_LFO_SH: x = lfo.sh; break;
+    default: x = fm_sin_turns(ph); break;
+    }
+    return x * lfo.fade;
+}
+
 void wa_init(void)
 {
     int i;
     wc_init();
     wv_init();
     wf_init();
+    slot[WM_NSLOT - 1].src = WM_SRC_LFO;
     for (i = 0; i < P_NPARAMS; i++)
         wa_set(i, PARAMS[i].def);
     wa_state.top = -1;
@@ -267,8 +340,14 @@ void wa_set(int k, int v)
     case P_RESO: base[WM_DST_RES] = (float)v * 0.01f; break;
     case P_MORPH: base[WM_DST_MORPH] = (float)v * 0.01f; break;
     case P_INDEX: base[WM_DST_TIMBRE] = (float)v * 0.01f; break;
-    case P_RATIO: ratio = (float)v * 0.01f; break;
-    case P_AUX: aux_mix = (float)v * 0.01f; break;
+    case P_RATIO: ratio = base[WM_DST_HARM] = (float)v * 0.01f; break;
+    case P_AUX: base[WM_DST_AUX] = (float)v * 0.01f; break;
+    case P_LFOSHAPE: lfo.shape = (uint32_t)v; break;
+    case P_LFORATE: lfo.hz = lfo_hz((float)v * 0.01f); break;
+    case P_LFODST: slot[WM_NSLOT - 1].dst = (uint8_t)v; break;
+    case P_LFOAMT: slot[WM_NSLOT - 1].amount = (int8_t)v; break;
+    case P_LFOFADE: lfo.fade_s = (float)v * 0.001f; break;
+    case P_LFOSYNC: lfo.sync = (uint32_t)(v != 0); break;
     case P_ENGINE:
         engine = (unsigned)v < WV_NENGINE ? v : WV_CLASSIC;
         wv_engine((uint32_t)engine);
@@ -312,7 +391,6 @@ void wa_set(int k, int v)
     case P_GLIDE: wc_cfg.glide = (uint16_t)v; break;
     case P_GDEPTH: wc_cfg.glide_depth = (uint16_t)v; break;
     case P_GMODE: wc_cfg.glide_always = (uint8_t)(v != 0); break;
-    case P_KEYBREATH: wc_cfg.key_breath = (float)v * 0.01f; break;
     case P_TRANSPOSE: wc_cfg.transpose = (int8_t)v; break;
     case P_TUNE: wc_cfg.tune = (int16_t)v; break;
     case P_MIDICH: wc_cfg.channel = (uint8_t)v; break;
@@ -343,7 +421,7 @@ void wa_render(int32_t *out, uint32_t n, uint32_t gain_q12, int (*midi_in)(uint3
     while (n) {
         uint32_t k = n > WA_BLOCK ? WA_BLOCK : n, i;
         wc_out_t c;
-        float src[WM_NSRC], m[WM_NDST];
+        float src[WM_NSRC], m[WM_NDST], lv;
         wind_frame_t f;
         drain(midi_in);
         wc_block(k, WV_SR, &c);
@@ -353,17 +431,21 @@ void wa_render(int32_t *out, uint32_t n, uint32_t gain_q12, int (*midi_in)(uint3
         src[WM_SRC_MOD] = c.mod;
         src[WM_SRC_PRESSURE] = c.pressure;
         src[WM_SRC_VELOCITY] = c.velocity;
+        lv = lfo_block(c.gate, k);
+        src[WM_SRC_LFO] = slot[WM_NSLOT - 1].dst == WM_DST_AMP ? 0.5f + 0.5f * lv : lv;  /* (Amp: from 1 down) */
         wm_apply(slot, base, src, m);
         f.note = c.note;
+        if (slot[WM_NSLOT - 1].dst == WM_DST_PITCH)                /* the LFO's vibrato: Amount in cents */
+            f.note += lv * (float)slot[WM_NSLOT - 1].amount * 0.01f;
         f.gate = c.gate;
         f.cutoff = m[WM_DST_CUTOFF];
         f.res = m[WM_DST_RES];
         f.amp = m[WM_DST_AMP] * g;
         f.morph = m[WM_DST_MORPH];
         f.timbre = m[WM_DST_TIMBRE];
-        f.harmonics = ratio;
+        f.harmonics = wa_harm_smooth(engine) ? m[WM_DST_HARM] : ratio;
         f.noise = m[WM_DST_NOISE];
-        f.aux = aux_mix;
+        f.aux = m[WM_DST_AUX];
         wv_render(&f, out, k);
         wf_process(out, k);
         for (i = 0; i < k; i++) {
@@ -382,6 +464,10 @@ void wa_render(int32_t *out, uint32_t n, uint32_t gain_q12, int (*midi_in)(uint3
         wa_state.morph = f.morph;
         wa_state.timbre = f.timbre;
         wa_state.noise = f.noise;
+        wa_state.harmonics = f.harmonics;
+        wa_state.aux = f.aux;
+        wa_state.lfo = lv;
+        wa_state.pitch = f.note;
         wa_state.top = wc_top_note();
         out += 2 * k;
         n -= k;
