@@ -97,3 +97,6 @@ expect view 17
 spin K3 -10
 expect par39 40
 expect par46 80
+# nothing on the screen is stale
+wait 50
+expect stale 0

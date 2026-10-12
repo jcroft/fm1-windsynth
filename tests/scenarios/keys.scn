@@ -26,3 +26,6 @@ expect top 41
 tap SEQ
 expect view 10
 expect knob1 Bend
+# nothing on the screen is stale
+wait 50
+expect stale 0

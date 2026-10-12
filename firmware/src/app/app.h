@@ -48,5 +48,8 @@ void preset_peek(void);                  /* the project's preset as stored, for 
 void ui_init(void);
 void ui_frame(void);
 void ui_input_only(void);
+#ifdef OM_HOST
+void ui_repaint(void);
+#endif
 int ui_dirty(void);
 void ui_say(const char *a, const char *b);

@@ -159,3 +159,6 @@ wait 200
 expect par67 60
 expect par15 0
 expect par17 0
+# nothing on the screen is stale
+wait 50
+expect stale 0

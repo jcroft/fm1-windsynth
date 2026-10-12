@@ -45,3 +45,6 @@ midi 80 39 00
 breath 127 0 20
 wait 400
 expect gate 0
+# nothing on the screen is stale
+wait 50
+expect stale 0

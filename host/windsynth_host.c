@@ -22,6 +22,7 @@
  *   expect WHAT VALUE            check state: exit 1 on mismatch; VALUE "<N" / ">N" is a bound
  *                                (WHAT: view dirty store_writes preset edited parN gate top (the note sounding)
  *                                 note (x100) breath cutoff res amp morph timbre noise level (x100) litkeys (bits)
+ *                                 stale (pixels a redraw from scratch changes: 0, or the screen missed a change)
  *                                 lumaY (brightness 0..255 of the screen at x 2, row Y: the theme)
  *                                 peak_db_max peak_db_min; text, "_" a space: msg0 msg1 (the message's
  *                                 lines) knob1..knob4 (a knob's name on this page, "-" none) val1..val4 (its value as shown))
@@ -419,6 +420,22 @@ static int expect(const char *what, const char *val)
         got = (int)(wa_state.level * 100.0f + 0.5f);
     else if (!strcmp(what, "litkeys"))            /* the keys lit (bit per key) */
         got = (int)lit_keys;
+    else if (!strcmp(what, "stale")) {            /* pixels that change when the screen is drawn from scratch */
+        static uint16_t was[240 * 240];
+        uint32_t i;
+        memcpy(was, fb, sizeof fb);
+        ui_repaint();
+        uint32_t x0 = 240, y0 = 240, x1 = 0, y1 = 0;
+        got = 0;
+        for (i = 0; i < 240u * 240u; i++)
+            if (was[i] != fb[i]) {
+                got++;
+                x0 = i % 240 < x0 ? i % 240 : x0, x1 = i % 240 > x1 ? i % 240 : x1;
+                y0 = i / 240 < y0 ? i / 240 : y0, y1 = i / 240 > y1 ? i / 240 : y1;
+            }
+        if (got)
+            printf("  stale pixels in x %u..%u, y %u..%u\n", x0, x1, y0, y1);
+    }
     else if (!strncmp(what, "luma", 4)) {         /* lumaY: the screen's brightness at (2, Y) */
         uint16_t p = fb[(atoi(what + 4) % 240) * 240 + 2];
         p = (uint16_t)((p >> 8) | (p << 8));

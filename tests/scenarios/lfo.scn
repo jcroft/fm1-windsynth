@@ -85,3 +85,6 @@ wait 30
 expect aux 0
 midi 80 3C 00
 wait 200
+# nothing on the screen is stale
+wait 50
+expect stale 0
