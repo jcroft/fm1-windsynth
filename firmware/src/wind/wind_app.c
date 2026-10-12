@@ -28,6 +28,7 @@ static const wa_param_t PARAMS[P_NPARAMS] = {
     {"Type", 0, WF_DS_NTYPE - 1, WF_DS_OVERDRIVE}, {"Mix", 0, 100, 0}, {"Drive", 0, 100, 40}, {"Tone", 0, 100, 60},
     {"Type", 0, WF_MO_NTYPE - 1, WF_MO_CHORUS}, {"Mix", 0, 100, 0}, {"Rate", 0, 100, 40}, {"Depth", 0, 100, 50},
     {"Level", 0, 100, 0}, {"Type", 0, 100, 50}, {"Freq", -48, 48, 24}, {"Reso", 0, 100, 0},
+    {"Aux", 0, 100, 0},
 };
 
 const wa_param_t *wa_param_info(int i) { return &PARAMS[(unsigned)i < P_NPARAMS ? i : 0]; }
@@ -217,6 +218,7 @@ static float base[WM_NDST];
 static wm_slot_t slot[WM_NSLOT];
 static int attack_ms = 5, release_ms = 60;
 static float ratio = 0.24f;            /* FM's HARMONICS */
+static float aux_mix;                  /* Aux: 0 the engine's main output, 1 its AUX output */
 static int nz_par[3] = {50, 24, 0};    /* the noise layer's Type, Freq, Reso */
 volatile wa_state_t wa_state;
 
@@ -266,6 +268,7 @@ void wa_set(int k, int v)
     case P_MORPH: base[WM_DST_MORPH] = (float)v * 0.01f; break;
     case P_INDEX: base[WM_DST_TIMBRE] = (float)v * 0.01f; break;
     case P_RATIO: ratio = (float)v * 0.01f; break;
+    case P_AUX: aux_mix = (float)v * 0.01f; break;
     case P_ENGINE:
         engine = (unsigned)v < WV_NENGINE ? v : WV_CLASSIC;
         wv_engine((uint32_t)engine);
@@ -360,6 +363,7 @@ void wa_render(int32_t *out, uint32_t n, uint32_t gain_q12, int (*midi_in)(uint3
         f.timbre = m[WM_DST_TIMBRE];
         f.harmonics = ratio;
         f.noise = m[WM_DST_NOISE];
+        f.aux = aux_mix;
         wv_render(&f, out, k);
         wf_process(out, k);
         for (i = 0; i < k; i++) {

@@ -16,6 +16,7 @@ typedef struct {            /* control state, per 64-frame block */
     float cutoff, res, amp; /* 0..1 after the matrix */
     float timbre, morph, harmonics;  /* the engine's own: FM uses all three (index, feedback, ratio) */
     float noise;            /* the noise layer's level 0..1, after the matrix */
+    float aux;              /* 0: the engine's main output; 1: its AUX output alone (6-op: the same) */
 } wind_frame_t;
 
 /* Plaits' engines: VA-VCF; then, into our filter, 2-op FM, 6-op FM (DX7 patches), granular formant,

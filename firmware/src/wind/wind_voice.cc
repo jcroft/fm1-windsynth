@@ -92,6 +92,7 @@ static uint32_t slope;
 static float env, env_up, env_down;     /* the gate envelope: 5 ms up, 60 ms down by default */
 static float dc_x, dc_y;                /* DC blocker state */
 static float vca;                       /* the VCA gain at the end of the last block */
+static float aux_at;                    /* the Aux mix at the end of the last block */
 
 static float clamp01(float x) { return x < 0.0f ? 0.0f : x > 1.0f ? 1.0f : x; }
 
@@ -229,7 +230,7 @@ extern "C" void wv_init(void)
     nz->Init();
     nz_f = nz_q = nz_mode = nz_lvl = 0.0f;
     slope = WV_SLOPE_12;
-    env = vca = dc_x = dc_y = 0.0f;
+    env = vca = aux_at = dc_x = dc_y = 0.0f;
     wv_env(0.005f, 0.060f);
 }
 
@@ -294,6 +295,9 @@ extern "C" void wv_render(const wind_frame_t *f, int32_t *out_lr, uint32_t frame
     float nlvl = clamp01(f->noise);
     float amp = f->amp < 0.0f ? 0.0f : f->amp > 1.0f ? 1.0f : f->amp;
     float dvca = (amp - vca) / (float)(frames ? frames : 1);   /* the VCA ramps across the block */
+    float ax = engine == WV_SIXOP ? 0.0f : clamp01(f->aux);    /* (6-op's AUX is its main output) */
+    float dax = (ax - aux_at) / (float)(frames ? frames : 1);  /* ...and so does the Aux mix */
+    bool mix_aux = ax > 0.0f || aux_at > 0.0f;                /* (at 0, the main output bit for bit) */
     bool enveloped;
     if (engine == WV_SIXOP)
         dx_load();
@@ -317,6 +321,11 @@ extern "C" void wv_render(const wind_frame_t *f, int32_t *out_lr, uint32_t frame
             eng->Render(p, out, aux, k, &enveloped);
             if (p.trigger & TRIGGER_RISING_EDGE)
                 p.trigger = TRIGGER_HIGH;   /* (the edge: once) */
+            if (mix_aux)                /* Plaits' AUX: Classic's high-pass, FM's sub, and so on */
+                for (i = 0; i < k; i++) {
+                    aux_at += dax;
+                    out[i] += (aux[i] - out[i]) * aux_at;
+                }
         }
         if (noise_block(f, nlvl, nzb, k)) {
             if (engine == WV_CLASSIC)   /* (Classic's filter is inside it: the noise gets a copy) */
@@ -344,6 +353,7 @@ extern "C" void wv_render(const wind_frame_t *f, int32_t *out_lr, uint32_t frame
         frames -= k;
     }
     vca = amp;
+    aux_at = ax;
 }
 
 extern "C" void wv_render_raw_engine(uint32_t id, float note, float timbre, float morph, float harmonics,

@@ -439,6 +439,59 @@ static void test_sixop(void)
     wv_engine(WV_CLASSIC);
 }
 
+/* Aux: Plaits' AUX output mixed in. At 0 the main output, bit for bit; at 1 a different sound at a
+ * playable level on every engine but 6-op, whose AUX is its main output (so 1 there changes nothing);
+ * Classic's AUX is its filter's high-pass, brighter than the low-pass */
+static float aux_part(uint32_t engine, float aux, float *rms)
+{
+    wind_frame_t f;
+    uint32_t i, n = SR / 2;
+    double e = 0.0;
+    memset(&f, 0, sizeof f);
+    f.note = 57.0f;
+    f.gate = 1.0f;
+    f.amp = 0.5f;
+    f.cutoff = 0.5f;
+    f.morph = 0.3f;
+    f.timbre = 0.4f;
+    f.harmonics = 0.3f;
+    f.aux = aux;
+    for (i = 0; i < 2; i++) {               /* (twice: Plaits' FM keeps two filters' state through Init) */
+        wv_init();
+        wv_engine(engine);
+        play(&f, 0, n);
+    }
+    for (i = SR / 10; i < n; i++)
+        e += (double)(buf[i] * buf[i]);
+    *rms = fm_sqrtf((float)(e / (n - SR / 10)));
+    return brightness(SR / 10, n - SR / 10);
+}
+
+static void test_aux(void)
+{
+    static float main_out[SR / 2];
+    uint32_t e, i, same, n = SR / 2;
+    for (e = 0; e < WV_NENGINE; e++) {
+        float r0, r1, b0, b1;
+        b0 = aux_part(e, 0.0f, &r0);
+        memcpy(main_out, buf, sizeof main_out);
+        b1 = aux_part(e, 1.0f, &r1);
+        for (i = 0, same = 1; i < n; i++)
+            same &= buf[i] == main_out[i];
+        if (e == WV_SIXOP) {
+            CHECK(same, "aux: 6-op's Aux changes its sound");
+        } else {
+            CHECK(!same, "aux: Aux 1 is the main output on %s", ENGINE_NAME[e]);
+            CHECK(r1 > r0 * 0.2f && r1 < r0 * 5.0f && r1 > 0.01f, "aux: %s's AUX at rms %g against %g",
+                  ENGINE_NAME[e], (double)r1, (double)r0);
+        }
+        if (e == WV_CLASSIC)
+            CHECK(b1 > b0 * 2.0f, "aux: Classic's AUX (%g) not brighter than its low-pass (%g)", (double)b1, (double)b0);
+        printf("  aux on %s: rms main %.3f aux %.3f, brightness %.4f -> %.4f\n", ENGINE_NAME[e], (double)r0,
+               (double)r1, (double)b0, (double)b1);
+    }
+}
+
 int main(int argc, char **argv)
 {
     uint32_t e;
@@ -454,6 +507,7 @@ int main(int argc, char **argv)
     test_noise();
     test_fm();
     test_sixop();
+    test_aux();
     if (fails)
         printf("%d check(s) failed\n", fails);
     return fails ? 1 : 0;

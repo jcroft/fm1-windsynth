@@ -7,6 +7,9 @@ expect par30 0
 # Classic: no Ratio or Index
 expect knob2 -
 expect knob3 -
+# Aux (Plaits' AUX output, Classic's high-pass) on knob 4, off to start
+expect knob4 Aux
+expect par60 0
 midi 90 39 64
 breath 0 127 50
 wait 50
@@ -20,6 +23,8 @@ expect par30 2
 expect msg1 6-op
 expect knob2 Patch
 expect knob3 Bright
+# 6-op's AUX is its main output: no Aux knob
+expect knob4 -
 # the patch: its number on the knob, its name in the message; BRASS 6 BC (95 of 96) to start with
 expect par47 94
 spin K2 1

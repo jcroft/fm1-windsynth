@@ -4,6 +4,15 @@ A release is a push to `main` that changes `VERSION` to a version with no tag ye
 release build, tags the commit `vX.Y.Z` and publishes the GitHub Release with that version's notes,
 taken from its section below. Add the section in the same pull request as the `VERSION` change.
 
+## 0.0.17
+
+- **Aux: each engine's second output.** Every Plaits engine but 6-op has a second output (AUX), and
+  the Engine page's fourth knob now mixes it in: 0, the normal sound, to 100, AUX alone. On Classic it
+  is the filter's high-pass; on FM, a sub-oscillator; on Formant, CZ-style resonant waves; on
+  Waveshape, another folding curve; on VA, the synced-oscillator variant; on PD, the free-running
+  version; on Harmonic, an organ-drawbar subset. 6-op's AUX is its main output, so it has no Aux knob.
+  Sounds saved before load with Aux at 0.
+
 ## 0.0.16
 
 - **A noise layer for any engine.** HOME's third page, Noise, mixes Plaits' noise in with the engine:
