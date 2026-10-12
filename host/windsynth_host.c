@@ -29,8 +29,18 @@
  *                                 glide (the glide time in force, ms) txtX_Y (1: the pixel is the text colour)
  *                                 accX_Y (1: the pixel at X, Y is the theme's accent colour)
  *                                 lumaY (brightness 0..255 of the screen at x 2, row Y: the theme)
+ *                                 scope_period (the Engine page's scope: the period it locks to, samples x 10; 0 quiet)
+ *                                 scope_cycle (tenths of a px its trace's two periods differ by, on average: ~0, it
+ *                                 holds one period of the sound's) scope_still (tenths of a px its last trace read
+ *                                 differs from the one before, on average: ~0, it stands still; 999 no trace)
+ *                                 scope_since (the same, from the one scopemark kept: it doesn't drift)
+ *                                 scope_height (px from its newest trace's top to its bottom; 0 none)
+ *                                 scope_note (the note its traces show, MIDI) scope_trail (traces it shows, 0..3)
+ *                                 blits (the screen's redraws since the last expect blits)
+ *                                 scope_label (text: its label on the right, "Square_40", "-" none)
  *                                 peak_db_max peak_db_min; text, "_" a space: msg0 msg1 (the message's
  *                                 lines) knob1..knob4 (a knob's name on this page, "-" none) val1..val4 (its value as shown))
+ *   scopemark                    keep the Engine page's newest scope trace (expect scope_since)
  *   reboot                       re-run boot from the simulated flash (persistence test)
  *   storefail 0|1                every save fails (1) or works (0); store_tries counts from here
  *   oldproject F                 rewrite the saved project as format F saved it (its values, then its preset)
@@ -356,11 +366,13 @@ static int find_name(const char *const *t, int n, const char *s)
 
 static int key_of(const char *s) { return atoi(s) % NKEYS; }
 
+static int16_t scope_mark[VS_N];        /* scopemark: a trace, for expect scope_since */
+
 static int expect(const char *what, const char *val)
 {
     int got;
     if (!strncmp(what, "msg", 3) || !strncmp(what, "knob", 4) || !strncmp(what, "val", 3) ||
-        !strcmp(what, "title") || !strcmp(what, "notename")) {   /* text, "_": a space; title: the page's */
+        !strcmp(what, "title") || !strcmp(what, "notename") || !strcmp(what, "scope_label")) {   /* text, "_": a space; title: the page's */
                                           /* name in the header; notename: the note on the main screen */
         char want[64], txt[24];                   /* msg0, msg1: the message's lines; knobN: knob N's name; */
         const char *s;                            /* valN: its value as the screen shows it */
@@ -368,7 +380,11 @@ static int expect(const char *what, const char *val)
         for (i = 0; val[i] && i < 63; i++)
             want[i] = val[i] == '_' ? ' ' : val[i];
         want[i] = 0;
-        if (what[0] == 't') {
+        if (what[0] == 's') {
+            if (!vs_label(txt))
+                strcpy(txt, "-");
+            s = txt;
+        } else if (what[0] == 't') {
             s = title_now();
         } else if (what[0] == 'n') {
             note_text((int)(wa_state.note + 0.5f + 1200.0f) - 1200, txt);
@@ -450,6 +466,35 @@ static int expect(const char *what, const char *val)
         got = (int)(wa_state.glide_ms + 0.5f);
     else if (!strncmp(what, "ghost", 5))          /* ghostN: knob N's ghost, the x it sits at (-1: none) */
         got = ui.ghost[(atoi(what + 5) - 1) & 3];
+    else if (!strcmp(what, "scope_period"))
+        got = (int)(vs.per * 10.0f + 0.5f);
+    else if (!strcmp(what, "scope_still"))       /* the last read against the one before */
+        got = vs.n ? vs.still : 999;
+    else if (!strcmp(what, "scope_cycle") || !strcmp(what, "scope_since")) {   /* tenths of a px, on average */
+        int i, d, c = what[6] == 'c', m = c ? VS_N / 2 : VS_N, sum = 0;
+        for (i = 0; i < m; i++) {
+            d = vs.y[0][i] - (c ? vs.y[0][i + VS_N / 2] : scope_mark[i]);
+            sum += d < 0 ? -d : d;
+        }
+        got = vs.n ? (sum * 10 + m / 2) / m : 999;   /* (999: no trace) */
+    }
+    else if (!strcmp(what, "scope_note"))
+        got = vs.note;
+    else if (!strcmp(what, "scope_trail"))
+        got = vs.n;
+    else if (!strcmp(what, "blits")) {
+        static uint32_t was;
+        got = (int)(blits - was);
+        was = blits;
+    }
+    else if (!strcmp(what, "scope_height")) {
+        int i, lo = 999, hi = -999;
+        for (i = 0; vs.n && i < VS_N; i++) {
+            lo = vs.y[0][i] < lo ? vs.y[0][i] : lo;
+            hi = vs.y[0][i] > hi ? vs.y[0][i] : hi;
+        }
+        got = vs.n ? hi - lo : 0;
+    }
     else if (!strcmp(what, "litkeys"))            /* the keys lit (bit per key) */
         got = (int)lit_keys;
     else if (!strcmp(what, "dimkeys")) {          /* how many keys are lit dim */
@@ -619,6 +664,8 @@ int main(int argc, char **argv)
             store_tries = 0;
         } else if (!strcmp(cmd, "expect"))
             fails += expect(a, b);
+        else if (!strcmp(cmd, "scopemark"))
+            memcpy(scope_mark, vs.y[0], sizeof scope_mark);
         else if (!strcmp(cmd, "reboot")) {
             memset(&proj, 0, sizeof proj);
             project_forget();

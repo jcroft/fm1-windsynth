@@ -4,7 +4,9 @@
  *
  *   the screen    the note playing and the bite's bend; breath, cutoff and level as bars; the page's
  *                 four values along the bottom, each with a ghost (an accent tick) at its live value
- *                 when something moves it: a Mod slot, the LFO, the Filter's Breath, the glide CC
+ *                 when something moves it: a Mod slot, the LFO, the Filter's Breath, the glide CC. The
+ *                 Engine page: a scope of the voice instead, two periods of the note, locked to its
+ *                 pitch, the last traces fading (view_scope.inc)
  *   HOME ENV LFO SEL SEQ GLO FX   the pages (pressed again: the button's next page): HOME Filter,
  *                 Engine (named for the engine: ALGORITHM picks it) and Noise, ENV Breath, LFO LFO and LFO 2, SEL Mod 1-4, SEQ Pitch and Pitch 2, GLO Setup, FX Distortion,
  *                 Modulation, Delay, Reverb and Reverb 2 (the order the sound goes through them). EDIT and
@@ -586,6 +588,8 @@ static void note_text(int n, char t[8])
     t[i] = 0;
 }
 
+#include "view_scope.inc"
+
 /* the instrument: the note (and how far the bite bends it) on the left; breath, cutoff and level */
 static void draw_main(void)
 {
@@ -593,6 +597,8 @@ static void draw_main(void)
         draw_stage_mon();
         return;
     }
+    if (vw_scope(ui.view))
+        return;
     float note = wa_state.note, bend = wa_state.bend;
     int top = wa_state.top, gate = wa_state.gate > 0.5f;
     /* the note, its cents and the bite bar's end, as drawn; the bars by the pixel they fill to: so any

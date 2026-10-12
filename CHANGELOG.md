@@ -4,6 +4,16 @@ A release is a push to `main` that changes `VERSION` to a version with no tag ye
 release build, tags the commit `vX.Y.Z` and publishes the GitHub Release with that version's notes,
 taken from its section below. Add the section in the same pull request as the `VERSION` change.
 
+## 0.0.25
+
+- **Engine page: a scope.** The middle of the screen shows the engine's wave as you play: two periods of
+  the note, locked to the pitch the voice plays, with the last two traces fading behind the newest. A
+  steady wave holds still; one that moves by itself (VA's two detuned oscillators beating, a 6-op patch's
+  envelopes) moves on the screen too. The note and the engine's tone control (its live value, after
+  breath and the Mod slots) are named above it. Quiet, it shows a flat line and "Blow a note", and stops
+  redrawing. It shows the voice before the effects and before MASTER: its size is the sound's, and it
+  shows even with MASTER down.
+
 ## 0.0.24
 
 - **Stage, on PLAY.** One screen for playing: the note and how far off it is, breath (with its recent

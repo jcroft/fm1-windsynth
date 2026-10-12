@@ -1,0 +1,372 @@
+# The Engine page's scope: the voice's wave, locked to the pitch the voice plays, so a held note's trace
+# holds still; quiet, a flat line. Two periods across: the trace's halves match (to a px on average), it
+# doesn't move from one trace to the next, nor in 5 s; it doesn't redraw while it holds; and its size
+# doesn't follow MASTER.
+wait 200
+tap HOME
+expect view 1
+# quiet: nothing locked, nothing stale
+expect scope_period 0
+expect scope_trail 0
+expect stale 0
+shot scope_quiet.png
+# A4 (69): 44117.647 / 440 = 100.27 samples (the periods: as the voice plays them, Plaits' tables)
+midi 90 45 64
+breath 0 100 50
+wait 300
+expect level >5
+expect scope_period 1003
+expect scope_note 69
+expect scope_trail >0
+expect scope_cycle <10
+expect scope_still <10
+# Classic: Morph's live value on the right
+expect scope_label Morph_25
+expect stale 0
+shot scope_light.png
+# held, it holds: 2 s with no more than a few redraws (a redraw each read, every other frame: 60)
+expect blits >-1
+wait 2000
+expect blits <12
+# ...and still there 5 s on: it locks to the pitch the voice plays (Plaits' tables, to 1/256 semitone),
+# not the exact note's, which drifts by a period every ten seconds or so
+scopemark
+wait 5000
+expect scope_since <10
+# a low note: E2 (40), 535.5 samples (the ring's points are means of 4)
+midi 80 45 0
+midi 90 28 64
+wait 300
+expect scope_period 5355
+expect scope_cycle <10
+expect scope_still <10
+# a high one: C7 (96), 21.08 samples
+midi 80 28 0
+midi 90 60 64
+wait 300
+expect scope_period 211
+expect scope_cycle <10
+expect scope_still <10
+scopemark
+wait 5000
+expect scope_since <10
+# legato from C7 down to E1 (28), 1071 samples: C7's trace stays, under C7's name, until there are two
+# periods of E1 to show (no C7 under E1's name), and then it goes (none left in the trail)
+midi 90 1C 64
+midi 80 60 0
+wait 10
+expect scope_note 96
+expect scope_cycle <10
+wait 10
+expect scope_note 96
+expect scope_cycle <10
+wait 10
+expect scope_note 96
+expect scope_cycle <10
+wait 10
+expect scope_note 96
+expect scope_cycle <10
+wait 10
+expect scope_note 96
+expect scope_cycle <10
+wait 20
+expect scope_note 28
+expect scope_trail 1
+expect scope_period 10710
+expect scope_cycle <10
+# up and down an octave on the same ring points (d 1), A4 to A5 and back every 33 ms, so some change
+# lands just before a read: each read only from the note it names
+midi 90 45 64
+midi 80 1C 0
+wait 300
+midi 90 51 64
+midi 80 45 0
+wait 33
+expect scope_cycle <10
+midi 90 45 64
+midi 80 51 0
+wait 33
+expect scope_cycle <10
+midi 90 51 64
+midi 80 45 0
+wait 33
+expect scope_cycle <10
+midi 90 45 64
+midi 80 51 0
+wait 33
+expect scope_cycle <10
+midi 90 51 64
+midi 80 45 0
+wait 33
+expect scope_cycle <10
+midi 90 45 64
+midi 80 51 0
+wait 33
+expect scope_cycle <10
+midi 90 51 64
+midi 80 45 0
+wait 33
+expect scope_cycle <10
+midi 90 45 64
+midi 80 51 0
+wait 33
+expect scope_cycle <10
+midi 90 51 64
+midi 80 45 0
+wait 33
+expect scope_cycle <10
+midi 90 45 64
+midi 80 51 0
+wait 33
+expect scope_cycle <10
+midi 90 51 64
+midi 80 45 0
+wait 33
+expect scope_cycle <10
+midi 90 45 64
+midi 80 51 0
+wait 33
+expect scope_cycle <10
+midi 90 51 64
+midi 80 45 0
+wait 33
+expect scope_cycle <10
+midi 90 45 64
+midi 80 51 0
+wait 33
+expect scope_cycle <10
+midi 90 51 64
+midi 80 45 0
+wait 33
+expect scope_cycle <10
+midi 90 45 64
+midi 80 51 0
+wait 33
+expect scope_cycle <10
+midi 90 51 64
+midi 80 45 0
+wait 33
+expect scope_cycle <10
+midi 90 45 64
+midi 80 51 0
+wait 33
+expect scope_cycle <10
+midi 90 51 64
+midi 80 45 0
+wait 33
+expect scope_cycle <10
+midi 90 45 64
+midi 80 51 0
+wait 33
+expect scope_cycle <10
+midi 90 51 64
+midi 80 45 0
+wait 33
+expect scope_cycle <10
+midi 90 45 64
+midi 80 51 0
+wait 33
+expect scope_cycle <10
+midi 90 51 64
+midi 80 45 0
+wait 33
+expect scope_cycle <10
+midi 90 45 64
+midi 80 51 0
+wait 33
+expect scope_cycle <10
+midi 90 51 64
+midi 80 45 0
+wait 33
+expect scope_cycle <10
+midi 90 45 64
+midi 80 51 0
+wait 33
+expect scope_cycle <10
+midi 90 51 64
+midi 80 45 0
+wait 33
+expect scope_cycle <10
+midi 90 45 64
+midi 80 51 0
+wait 33
+expect scope_cycle <10
+midi 90 51 64
+midi 80 45 0
+wait 33
+expect scope_cycle <10
+midi 90 45 64
+midi 80 51 0
+wait 33
+expect scope_cycle <10
+midi 90 51 64
+midi 80 45 0
+wait 33
+expect scope_cycle <10
+midi 90 45 64
+midi 80 51 0
+wait 33
+expect scope_cycle <10
+midi 90 51 64
+midi 80 45 0
+wait 100
+expect scope_note 81
+expect scope_period 501
+# C#3 (49), 318.4 samples, wobbling 10 cents down and back (320 is where the ring's points change from
+# means of 2 to 3): the points keep their size, and a trace never mixes two (the wave itself, sliding,
+# differs a little from period to period)
+midi 80 51 0
+midi 90 31 64
+wait 300
+expect scope_cycle <10
+midi E0 66 3C
+wait 25
+expect scope_cycle <20
+midi E0 00 40
+wait 25
+expect scope_cycle <20
+midi E0 66 3C
+wait 25
+expect scope_cycle <20
+midi E0 00 40
+wait 25
+expect scope_cycle <20
+midi E0 66 3C
+wait 25
+expect scope_cycle <20
+midi E0 00 40
+wait 25
+expect scope_cycle <20
+midi E0 66 3C
+wait 25
+expect scope_cycle <20
+midi E0 00 40
+wait 25
+expect scope_cycle <20
+midi E0 66 3C
+wait 25
+expect scope_cycle <20
+midi E0 00 40
+wait 25
+expect scope_cycle <20
+midi E0 66 3C
+wait 25
+expect scope_cycle <20
+midi E0 00 40
+wait 25
+expect scope_cycle <20
+midi E0 66 3C
+wait 100
+expect scope_period >3195
+midi E0 00 40
+wait 100
+expect scope_period 3184
+# its size is the sound's, not MASTER's: the same at the bottom of the pot, and at 0
+expect scope_height >40
+master 4
+wait 300
+expect scope_period 3184
+expect scope_height >40
+master 0
+wait 300
+expect scope_height >40
+master 2048
+midi 80 31 0
+midi 90 45 64
+# FM
+spin ALGO 1
+expect title FM
+wait 300
+expect scope_period 1003
+expect scope_still <10
+scopemark
+wait 2000
+expect scope_since <15
+expect scope_label Index_40
+expect stale 0
+# 6-op (its patch's envelopes move its wave on over seconds)
+spin ALGO 1
+expect title 6-op
+wait 300
+expect scope_period 1003
+expect scope_still <10
+expect scope_label Bright_40
+expect stale 0
+# Formant
+spin ALGO 1
+expect title Formant
+wait 300
+expect scope_period 1003
+expect scope_still <10
+scopemark
+wait 2000
+expect scope_since <15
+expect stale 0
+# Waveshape
+spin ALGO 1
+expect title Waveshape
+wait 300
+expect scope_period 1003
+expect scope_still <10
+scopemark
+wait 2000
+expect scope_since <15
+expect stale 0
+# VA (its two oscillators, detuned, beat: its two periods differ, and its wave changes as they do)
+spin ALGO 1
+expect title VA
+wait 300
+expect scope_period 1003
+expect scope_label Square_40
+expect stale 0
+shot scope_va_light.png
+# PD
+spin ALGO 1
+expect title PD
+wait 300
+expect scope_period 1003
+expect scope_still <10
+scopemark
+wait 2000
+expect scope_since <15
+expect stale 0
+# Harmonic
+spin ALGO 1
+expect title Harmonic
+wait 300
+expect scope_period 1003
+expect scope_still <10
+scopemark
+wait 2000
+expect scope_since <15
+expect stale 0
+# back to VA, F4 (65), 126.4 samples
+spin ALGO -1
+spin ALGO -1
+expect title VA
+midi 80 45 0
+midi 90 41 64
+wait 300
+expect scope_period 1264
+expect scope_note 65
+# Dark
+tap GLO
+spin K4 1
+expect par29 1
+tap HOME
+tap HOME
+expect view 1
+wait 1500
+expect stale 0
+shot scope_va_dark.png
+# quiet again: the flat line, no period, nothing redrawn
+midi 80 41 0
+breath 100 0 20
+wait 1500
+expect scope_period 0
+expect scope_trail 0
+expect stale 0
+shot scope_quiet_dark.png
+expect blits >-1
+wait 1000
+expect blits 0
