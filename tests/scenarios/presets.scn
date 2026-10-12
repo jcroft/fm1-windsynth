@@ -85,3 +85,13 @@ oldproject 4
 reboot
 wait 200
 expect par45 500
+# to 0.0.11, Glide was where the glide CC last left it; now it's the least glide time, so it comes back
+# as 4 ms, the default
+tap LFO
+expect view 3
+spin K2 196
+expect par10 200
+oldproject 6
+reboot
+wait 200
+expect par10 4

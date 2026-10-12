@@ -3,8 +3,8 @@
  * Classic (VA-VCF) has its own filter; every other engine goes through ours, the same two SVFs
  * VA-VCF uses, key-tracked and scaled the same way, so Cutoff, Resonance and Slope mean the same on all.
  * The others take Plaits' own HARMONICS, TIMBRE and MORPH. 6-op plays a DX7 patch from Plaits' three
- * banks, its envelopes started by each new breath (the gate) and held through legato notes; Swarm runs
- * continuous (unpatched), the rest have no envelope of their own.
+ * banks, its envelopes started by each new breath (the gate) and held through legato notes; the rest
+ * have no envelope of their own.
  *
  * Plaits is vendored unmodified (third_party/mutable, see MANIFEST). It runs at the FM-1's rate
  * rather than its own 47,872 Hz, so the pitch is raised by WV_TUNE to keep it in tune; breath is
@@ -20,7 +20,6 @@
 #include "plaits/dsp/engine/grain_engine.h"
 #include "plaits/dsp/engine/waveshaping_engine.h"
 #include "plaits/dsp/engine/virtual_analog_engine.h"
-#include "plaits/dsp/engine/swarm_engine.h"
 #include "plaits/resources.h"
 #include "stmlib/utils/random.h"
 
@@ -44,9 +43,8 @@ WV_MEM(SixOpEngine, six);
 WV_MEM(GrainEngine, grain);
 WV_MEM(WaveshapingEngine, shape);
 WV_MEM(VirtualAnalogEngine, va);
-WV_MEM(SwarmEngine, swarm);
 static union {
-    char raw[16384];                    /* what the engines allocate: 6-op's patches, Swarm's voices */
+    char raw[16384];                    /* what the engines allocate: 6-op's patches */
     double align;
 } arena;
 static VirtualAnalogVCFEngine *vcf;
@@ -56,6 +54,11 @@ static Engine *engines[WV_NENGINE];
 static Engine *eng;                     /* the engine playing */
 static uint32_t engine;
 static uint32_t dx_bank = 0xFFu, dx_want, dx_patch;   /* 6-op: the bank loaded, the one wanted; the patch */
+/* 6-op renders its two voices staggered, each call a block ahead into a buffer that assumes every block
+ * is as long as the last: a short one (our 64 is 5 x 12 + 4) loses time, so it played 7/8 flat and
+ * rough. So it always renders 12, and this hands them out. */
+static float six_q[WV_BLK];
+static uint32_t six_at = WV_BLK;
 static float last_gate;                 /* 6-op: a new breath starts its envelopes */
 static union {
     char raw[2 * sizeof(stmlib::Svf)];
@@ -78,6 +81,8 @@ static void params_for(const wind_frame_t *f, EngineParameters *p)
     p->note = f->note + WV_TUNE;
     p->accent = 1.0f;
     p->morph = f->morph;
+    if (engine == WV_SIXOP)             /* Env: the patch's own times at 25 (Morph's default), 0 to 1 either side */
+        p->morph = f->morph < 0.25f ? 2.0f * clamp01(f->morph) : 0.5f + (clamp01(f->morph) - 0.25f) * (2.0f / 3.0f);
     if (engine != WV_CLASSIC) {         /* the engine's own: FM's index, feedback and ratio, and so on */
         p->timbre = clamp01(f->timbre);
         p->harmonics = clamp01(f->harmonics);
@@ -124,14 +129,13 @@ extern "C" void wv_init(void)
 {
     stmlib::BufferAllocator a(arena.raw, sizeof arena.raw);
     uint32_t i;
-    stmlib::Random::Seed(0x21);         /* Plaits' own start (Swarm and 6-op's LFO draw on it): the same each time */
+    stmlib::Random::Seed(0x21);         /* Plaits' own start (6-op's LFO draws on it): the same each time */
     engines[WV_CLASSIC] = vcf = new (vcf_mem.raw) VirtualAnalogVCFEngine();
     engines[WV_FM] = fm2 = new (fm_mem.raw) FMEngine();
     engines[WV_SIXOP] = six = new (six_mem.raw) SixOpEngine();
     engines[WV_GRAIN] = new (grain_mem.raw) GrainEngine();
     engines[WV_SHAPE] = new (shape_mem.raw) WaveshapingEngine();
     engines[WV_VA] = new (va_mem.raw) VirtualAnalogEngine();
-    engines[WV_SWARM] = new (swarm_mem.raw) SwarmEngine();
     for (i = 0; i < WV_NENGINE; i++) {
         engines[i]->Init(&a);
         engines[i]->Reset();
@@ -166,6 +170,7 @@ extern "C" void wv_engine(uint32_t id)
     engine = id;
     eng = engines[id];
     eng->Reset();
+    six_at = WV_BLK;
     last_gate = 0.0f;                   /* a note held through the change starts again (6-op's envelopes) */
 }
 
@@ -219,12 +224,21 @@ extern "C" void wv_render(const wind_frame_t *f, int32_t *out_lr, uint32_t frame
         post_targets(f, &fc, &q);
     while (frames) {
         uint32_t k = frames > WV_BLK ? WV_BLK : frames, i;
-        eng->Render(p, out, aux, k, &enveloped);
-        if (p.trigger & TRIGGER_RISING_EDGE)
-            p.trigger = TRIGGER_HIGH;   /* (the edge: once) */
-        if (engine == WV_SWARM)         /* Plaits' own gain for it (x3, into its limiter: here, SoftClip) */
-            for (i = 0; i < k; i++)
-                out[i] *= 3.0f;
+        if (engine == WV_SIXOP) {       /* always Plaits' 12 (see six_q), handed out k at a time */
+            for (i = 0; i < k; i++) {
+                if (six_at >= WV_BLK) {
+                    eng->Render(p, six_q, aux, WV_BLK, &enveloped);
+                    if (p.trigger & TRIGGER_RISING_EDGE)
+                        p.trigger = TRIGGER_HIGH;
+                    six_at = 0;
+                }
+                out[i] = six_q[six_at++];
+            }
+        } else {
+            eng->Render(p, out, aux, k, &enveloped);
+            if (p.trigger & TRIGGER_RISING_EDGE)
+                p.trigger = TRIGGER_HIGH;   /* (the edge: once) */
+        }
         if (engine != WV_CLASSIC)
             post_filter(out, k, fc, q);
         for (i = 0; i < k; i++) {

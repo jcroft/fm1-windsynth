@@ -32,6 +32,7 @@ static void test_notes(void)
 {
     int i;
     wc_init();
+    wc_cfg.glide = 0;                                 /* (no glide: each note lands at once; 4 ms by default) */
     run(1);
     CHECK(o.gate == 0.0f, "gate open with nothing held");
     wc_midi(0x90, 60, 100);
@@ -162,24 +163,25 @@ static void test_bend(void)
 static void test_glide(void)
 {
     wc_init();
+    CHECK(wc_cfg.glide == 4 && wc_cfg.glide_depth == 400, "defaults: Glide %d ms, CC depth %d ms", wc_cfg.glide,
+          wc_cfg.glide_depth);
+    wc_cfg.glide = 0;
     wc_cfg.glide_depth = 2000;                        /* CC depth 2 s (the default is 400 ms) */
-    wc_midi(0xB0, 5, 127);                            /* CC5: the glide time, 2 s at full */
-    CHECK(wc_take_glide_cc() == 100 && wc_cfg.glide == 100, "CC5 127: glide %d", wc_cfg.glide);
-    CHECK(wc_take_glide_cc() == -1, "glide CC taken twice");
-    wc_midi(0xB0, 5, 64);
-    CHECK(wc_cfg.glide == 50 && wc_take_glide_cc() == 50, "CC5 64: glide %d", wc_cfg.glide);   /* 0.5 s */
+    wc_midi(0xB0, 5, 127);                            /* CC5 at full: Glide + 2 s */
+    wc_midi(0xB0, 5, 64);                             /* CC5 64: + 2000 x 64/127, about 1 s */
+    CHECK(wc_cfg.glide == 0, "CC5 changed the Glide setting: %d", wc_cfg.glide);
     wc_midi(0x90, 60, 100);
     run(1);
     CHECK(o.note == 60.0f, "the first note glides: %g", (double)o.note);
-    wc_midi(0x90, 72, 100);                           /* legato: 12 semitones in 0.5 s */
-    run(250);
+    wc_midi(0x90, 72, 100);                           /* legato: 12 semitones in 1,008 ms */
+    run(504);
     CHECK(NEAR(o.note, 66.0f, 0.1f), "halfway: %g", (double)o.note);
-    run(260);
+    run(510);
     CHECK(o.note == 72.0f, "there: %g", (double)o.note);
-    wc_midi(0x80, 72, 0);                             /* back down, also legato: 0.5 s again */
-    run(125);
+    wc_midi(0x80, 72, 0);                             /* back down, also legato */
+    run(252);
     CHECK(NEAR(o.note, 69.0f, 0.1f), "a quarter back: %g", (double)o.note);
-    run(400);
+    run(800);
     wc_midi(0x80, 60, 0);
     wc_midi(0x90, 48, 100);                           /* detached: a jump */
     run(1);
@@ -187,23 +189,37 @@ static void test_glide(void)
     wc_midi(0x80, 48, 0);
     wc_cfg.glide_always = 1;                          /* always: detached notes glide too */
     wc_midi(0x90, 60, 100);
-    run(250);
-    CHECK(NEAR(o.note, 54.0f, 0.1f), "always: %g after 250 ms", (double)o.note);
+    run(504);
+    CHECK(NEAR(o.note, 54.0f, 0.1f), "always: %g after 504 ms", (double)o.note);
+    run(600);
     wc_midi(0x80, 60, 0);
-    wc_cfg.glide_depth = 320;                         /* the depth: CC5 at full reaches 320 ms (Glide 40) */
-    wc_midi(0xB0, 5, 127);
-    CHECK(wc_cfg.glide == 40 && wc_take_glide_cc() == 40, "CC5 127 at depth 40: glide %d", wc_cfg.glide);
-    wc_midi(0xB0, 5, 64);
-    CHECK(wc_cfg.glide == 20, "CC5 64 at depth 40: glide %d", wc_cfg.glide);
-    wc_cfg.glide_depth = 400;                         /* the default: 400 ms at full */
-    wc_midi(0xB0, 5, 127);
-    CHECK(wc_cfg.glide == 45, "CC5 127 at the default depth: glide %d", wc_cfg.glide);
-    wc_cfg.glide_depth = 2000;
-    wc_midi(0xB0, 5, 64);
-    wc_take_glide_cc();
-    wc_cfg.glide_src = WC_SRC_OFF;                    /* no glide CC */
+    /* the CC only adds: at 0 the glide is Glide itself (100 ms), never less */
+    wc_cfg.glide = 100;
     wc_midi(0xB0, 5, 0);
-    CHECK(wc_cfg.glide == 50, "CC5 heard with the source off");
+    wc_midi(0x90, 72, 100);
+    run(50);
+    CHECK(NEAR(o.note, 66.0f, 0.1f), "CC5 0, Glide 100 ms: %g after 50 ms", (double)o.note);
+    run(60);
+    CHECK(o.note == 72.0f, "CC5 0, Glide 100 ms: there %g", (double)o.note);
+    wc_midi(0x80, 72, 0);
+    wc_cfg.glide_depth = 400;                         /* CC5 at full, the default depth: 100 + 400 ms */
+    wc_midi(0xB0, 5, 127);
+    wc_midi(0x90, 60, 100);
+    run(250);
+    CHECK(NEAR(o.note, 66.0f, 0.1f), "Glide 100 + CC5 400: %g after 250 ms", (double)o.note);
+    run(260);
+    wc_midi(0x80, 60, 0);
+    wc_cfg.glide = 0;                                 /* nothing at all: a jump */
+    wc_midi(0xB0, 5, 0);
+    wc_midi(0x90, 72, 100);
+    run(1);
+    CHECK(o.note == 72.0f, "no glide, no CC: %g", (double)o.note);
+    wc_midi(0x80, 72, 0);
+    wc_cfg.glide_src = WC_SRC_OFF;                    /* no glide CC: CC5 adds nothing */
+    wc_midi(0xB0, 5, 127);
+    wc_midi(0x90, 60, 100);
+    run(1);
+    CHECK(o.note == 60.0f, "CC5 heard with the source off: %g", (double)o.note);
 }
 
 static void test_matrix(void)
@@ -341,15 +357,14 @@ static void test_app(void)
     CHECK(fm_fabsf(cents(f, 440.0f) + 200.0f) < 1.0f, "bite down: %g Hz", (double)f);
     midi(0xE0, 0x00, 0x40);
 
-    /* CC5 sets the glide; the next legato note slides (CC depth 2 s: CC5 64 is Glide 50) */
+    /* CC5 adds to Glide; the next legato note slides (CC depth 2 s, Glide 4 ms: CC5 64 gives 1,012 ms) */
     wa_set(P_GDEPTH, 2000);
     midi(0xB0, 5, 64);
     play(64);
-    CHECK(wa_take_glide() == 50, "CC5 not seen by the app");
     midi(0x90, 81, 100);
-    play(SR / 4);                                     /* halfway along 0.5 s */
+    play(SR / 2);                                     /* about halfway along 1,012 ms */
     CHECK(NEAR(wa_state.note, 75.0f, 0.2f), "glide halfway: %g", (double)wa_state.note);
-    play(SR / 3);
+    play(SR * 2 / 3);
     CHECK(wa_state.note == 81.0f, "glide end: %g", (double)wa_state.note);
 
     for (i = 0; i < 128; i++)                         /* everything up: the gate shuts, it falls quiet */

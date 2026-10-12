@@ -11,7 +11,7 @@ const char *const WA_NOTE_NAME[12] = {"C", "C#", "D", "D#", "E", "F", "F#", "G",
 static const wa_param_t PARAMS[P_NPARAMS] = {
     {"Cutoff", 0, 100, 15}, {"Reso", 0, 100, 0}, {"Morph", 0, 100, 25}, {"Slope", 0, 1, 1},
     {"Breath", 0, 128, 2}, {"Curve", -100, 100, 0}, {"Attack", 1, 200, 5}, {"Release", 5, 2000, 60},
-    {"Bend", 0, 12, 2}, {"Glide CC", 0, 128, 5}, {"Glide", 0, 100, 0}, {"Glide on", 0, 1, 0},
+    {"Bend", 0, 12, 2}, {"Glide CC", 0, 128, 5}, {"Glide", 0, 2000, 4}, {"Glide on", 0, 1, 0},
     {"Source", 0, WM_NSRC - 1, WM_SRC_BREATH}, {"Dest", 0, WM_NDST - 1, WM_DST_CUTOFF}, {"Amount", -100, 100, 75},
     {"Source", 0, WM_NSRC - 1, WM_SRC_OFF}, {"Dest", 0, WM_NDST - 1, WM_DST_CUTOFF}, {"Amount", -100, 100, 0},
     {"Source", 0, WM_NSRC - 1, WM_SRC_OFF}, {"Dest", 0, WM_NDST - 1, WM_DST_CUTOFF}, {"Amount", -100, 100, 0},
@@ -29,7 +29,7 @@ static const wa_param_t PARAMS[P_NPARAMS] = {
 
 const wa_param_t *wa_param_info(int i) { return &PARAMS[(unsigned)i < P_NPARAMS ? i : 0]; }
 
-const char *const WA_ENGINE_NAME[WV_NENGINE] = {"Classic", "FM", "6-op", "Formant", "Waveshape", "VA", "Swarm"};
+const char *const WA_ENGINE_NAME[WV_NENGINE] = {"Classic", "FM", "6-op", "Formant", "Waveshape", "VA"};
 static int engine;                     /* the engine playing: its knobs' names */
 
 /* What HARMONICS (Ratio), TIMBRE (Index) and MORPH do on each engine, after Plaits' manual. Classic has
@@ -41,7 +41,6 @@ static const char *const ENGINE_KNOB[WV_NENGINE][3] = {
     {"Ratio", "Formant", "Width"},        /* granular formant: the two formants' ratio, the first, their width */
     {"Shape", "Fold", "Asym"},            /* waveshaping: the shaper's curve, the folder, the asymmetry */
     {"Detune", "Square", "Saw"},          /* virtual analog: the two oscillators' detune and shapes */
-    {"Spread", "Density", "Overlap"},     /* swarm: pitch randomness, grain density and duration */
 };
 
 const char *wa_param_name(int i)
@@ -118,8 +117,6 @@ static void put_ms(char *b, int ms)                      /* "60ms", "1.2s" */
     }
 }
 
-static int glide_ms(int v) { return (v * v * 2000 + 5000) / 10000; }   /* wind_ctl's curve: 100 -> 2 s */
-
 void wa_param_text(int i, int v, char *b)
 {
     switch (i) {
@@ -141,13 +138,7 @@ void wa_param_text(int i, int v, char *b)
         copy_s(b, "s");
         return;
     }
-    case P_GLIDE:
-        if (!v)
-            copy_s(b, "Off");
-        else
-            put_ms(b, glide_ms(v));
-        return;
-    case P_GDEPTH:
+    case P_GLIDE: case P_GDEPTH:
         if (!v)
             copy_s(b, "Off");
         else
@@ -271,7 +262,7 @@ void wa_set(int k, int v)
         break;
     case P_BEND: wc_cfg.bend_range = (uint8_t)v; break;
     case P_GSRC: wc_cfg.glide_src = (uint8_t)v; break;
-    case P_GLIDE: wc_cfg.glide = (uint8_t)v; break;
+    case P_GLIDE: wc_cfg.glide = (uint16_t)v; break;
     case P_GDEPTH: wc_cfg.glide_depth = (uint16_t)v; break;
     case P_GMODE: wc_cfg.glide_always = (uint8_t)(v != 0); break;
     case P_KEYBREATH: wc_cfg.key_breath = (float)v * 0.01f; break;
@@ -281,8 +272,6 @@ void wa_set(int k, int v)
     default: break;                    /* the UI's own (Octave, Theme) */
     }
 }
-
-int wa_take_glide(void) { return wc_take_glide_cc(); }
 
 static void drain(int (*midi_in)(uint32_t *pkt))
 {

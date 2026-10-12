@@ -93,8 +93,7 @@ static void wav_write(const char *path, uint32_t n)
     fclose(f);
 }
 
-static const char *const ENGINE_NAME[WV_NENGINE] = {"VA-VCF", "FM", "6-op", "Formant", "Waveshaping", "VA",
-                                                    "Swarm"};
+static const char *const ENGINE_NAME[WV_NENGINE] = {"VA-VCF", "FM", "6-op", "Formant", "Waveshaping", "VA"};
 
 /* engine's sweep against upstream Plaits' (refdir/ref_N.f32, from wind_ref) */
 static void test_sweep(uint32_t engine, const char *refdir, const char *dir)
@@ -302,6 +301,39 @@ static void test_fm(void)
     wv_engine(WV_CLASSIC);
 }
 
+/* 6-op through the voice in the device's 64-frame blocks: in tune (it once played 7/8 flat, its staggered
+ * voices fed blocks of 12 and then 4), and BRASS 6 BC holds while the gate is open */
+static void test_sixop(void)
+{
+    wind_frame_t f;
+    const uint32_t len = 16384;
+    float in_tune, flat, early, late;
+    wv_init();
+    wv_engine(WV_SIXOP);
+    wv_dx_patch(94);
+    memset(&f, 0, sizeof f);
+    f.note = 57.0f;                                 /* A3, 220 Hz */
+    f.gate = 1.0f;
+    f.amp = 1.0f;
+    f.morph = 0.25f;                                /* Env: the patch's own times */
+    f.timbre = 0.5f;
+    f.cutoff = 1.0f;
+    play(&f, 0, SR / 2);
+    early = peak(SR / 4, SR / 4);
+    play(&f, 0, len);
+    in_tune = harmonic(len, (float)WV_SR / 220.0f, 1) + harmonic(len, (float)WV_SR / 220.0f, 2);
+    flat = harmonic(len, (float)WV_SR / 192.5f, 1) + harmonic(len, (float)WV_SR / 192.5f, 2);
+    CHECK(in_tune > 10.0f * flat, "6-op: A3 at %g against 7/8 flat at %g", (double)in_tune, (double)flat);
+    play(&f, 0, SR * 2);
+    late = peak(SR, SR);
+    CHECK(early > 0.05f && late > 0.5f * early, "6-op sustain: %g at 0.25 s, %g after 2.5 s", (double)early,
+          (double)late);
+    CHECK(!nan_seen, "6-op: NaN");
+    printf("  6-op: in tune %.2f against flat %.2f; level %.3f, then %.3f held\n", (double)in_tune, (double)flat,
+           (double)early, (double)late);
+    wv_engine(WV_CLASSIC);
+}
+
 int main(int argc, char **argv)
 {
     uint32_t e;
@@ -314,6 +346,7 @@ int main(int argc, char **argv)
     test_voice(argv[2]);
     test_saw();
     test_fm();
+    test_sixop();
     if (fails)
         printf("%d check(s) failed\n", fails);
     return fails ? 1 : 0;

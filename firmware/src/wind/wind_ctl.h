@@ -7,7 +7,8 @@
  *            channel pressure; through a curve and a short smoothing
  *   bite     pitch bend, +-range semitones
  *   glide    constant time, linear in semitones; on legato notes (a note while another sounds), or
- *            always. Its time is a setting that a CC (CC5 by default) also sets.
+ *            always. Its time is the Glide setting, plus what a CC (CC5 by default) adds: up to the CC
+ *            depth at 127, nothing at 0. The CC only adds: it never takes the time below Glide.
  *
  * Threads: everything here runs in the audio interrupt (wind_app drains MIDI and the panel's keys
  * into it at the start of each block); the settings (wc_cfg) are written by the UI between blocks. */
@@ -24,8 +25,8 @@ typedef struct {
     int8_t breath_curve;               /* -100..100: + is more sensitive at the start, - less */
     uint8_t bend_range;                /* semitones each way */
     uint8_t glide_src;                 /* CC 0..127, or WC_SRC_OFF */
-    uint8_t glide;                     /* glide time 0..100 (0: none, 100: 2 s) */
-    uint16_t glide_depth;              /* the glide time the glide CC reaches at 127, ms (0..2000) */
+    uint16_t glide;                    /* the glide time with the glide CC at 0, ms (0..2000; 0: none) */
+    uint16_t glide_depth;              /* what the glide CC adds to it at 127, ms (0..2000) */
     uint8_t glide_always;              /* 0: legato notes only */
     int8_t transpose;                  /* semitones */
     int16_t tune;                      /* cents */
@@ -51,6 +52,5 @@ void wc_midi(uint32_t st, uint32_t d1, uint32_t d2);
 void wc_key(int note, int on);         /* a panel key: its MIDI note, down or up */
 /* the next block of frames at sr: glide and smoothing move on, the state comes out */
 void wc_block(uint32_t frames, float sr, wc_out_t *o);
-int wc_take_glide_cc(void);            /* the glide time a CC last set (0..100), -1: none since */
 int wc_held(void);                     /* notes held (MIDI and keys) */
 int wc_top_note(void);                 /* the note sounding (MIDI note number), -1: none ever */

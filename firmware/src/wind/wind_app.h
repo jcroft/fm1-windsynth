@@ -51,7 +51,6 @@ void wa_panic(void);                   /* everything quiet (queued for the next 
 /* n stereo frames, 24-bit in int32; gain Q12 (the MASTER pot); midi_in: the next USB-MIDI packet,
  * 1 = got one (plat_midi_in) */
 void wa_render(int32_t *out_lr, uint32_t n, uint32_t gain_q12, int (*midi_in)(uint32_t *pkt));
-int wa_take_glide(void);               /* the Glide value a CC last set (0..100), -1: none since */
 
 /* the state the screen shows, written by wa_render */
 typedef struct {

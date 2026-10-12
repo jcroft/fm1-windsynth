@@ -341,11 +341,6 @@ static void input(void)
         ui.midi_seen = wa_state.midi_seen;
         ui.act_t = plat_ms();
     }
-    {   /* the glide CC moved Glide: the knob follows (not a change to save) */
-        int g = wa_take_glide();
-        if (g >= 0)
-            proj.par[P_GLIDE] = (int16_t)g;
-    }
     if ((e = plat_enc(EN_SELECT)) != 0)
         set_view((ui.view + (e > 0 ? 1 : NVIEWS - 1)) % NVIEWS);
     if ((e = plat_enc(EN_PRESET)) != 0) {           /* the preset; while "SAVE TO" asks, where to */

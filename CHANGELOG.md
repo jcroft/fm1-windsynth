@@ -4,6 +4,17 @@ A release is a push to `main` that changes `VERSION` to a version with no tag ye
 release build, tags the commit `vX.Y.Z` and publishes the GitHub Release with that version's notes,
 taken from its section below. Add the section in the same pull request as the `VERSION` change.
 
+## 0.0.12
+
+- **Glide is a set time, and CC5 adds to it.** Glide on the Pitch page is now the glide time in
+  milliseconds, 4 ms by default. The glide CC (CC5) adds to it, up to CC depth (400 ms) at full and
+  nothing at 0, so the glide never gets shorter than Glide. The knob no longer moves with the CC.
+  Saved sounds come back with Glide at 4 ms: before, it held wherever the CC last left it.
+- **6-op fixed.** It played about 2.3 semitones flat and rough, because Plaits' 6-op needs every block
+  the same length and got blocks of 12 and then 4. It's in tune and clean now. Its Env (Morph) at 25,
+  Morph's default, now plays the patch's own envelope times; before, 25 made them four times faster.
+- **Swarm is gone.** It didn't work on a windsynth. A sound saved on Swarm comes back on Classic.
+
 ## 0.0.11
 
 - **A smoother reverb tail**, Cloud's above all. The tail used to bloom, then fall away in steps
