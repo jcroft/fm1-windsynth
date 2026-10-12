@@ -160,6 +160,61 @@ static void test_bend(void)
     CHECK(NEAR(o.note, 60.0f + 7.0f * 2048.0f / 8191.0f, 1e-4f), "part bend: %g", (double)o.note);
 }
 
+/* the controller monitor (Setup): the raw values as they came, and the block each came in */
+static void test_monitor(void)
+{
+    const wc_mon_t *m = wc_monitor();
+    uint32_t t0;
+    wc_init();
+    CHECK(m->clock == 1u && !m->t_breath && !m->t_bend && !m->t_glide && !m->t_note, "monitor at init: clock %u",
+          (unsigned)m->clock);
+    run(10);                                          /* 10 ms: 7 blocks of 64 */
+    CHECK(m->clock == 8u, "clock after 10 ms: %u", (unsigned)m->clock);
+    t0 = m->clock;
+    wc_midi(0xB0, 2, 100);
+    CHECK(m->breath == (100u << 7 | 100u) && m->t_breath == t0, "breath CC: %u at %u", (unsigned)m->breath,
+          (unsigned)m->t_breath);
+    wc_midi(0xB0, 34, 5);                             /* its LSB */
+    CHECK(m->breath == (100u << 7 | 5u), "breath LSB: %u", (unsigned)m->breath);
+    wc_midi(0xB0, 11, 50);                            /* not the source: not breath */
+    CHECK(m->breath == (100u << 7 | 5u), "CC11 taken for breath");
+    wc_midi(0xE0, 0x00, 0x30);
+    CHECK(m->bend == -2048 && m->t_bend == t0, "bend: %d", m->bend);
+    run(1);
+    wc_midi(0xB0, 5, 77);
+    CHECK(m->glide == 77u && m->t_glide == t0 + 1u, "glide CC: %u at %u", (unsigned)m->glide, (unsigned)m->t_glide);
+    wc_midi(0x90, 65, 90);
+    CHECK(m->note == 65u && m->velocity == 90u && m->on && m->t_note == t0 + 1u, "note on: %u %u %u", m->note,
+          m->velocity, m->on);
+    wc_midi(0x90, 65, 0);                             /* velocity 0: off */
+    CHECK(m->note == 65u && !m->on, "note off");
+    wc_key(60, 1);                                    /* the panel's keys too, at their fixed velocity */
+    CHECK(m->note == 60u && m->velocity == 100u && m->on, "panel key: %u %u", m->note, m->velocity);
+    wc_key(60, 0);
+    wc_cfg.breath_src = WC_SRC_AT;                    /* pressure as the breath */
+    wc_midi(0xD0, 33, 0);
+    CHECK(m->breath == (33u << 7 | 33u), "pressure as breath: %u", (unsigned)m->breath);
+    CHECK(m->breath_src == WC_SRC_AT && m->glide_src == 5u, "the sources they came as: %u %u", m->breath_src,
+          m->glide_src);
+    wc_cfg.glide_src = WC_SRC_OFF;
+    wc_midi(0xB0, 5, 10);
+    CHECK(m->glide == 77u, "glide CC with the glide source off");
+    CHECK(m->ch[0] == 1u && m->ch[1] == 1u && m->ch[2] == 1u && m->ch[3] == 0u, "channels: %u %u %u %u (key 0)",
+          m->ch[0], m->ch[1], m->ch[2], m->ch[3]);
+    /* every channel, before the channel setting: on channel 3, a bend on channel 5 is seen, not played */
+    wc_init();
+    wc_cfg.channel = 3;
+    wc_midi(0x90, 60, 100);
+    wc_midi(0xE4, 0x00, 0x00);
+    run(1);
+    CHECK(m->bend == -8192 && m->ch[1] == 5u && m->t_bend && o.note == 60.0f, "bend on ch 5: %d ch %u, note %g",
+          m->bend, m->ch[1], (double)o.note);
+    CHECK(m->ch[3] == 1u && m->t_note && o.gate == 0.0f, "a note on ch 1 seen (ch %u), not played", m->ch[3]);
+    wc_midi(0xB2, 2, 64);
+    CHECK(m->breath == (64u << 7 | 64u) && m->ch[0] == 3u && m->breath_src == 2u, "breath on ch 3: %u ch %u",
+          (unsigned)m->breath, m->ch[0]);
+}
+
 static void test_glide(void)
 {
     wc_init();
@@ -388,6 +443,7 @@ int main(void)
     test_notes();
     test_breath();
     test_bend();
+    test_monitor();
     test_glide();
     test_matrix();
     test_app();
