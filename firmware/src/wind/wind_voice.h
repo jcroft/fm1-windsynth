@@ -29,8 +29,8 @@ enum { WV_SLOPE_12, WV_SLOPE_24 };      /* VA-VCF's filter: 12 dB/oct (LP) or 24
 
 void wv_init(void);
 void wv_engine(uint32_t id);
-float wv_fm_ratio(float harmonics);
-float wv_note_freq(float note);        /* the note's frequency as the engines play it, cycles a sample */    /* the FM engine's modulator ratio for a HARMONICS value */
+float wv_fm_ratio(float harmonics);     /* the FM engine's modulator ratio for a HARMONICS value */
+float wv_note_freq(float note);        /* the note's frequency as the engines play it, cycles a sample */
 void wv_dx_patch(uint32_t patch);      /* 6-op: the patch, 0..95 */
 void wv_dx_name(uint32_t patch, char *name);   /* ...its name, as the DX7 has it (11 bytes) */
 void wv_slope(uint32_t slope);
