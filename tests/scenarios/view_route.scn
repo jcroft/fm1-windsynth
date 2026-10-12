@@ -40,13 +40,22 @@ expect themepx66_57 2
 # the destination's mark at its live value (67 % of 58 px from x 168), its knob's value blue under it
 expect themepx207_52 6
 expect themepx180_57 8
+expect rtdst SQUARE
 # the cable leaves the source in the accent, mixed into the panel by the breath: not the panel
 expect themepx80_58 -1
-# the live list: slot 1's row first, highlighted (the background), its level bar accent; the LFO's
-# and the Filter's under it
+# the list: slot 1's row first, highlighted (the background), its level bar accent; the LFO's and the
+# Filter's under it, and the slots that are off
+expect rtrow0 1|Breath>Square|+40
+expect rtrow1 |LFO_Square>Saw|+40
+expect rtrow2 Filter|Breath>Cutoff|+75
+expect rtrow3 -
+expect rtoff 2-4
 expect themepx12_115 0
-expect themepx170_118 6
+expect themepx190_120 6
 expect themepx228_142 1
+# four lines: the slot's panel full height (x 12, y 88 in it), nothing drawn under the list's panel
+expect themepx12_88 1
+expect offbg168_171 0
 # full breath: the cable at full strength
 breath 85 127 30
 wait 30
@@ -66,7 +75,8 @@ expect stale 0
 expect themepx40_57 6
 expect themepx66_57 2
 expect themepx12_115 0
-# Mod 2: off, a grey cable; the list still shows slot 1, the LFO and the Filter, and "2-4 Off"
+expect offbg168_171 0
+# Mod 2: off, a grey cable and pill; the list still shows slot 1, the LFO and the Filter, and "2-4 Off"
 tap SEL
 expect view 7
 wait 30
@@ -85,6 +95,33 @@ expect stale 0
 midi 80 41 00
 breath 85 0 30
 wait 200
+# no note: the LFO (a sine at 5 Hz now) rests, and the screen holds still (a frame or two, not one a frame)
+tap LFO
+spin K1 -3
+spin K2 77
+expect par61 0
+tap SEL
+tap SEL
+expect view 7
+wait 100
+expect stale 0
+expect blits >-1
+wait 2000
+expect blits <4
+expect stale 0
+# ...and moves with a note
+key 0 down
+wait 100
+expect blits >-1
+wait 500
+expect blits >20
+key 0 up
+wait 300
+tap LFO
+spin K1 3
+spin K2 -77
+expect par61 3
+expect par62 0
 # Setup: the tuner and the monitor
 tap GLO
 expect view 12
@@ -97,12 +134,18 @@ expect stale 0
 # F4 bitten down a quarter tone: -25c, the tuner's needle left of the middle in the accent
 expect note 6475
 expect themepx119_60 6
-# the breath bar to 74/127 of 76 px from x 110, the track past it; its dot lit (just in)
+# the breath bar to 74/127 of 68 px from x 118, the track past it; its dot lit (just in: the accent)
 expect themepx150_110 6
 expect themepx170_110 2
-expect themepx15_110 >-1
-# the bite's bar from the middle (x 148) to the left
-expect themepx145_126 8
+expect themepx15_110 6
+# the bite's bar from the middle (x 152) to the left, the track to its right
+expect themepx149_126 8
+expect themepx156_126 2
+# the rows: the source as its knob says it, the channel each came on, the value
+expect rtmon0 CC2|Breath|ch1|74
+expect rtmon1 PB|Bite|ch1|-1024
+expect rtmon2 CC5|Glide||-
+expect rtmon3 NOTE|F4_on|ch1|100
 wait 500
 expect stale 0
 # the dots go out, the values stay
@@ -114,16 +157,55 @@ shot setup_dark.png
 expect stale 0
 expect themepx150_110 6
 expect themepx119_60 6
+expect themepx15_110 2
 spin K4 -1
 midi 80 41 00
 wait 300
 expect stale 0
-# Mod 2 with all four slots on, the LFO and the Filter's Breath: six rows, the list taller (it starts
-# 8 px higher: x 12, y 100 is the gap between the panels, not the slot's panel), slot 2's row lit
+expect rtmon3 NOTE|F4_off|ch1|0
+# a source changed: what came as the old one isn't shown as the new one's. The glide CC, then Glide CC
+# Off and the breath source Press (aftertouch)
+midi B0 05 50
+wait 20
+expect rtmon2 CC5|Glide|ch1|80
+tap SEQ
+spin K3 -5
+expect par9 0
+tap SEQ
+tap SEQ
+tap ENV
+spin K1 126
+expect par4 128
+tap GLO
+wait 30
+expect rtmon0 Press|Breath||-
+expect rtmon2 CC0|Glide||-
+expect stale 0
+midi D0 32 00
+wait 20
+expect rtmon0 Press|Breath|ch1|50
+tap ENV
+spin K1 -126
+tap SEQ
+spin K3 5
+tap GLO
+expect par4 2
+expect par9 5
+# the monitor hears every channel: on MIDI ch 3, a CC2 on channel 1 shows, its channel marked
+spin K3 3
+expect par28 3
+midi B0 02 40
+wait 20
+expect rtmon0 CC2|Breath|ch1!|64
+midi B2 02 30
+wait 20
+expect rtmon0 CC2|Breath|ch3|48
+expect stale 0
+spin K3 -3
+# Mod 2 with all four slots on, the LFO and the Filter's Breath: six rows. The slot's panel gives up
+# 20 px (x 12, y 88 is the gap between the panels), slot 2's row lit, and nothing under the list's panel
 tap SEL
 expect view 6
-wait 30
-expect themepx12_100 1
 tap SEL
 spin K1 2
 spin K2 6
@@ -145,9 +227,18 @@ midi E0 00 20
 wait 50
 shot mod2_six_light.png
 expect stale 0
-expect themepx12_100 0
-expect themepx12_120 0
-expect themepx170_121 6
+expect rtrow0 1|Breath>Square|+40
+expect rtrow1 2|Bite>Detune|-60
+expect rtrow3 4|Press>Aux|+100
+expect rtrow5 Filter|Breath>Cutoff|+75
+expect rtoff none
+expect themepx12_88 0
+expect themepx12_110 0
+expect themepx190_110 6
+expect offbg168_171 0
+# the bite (-50): the source's bar from its middle (x 44) to the left
+expect themepx30_58 6
+expect themepx55_58 2
 tap GLO
 spin K4 1
 tap SEL
@@ -155,8 +246,56 @@ tap SEL
 wait 50
 shot mod2_six_dark.png
 expect stale 0
-expect themepx12_100 0
-expect themepx12_120 0
+expect themepx12_88 0
+expect themepx12_110 0
+expect offbg168_171 0
+spin K4 -1
+# FM: long names cut to fit left of the amount; Harmonics does nothing on FM (stepped), so slot 3 on it
+# is drawn inert, as an off slot (a grey cable and pill)
+spin ALGO -1
+spin ALGO -1
+spin ALGO -1
+spin ALGO -1
+expect par30 1
+tap SEL
+spin K2 4
+spin K3 -120
+expect par19 6
+expect par20 -100
+tap SEL
+spin K2 -4
+expect par22 3
+tap SEL
+tap SEL
+tap SEL
+expect view 8
+wait 1400
+shot mod3_inert_light.png
+expect stale 0
+expect rtdst HARM_OFF
+expect rtrow2 3|Mod_wh>Harm_off|-100
+expect rtrow3 4|Press>Feedback|+100
+expect themepx108_70 2
+expect themepx80_58 2
+# the LFO on Harmonics at -100: its names cut to the room left of the amount (and inert on FM)
+tap LFO
+spin K4 -140
+expect par64 -100
+spin K3 3
+expect par63 6
+tap SEL
+tap SEL
+tap SEL
+expect view 8
+wait 1400
+shot mod3_cut_light.png
+expect rtrow4 |LFO_Square>Harm_off|-100
+expect rtfit0 ok
+expect rtfit1 ok
+expect rtfit2 ok
+expect rtfit3 ok
+expect rtfit4 ok
+expect rtfit5 ok
 midi 80 41 00
 wait 300
 expect stale 0

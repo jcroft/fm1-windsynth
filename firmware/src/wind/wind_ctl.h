@@ -44,8 +44,9 @@ typedef struct {
     float glide_ms;                    /* the glide time in force: Glide, plus what the glide CC adds */
 } wc_out_t;
 
-/* the controller monitor (Setup): the raw values as they came in, and the block each last came in
- * (0: never). Blocks count from 1 at wc_init, one per wc_block (WA_BLOCK frames). */
+/* the controller monitor (Setup): the raw values as they came in, on any channel (before the MIDI
+ * channel setting picks what plays), the channel each came on and the block each last came in (0: never).
+ * Blocks count from 1 at wc_init, one per wc_block (WA_BLOCK frames). */
 typedef struct {
     uint32_t clock;                    /* the blocks so far */
     uint32_t t_breath, t_bend, t_glide, t_note;   /* when each last arrived (a block of clock) */
@@ -53,6 +54,9 @@ typedef struct {
     int16_t bend;                      /* pitch bend, -8192..8191 */
     uint8_t glide;                     /* the glide CC, 0..127 */
     uint8_t note, velocity, on;        /* the last note on or off: its number, velocity, 1 on */
+    uint8_t ch[4];                     /* the channel each came on (breath, bend, glide, note): 1..16, 0 a panel key */
+    uint8_t breath_src, glide_src;     /* the source the breath and glide values came as (wc_cfg's then) */
+    uint8_t pad[2];
 } wc_mon_t;
 
 extern wc_cfg_t wc_cfg;
