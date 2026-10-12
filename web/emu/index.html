@@ -14,7 +14,7 @@ main { max-width: 1040px; margin: 0 auto; }
 header { display: flex; flex-wrap: wrap; align-items: baseline; gap: .4rem 1.2rem; margin: 0 0 1rem; }
 h1 { font: 700 2rem/1.1 "Barlow Semi Condensed", "Barlow", sans-serif; margin: 0; }
 header p { margin: 0; color: var(--muted); }
-header nav { margin-left: auto; display: flex; gap: 1rem; }
+header .state { flex-basis: 100%; color: var(--ink); }
 a { color: var(--accent); }
 .device { position: relative; width: 100%; aspect-ratio: 1000 / 640; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: manipulation; }
 .device svg { pointer-events: none; }
@@ -89,7 +89,8 @@ kbd { font: 600 .85em ui-monospace, Menlo, monospace; background: var(--card); b
 <header>
   <h1>Windsynth</h1>
   <p>a synth for MIDI wind controllers on the M-VAVE FM-1, with Plaits voices, running in the browser from the same code</p>
-  <nav><a href="https://github.com/jcroft/fm1-windsynth">Source and manual</a></nav>
+  <p class="state" id="unreleased"><b>In development, and not released yet.</b> This page is for trying it in the browser. The
+    firmware for the FM-1 itself comes out once it has been tested on the real thing.</p>
 </header>
 
 <p class="turn">Turn your phone sideways for bigger controls.</p>
@@ -121,6 +122,9 @@ kbd { font: 600 .85em ui-monospace, Menlo, monospace; background: var(--card); b
 
 <section class="install" id="install" aria-labelledby="install-h">
   <h2 id="install-h">Install on your FM-1</h2>
+  <p id="instNone">Not yet: the firmware isn't released. It will be, here, once it has been tested on a real FM-1.</p>
+  <details id="instBody">
+  <summary id="instTest">Have a test build? Install it</summary>
   <p class="warn"><b>Beta.</b> Custom firmware is installed at your own risk. Before you start, download M-VAVE's
     stock firmware (FM-1 V15, "PC Firmware" at <a href="https://www.m-vave.com/download" target="_blank" rel="noopener">m-vave.com/download</a>)
     so you can always go back (below).</p>
@@ -131,10 +135,10 @@ kbd { font: 600 .85em ui-monospace, Menlo, monospace; background: var(--card); b
   </ol>
   <div class="row">
     <button id="instLatest" type="button" disabled>Install Windsynth</button>
-    <span class="what" id="instWhat">Looking for the latest release&hellip;</span>
+    <span class="what" id="instWhat">No release yet: choose a file below.</span>
   </div>
   <div class="row">
-    <label for="instFile">Or a firmware file (<code>.fwsc</code>), from a release or a pull request's build:</label>
+    <label for="instFile">Or a firmware file (<code>.fwsc</code>), from a release or a test build:</label>
     <input type="file" id="instFile" accept=".fwsc">
     <button id="instFileGo" type="button" class="quiet" disabled>Install this file</button>
   </div>
@@ -145,7 +149,7 @@ kbd { font: 600 .85em ui-monospace, Menlo, monospace; background: var(--card); b
     <p>This writes M-VAVE's own FM-1 V15 back, from Windsynth (or its safe mode, or any Felucca-family firmware) over the
       same USB cable. Choose the file you downloaded from M-VAVE: it is checked (SHA-256) before anything is written.
       If the FM-1 doesn't start at all, it comes up in safe mode after two tries, where this still works; past that,
-      <code>tools/fm1_rescue.py</code> in the repository restores it from a Mac.</p>
+      the rescue tool in Windsynth's source (<code>tools/fm1_rescue.py</code>) restores it from a Mac.</p>
     <div class="row">
       <input type="file" id="stockFile" accept=".fwsc" aria-label="M-VAVE's FM-1 V15 file">
       <button id="stockGo" type="button" class="quiet" disabled>Install the stock firmware</button>
@@ -154,6 +158,7 @@ kbd { font: 600 .85em ui-monospace, Menlo, monospace; background: var(--card); b
   <details>
     <summary>Log</summary>
     <pre id="instLog"></pre>
+  </details>
   </details>
 </section>
 
@@ -622,20 +627,24 @@ function readPackage(raw, what) {                      /* a .fwsc: its identity 
 }
 
 (async () => {
-  if (!navigator.requestMIDIAccess) {
-    $("instWhat").textContent = "";
-    status("Installing needs Web MIDI: open this page in Chrome or Edge.");
-    return;
-  }
   try {
     const meta = await (await fetch("firmware/latest.json", { cache: "no-cache" })).json();
+    $("instNone").hidden = $("instTest").hidden = $("unreleased").hidden = true;   // released: the installer, open
+    $("instBody").open = true;
+    if (!navigator.requestMIDIAccess) {
+      $("instWhat").textContent = "";
+      status("Installing needs Web MIDI: open this page in Chrome or Edge.");
+      return;
+    }
     const raw = new Uint8Array(await (await fetch("firmware/" + meta.file, { cache: "no-cache" })).arrayBuffer());
     latest = { ...readPackage(raw, meta.file), version: meta.version };
     if (latest.product !== meta.product) throw new Error("the package's identity is not the release's");
     $("instLatest").textContent = `Install Windsynth ${meta.version}`;
     $("instWhat").textContent = `the latest release (${meta.product})`;
   } catch (e) {
-    $("instWhat").textContent = "No release package here: choose a file below.";
+    $("instWhat").textContent = $("instNone").hidden ? "The release package didn't load: choose a file below."
+                                                     : "No release yet: choose a file below.";
+    if (!navigator.requestMIDIAccess) { $("instWhat").textContent = ""; status("Installing needs Web MIDI: open this page in Chrome or Edge."); return; }
   }
   sync();
 })();
