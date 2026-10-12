@@ -9,6 +9,9 @@
  *                 Engine (named for the engine: ALGORITHM picks it) and Noise, ENV Breath, LFO LFO and LFO 2, SEL Mod 1-4, SEQ Pitch and Pitch 2, GLO Setup, FX Distortion,
  *                 Modulation, Delay, Reverb and Reverb 2 (the order the sound goes through them). EDIT and
  *                 SELECT step through them all.
+ *   PLAY          Stage: the controllers (note, breath, bite, glide, output) over twelve knobs in three
+ *                 rows (Filter, the engine, the effects' mixes); KNOB 1-4 turn the lit row, SELECT moves
+ *                 it; the keys light dim from the left with the breath. PLAY again: back to the page
  *   KNOB 1-4      the page's values      PRESETS the preset (1-64)      OCT- / OCT+ the panel keys' octave
  *   the keys      play notes (F3 up, chromatic), at full breath (they sense no pressure)
  *   SAVE          the sound into a preset: "SAVE TO P12", PRESETS picks another, SAVE again saves; held
@@ -16,6 +19,8 @@
  *                 seconds after a change, when quiet, with the preset it came from.
  *
  * MIDI never passes through here: wind_app reads it in the audio interrupt, every 1.45 ms. */
+
+#include "../dsp/fastmath.h"            /* (Stage's dials: no libm on the device) */
 
 enum { V_FILTER, V_ENGINE, V_NOISE, V_BREATH, V_LFO, V_LFO2, V_MOD1, V_MOD2, V_MOD3, V_MOD4, V_PITCH, V_PITCH2, V_SETUP,
        V_DIST, V_MODFX, V_DELAY, V_REVERB, V_REVERB2, NVIEWS };
@@ -86,6 +91,9 @@ static struct {
     uint32_t sig[4];                   /* the bands' hashes as drawn; [3]: the strip's, without its ghosts */
     uint32_t ghost_t;                  /* when the strip last drew for a ghost alone */
     int16_t ghost[4];                  /* each knob's ghost, the pixel it sits at (-1: none) */
+    uint8_t stage;                     /* 1: Stage is showing (PLAY) */
+    float br_pk, out_pk;               /* Stage's breath and output peaks, falling */
+    uint32_t pk_t;                     /* ...as of then */
     uint32_t save_t;                   /* when SAVE went down (held: reset to the defaults?) */
     uint32_t reset_ask;                /* until when "RESET?" waits for SAVE (0: not asking) */
     uint32_t save_ask;                 /* until when "SAVE TO" waits for SAVE (0: not asking) */
@@ -96,9 +104,8 @@ static struct {
 
 /* a knob's value on this page: Reverb 2's Mod is Shimmer's amount while the type is Shimmer; the Engine
  * page's Ratio is 6-op's patch, and Classic has no Ratio or Index */
-static int knob_of(int i)
+static int knob_sub(int k)
 {
-    int k = VIEW_KNOB[ui.view][i];
     if (k == P_RVMOD && proj.par[P_RVTYPE] == WF_RV_SHIMMER)
         return P_RVSHIM;
     if ((k == P_RATIO || k == P_INDEX) && proj.par[P_ENGINE] == WV_CLASSIC)
@@ -108,6 +115,23 @@ static int knob_of(int i)
     if (k == P_RATIO && proj.par[P_ENGINE] == WV_SIXOP)
         return P_DXPATCH;
     return k;
+}
+
+/* Stage (PLAY): twelve knobs, a row of four on K1-K4 at a time; SELECT moves the row */
+#define STAGE_ROWS 3
+static const uint8_t STAGE_KNOB[STAGE_ROWS][4] = {
+    {P_BRCUT, P_CUTOFF, P_RESO, P_NZLEVEL},
+    {P_RATIO, P_INDEX, P_MORPH, P_AUX},          /* (named for the engine, as the Engine page) */
+    {P_DSMIX, P_MOMIX, P_DLMIX, P_RVMIX},
+};
+static const char *const STAGE_NAME[2][4] = {    /* the Filter and FX rows' names (the engine's: its own) */
+    {"Breath", "Cutoff", "Reso", "Noise"}, {"Dist", "Mod", "Delay", "Verb"}};
+static int stage_row(void) { return (unsigned)proj.par[P_STAGEROW] < STAGE_ROWS ? proj.par[P_STAGEROW] : 0; }
+static int stage_knob(int r, int i) { return knob_sub(STAGE_KNOB[r][i]); }
+
+static int knob_of(int i)
+{
+    return ui.stage ? stage_knob(stage_row(), i) : knob_sub(VIEW_KNOB[ui.view][i]);
 }
 
 static void say(const char *a, const char *b)
@@ -280,6 +304,21 @@ static void button(int b)
             say("KEPT", 0);
         return;
     }
+    if (b == B_PLAY) {                              /* Stage, and back to the page it came from */
+        ui.stage ^= 1u;
+        ui.touched = -1;
+        return;
+    }
+    if (ui.stage) {                                 /* a page button or EDIT: off Stage, to that page */
+        for (v = 0; v < NVIEWS && VIEW_BTN[v] != b; v++)
+            ;
+        if (v < NVIEWS || b == B_EDIT) {
+            ui.stage = 0u;
+            ui.touched = -1;
+            if (b == B_EDIT || VIEW_BTN[ui.view] == b)
+                return;                             /* (the page it was on) */
+        }
+    }
     if (VIEW_BTN[ui.view] == b) {                   /* pressed again: its next page, or round to its first */
         v = ui.view + 1;
         if (v >= NVIEWS || VIEW_BTN[v] != b)
@@ -353,8 +392,14 @@ static void input(void)
         ui.midi_seen = wa_state.midi_seen;
         ui.act_t = plat_ms();
     }
-    if ((e = plat_enc(EN_SELECT)) != 0)
-        set_view((ui.view + (e > 0 ? 1 : NVIEWS - 1)) % NVIEWS);
+    if ((e = plat_enc(EN_SELECT)) != 0) {
+        if (ui.stage) {                              /* Stage: the row */
+            knob_set(P_STAGEROW, stage_row() + (e > 0 ? 1 : -1));
+            ui.touched = -1;
+        } else {
+            set_view((ui.view + (e > 0 ? 1 : NVIEWS - 1)) % NVIEWS);
+        }
+    }
     if ((e = plat_enc(EN_PRESET)) != 0) {           /* the preset; while "SAVE TO" asks, where to */
         int s = (ui.save_ask ? ui.save_slot : proj.preset) + (int)e;
         s = s < 0 ? 0 : s >= NPRESETS ? NPRESETS - 1 : s;
@@ -389,6 +434,8 @@ static void input(void)
 #define MAIN_H 144
 #define KNB_Y 172
 #define KNB_H 68
+static void draw_stage_mon(void);     /* (Stage: below) */
+static void draw_stage_grid(void);
 
 static uint32_t hash(uint32_t h, uint32_t v) { return (h ^ v) * 16777619u; }
 
@@ -416,12 +463,10 @@ static void text_c(int32_t cx, int32_t y, const felucca_font_t *f, const char *s
 }
 
 /* a page's name in the header: the Engine page shows the engine ("VA", "Waveshape") */
-static const char *view_name(int v)
-{
-    if (v == V_ENGINE)
-        return WA_ENGINE_NAME[(unsigned)proj.par[P_ENGINE] < WV_NENGINE ? proj.par[P_ENGINE] : 0];
-    return VIEW_NAME[v];
-}
+static const char *engine_name(void) { return WA_ENGINE_NAME[(unsigned)proj.par[P_ENGINE] < WV_NENGINE ? proj.par[P_ENGINE] : 0]; }
+static const char *view_name(int v) { return v == V_ENGINE ? engine_name() : VIEW_NAME[v]; }
+static const char *title_now(void) { return ui.stage ? "Stage" : view_name(ui.view); }
+static const char *stage_row_name(int r) { return r == 0 ? "Filter" : r == 1 ? engine_name() : "FX"; }
 
 static void draw_header(void)
 {
@@ -435,10 +480,9 @@ static void draw_header(void)
                           (uint32_t)proj.preset << 16 | (uint32_t)edited << 24);
     if (msg)
         h = hash(hash(h, (uint32_t)ui.msg[0][0] << 8 | ui.msg[0][1]), ui.msg_until);
-    if (ui.view == V_SETUP)
+    if (ui.view == V_SETUP && !ui.stage)
         h = hash(h, plat_cpu_pct() | plat_xruns() << 8);
-    if (ui.view == V_ENGINE)
-        h = hash(h, (uint32_t)proj.par[P_ENGINE]);
+    h = hash(h, (uint32_t)proj.par[P_ENGINE] | (uint32_t)ui.stage << 8 | (uint32_t)stage_row() << 9);
     if (h == ui.sig[0])
         return;
     ui.sig[0] = h;
@@ -448,8 +492,8 @@ static void draw_header(void)
         cv_text(x + 8, 6, &FONT_B, ui.msg[1], K_ACC);
     } else {
         int32_t x = 232, w;
-        cv_text(10, 6, &FONT_B, view_name(ui.view), K_TEXT);
-        if (ui.view == V_SETUP) {                     /* the audio load and the version, for a check on the hardware */
+        cv_text(10, 6, &FONT_B, title_now(), K_TEXT);
+        if (ui.view == V_SETUP && !ui.stage) {                     /* the audio load and the version, for a check on the hardware */
             itoa_u(plat_cpu_pct(), t);
             w = s_len(t);
             t[w++] = '%';
@@ -481,8 +525,14 @@ static void draw_header(void)
             x -= text_w(&FONT_B, v) + 10;
             cv_text(x, 5, &FONT_B, v, K_TEXT);
         }
-        x = 18 + text_w(&FONT_B, view_name(ui.view));
-        {   /* the button's pages, when it has more than one: a dot each, this one filled */
+        x = 18 + text_w(&FONT_B, title_now());
+        if (ui.stage) {                               /* Stage: a dot per row, and the row's name */
+            int r;
+            for (r = 0; r < STAGE_ROWS; r++)
+                cv_round(x - 4 + r * 9, 12, 6, 6, 3, r == stage_row() ? K_TEXT : K_LINE);
+            x += STAGE_ROWS * 9 + 2;
+            x = cv_text(x, 7, &FONT_S, stage_row_name(stage_row()), K_ACC) + 6;
+        } else {   /* the button's pages, when it has more than one: a dot each, this one filled */
             int first = ui.view, n = 0, v;
             while (first > 0 && VIEW_BTN[first - 1] == VIEW_BTN[ui.view])
                 first--;
@@ -532,6 +582,10 @@ static void note_text(int n, char t[8])
 /* the instrument: the note (and how far the bite bends it) on the left; breath, cutoff and level */
 static void draw_main(void)
 {
+    if (ui.stage) {
+        draw_stage_mon();
+        return;
+    }
     float note = wa_state.note, bend = wa_state.bend;
     int top = wa_state.top, gate = wa_state.gate > 0.5f;
     /* the note, its cents and the bite bar's end, as drawn; the bars by the pixel they fill to: so any
@@ -608,6 +662,10 @@ static uint16_t blend565(uint16_t a, uint16_t b, uint32_t n)
 #define GHOST_MS 30u                   /* a ghost alone moves the strip at most this often: every other frame */
 static void draw_knobs(void)
 {
+    if (ui.stage) {
+        draw_stage_grid();
+        return;
+    }
     /* (each in its own hash: touched is -1 untouched, and shifted in with the rest it hid the engine) */
     uint32_t h = hash(hash(hash(2166136261u, ui.view), (uint32_t)(uint8_t)ui.touched),
                       (uint32_t)proj.par[P_THEME] | (uint32_t)proj.par[P_ENGINE] << 8), i;
@@ -683,14 +741,243 @@ static void draw_knobs(void)
     cv_blit(0, KNB_Y);
 }
 
+
+/* ------------------------------------------------------------- stage --- */
+/* Stage: the controllers (84 px) over the twelve knobs (128 px), in place of the band and the strip */
+#define STG_MON_H 84
+#define STG_GRID_Y (MAIN_Y + STG_MON_H)
+#define STG_GRID_H (240 - STG_GRID_Y)
+
+/* the angle of (x, y) from the centre, in turns 0..1: 0 is right, clockwise (the screen's y is down) */
+static float turns_of(float y, float x)
+{
+    float ax = fm_fabsf(x), ay = fm_fabsf(y), a, q, r;
+    if (ax == 0.0f && ay == 0.0f)
+        return 0.0f;
+    a = ax > ay ? ay / ax : ax / ay;           /* atan on 0..1, within 0.0001 rad */
+    q = a * a;
+    r = ((-0.0464964749f * q + 0.15931422f) * q - 0.327622764f) * q * a + a;
+    if (ay > ax)
+        r = 1.57079633f - r;
+    if (x < 0.0f)
+        r = 3.14159265f - r;
+    r *= 0.159154943f;
+    return y < 0.0f ? 1.0f - r : r;
+}
+
+/* a ring's arc: radius r, w thick, from turn a0 clockwise for span turns; its round edges blended */
+static void cv_arc(int32_t cx, int32_t cy, float r, float w, float a0, float span, uint16_t c)
+{
+    int32_t R = (int32_t)(r + w) + 1, x, y;
+    for (y = cy - R; y <= cy + R; y++) {
+        int32_t py = y + cv_oy;
+        if (py < cv_y0 || py >= cv_y1)
+            continue;
+        for (x = cx - R; x <= cx + R; x++) {
+            float dx = (float)(x - cx), dy = (float)(y - cy), cov, t;
+            uint16_t *q;
+            if ((uint32_t)x >= cv_w)
+                continue;
+            cov = w * 0.5f + 0.5f - fm_fabsf(fm_sqrtf(dx * dx + dy * dy) - r);
+            if (cov <= 0.0f)
+                continue;
+            t = turns_of(dy, dx) - a0;
+            t = t < 0.0f ? t + 1.0f : t >= 1.0f ? t - 1.0f : t;
+            if (t > span)
+                continue;
+            q = &cv_px[(uint32_t)py * cv_w + (uint32_t)x];
+            *q = swap16(blend565(c, swap16(*q), cov >= 1.0f ? 256u : (uint32_t)(cov * 256.0f)));
+        }
+    }
+}
+
+/* the glide time on a log scale, 2 ms .. 2 s, as 0..1 */
+static float glide_pos(float ms)
+{
+    float p = ms > 2.0f ? fm_log2f(ms * 0.5f) * (1.0f / 9.9657843f) : 0.0f;
+    return p > 1.0f ? 1.0f : p;
+}
+
+/* the controllers: the note and its cents; breath (with its peak), bite, glide and output as bars */
+static void draw_stage_mon(void)
+{
+    uint32_t now = plat_ms(), h;
+    float dt = (float)(now - ui.pk_t) * 0.001f, br = wa_state.breath, lv = wa_state.level > 1.0f ? 1.0f : wa_state.level;
+    float note = wa_state.note;
+    int top = wa_state.top, gate = wa_state.gate > 0.5f, n = (int)(note + 0.5f + 1200.0f) - 1200,
+        c = (int)((note - (float)n) * 100.0f);
+    int32_t pb, pbk, pe, pg, pgf, po, pok, i;
+    ui.pk_t = now;
+    dt = dt > 1.0f ? 1.0f : dt;
+    ui.br_pk = br > ui.br_pk - 0.5f * dt ? br : ui.br_pk - 0.5f * dt;   /* peaks fall at half a bar a second */
+    ui.out_pk = lv > ui.out_pk - 0.5f * dt ? lv : ui.out_pk - 0.5f * dt;
+    pb = (int32_t)(84.0f * br + 0.5f);
+    pbk = (int32_t)(84.0f * ui.br_pk + 0.5f);
+    pe = (int32_t)(42.0f * (wa_state.bend < -1.0f ? -1.0f : wa_state.bend > 1.0f ? 1.0f : wa_state.bend) + (wa_state.bend < 0.0f ? -0.5f : 0.5f));
+    pg = (int32_t)(84.0f * glide_pos(wa_state.glide_ms) + 0.5f);
+    pgf = (int32_t)(84.0f * glide_pos((float)proj.par[P_GLIDE]) + 0.5f);
+    po = (int32_t)(84.0f * lv + 0.5f);
+    pok = (int32_t)(84.0f * ui.out_pk + 0.5f);
+    h = hash(hash(hash(hash(2166136261u, (uint32_t)pb | (uint32_t)pbk << 8 | (uint32_t)(pe + 64) << 16 | (uint32_t)pg << 24),
+                       (uint32_t)pgf | (uint32_t)po << 8 | (uint32_t)pok << 16 | (uint32_t)gate << 24 | (uint32_t)proj.par[P_THEME] << 25),
+                  (uint32_t)(n + 2000) | (uint32_t)(c + 100) << 16),
+             (uint32_t)(top + 1) | 0x80000000u);
+    if (h == ui.sig[1])
+        return;
+    ui.sig[1] = h;
+    cv_begin(240, STG_MON_H, K_BG);
+    cv_round(6, 2, 228, STG_MON_H - 4, 6, K_PANEL);
+    if (top < 0) {
+        text_c(52, 26, &FONT_B, "Blow a note", K_DIM);
+    } else {
+        char t[8];
+        note_text(n, t);
+        text_c(52, 10, &FONT_L, t, gate ? K_TEXT : K_DIM);
+        if (c) {
+            char d[8];
+            i = 0;
+            d[i++] = c > 0 ? '+' : '-';
+            itoa_u((uint32_t)(c > 0 ? c : -c), d + i);
+            i = s_len(d);
+            d[i++] = 'c';
+            d[i] = 0;
+            text_c(52, 52, &FONT_S, d, K_ACC);
+        }
+        if (gate)
+            cv_round(86, 10, 8, 8, 4, K_ACC);
+    }
+    {
+        static const char *const NM[4] = {"BREATH", "BITE", "GLIDE", "OUT"};
+        for (i = 0; i < 4; i++) {
+            int32_t y = 12 + i * 17;
+            cv_text(104, y - 3, &FONT_XS, NM[i], K_DIM);
+            cv_round(142, y, 84, 6, 3, K_LINE);
+        }
+    }
+    if (pb > 0)
+        cv_round(142, 12, pb < 6 ? 6 : pb, 6, 3, K_ACC);
+    cv_rect(142 + pbk - 1, 10, 2, 10, K_TEXT);
+    cv_rect(183, 27, 2, 10, K_DIM);
+    cv_round(pe < 0 ? 184 + pe : 184, 29, (pe < 0 ? -pe : pe) + 1 < 4 ? 4 : (pe < 0 ? -pe : pe) + 1, 6, 3, K_BLUE);
+    if (pg > 0)
+        cv_round(142, 46, pg < 6 ? 6 : pg, 6, 3, K_BLUE);
+    cv_rect(142 + pgf, 44, 2, 10, K_TEXT);
+    if (po > 0)
+        cv_round(142, 63, po < 6 ? 6 : po, 6, 3, K_TEXT);
+    cv_rect(142 + pok - 1, 61, 2, 10, K_DIM);
+    cv_blit(0, MAIN_Y);
+}
+
+/* a knob's dial: a 270-degree ring, filled to its value (from the top when it's centred), and its ghost
+ * as a dot on the ring */
+#define DIAL_A0 0.375f                         /* (135 degrees: the ring opens at the bottom) */
+#define DIAL_SPAN 0.75f
+static void dial(int32_t x, int32_t y, int k, int on, int hot, int g)
+{
+    const wa_param_t *p = wa_param_info(k);
+    float f = p->hi > p->lo ? (float)(proj.par[k] - p->lo) / (float)(p->hi - p->lo) : 0.0f;
+    uint16_t col = hot ? K_ACC : on ? K_BLUE : K_DIM;
+    cv_arc(x, y, 9.0f, 3.0f, DIAL_A0, DIAL_SPAN, K_LINE);
+    if (p->lo < 0) {
+        if (f >= 0.5f)
+            cv_arc(x, y, 9.0f, 3.0f, DIAL_A0 + DIAL_SPAN * 0.5f, DIAL_SPAN * (f - 0.5f), col);
+        else
+            cv_arc(x, y, 9.0f, 3.0f, DIAL_A0 + DIAL_SPAN * f, DIAL_SPAN * (0.5f - f), col);
+    } else if (f > 0.0f) {
+        cv_arc(x, y, 9.0f, 3.0f, DIAL_A0, DIAL_SPAN * f, col);
+    }
+    if (g >= 0) {                              /* g: the ghost's place, 0..255 along the ring */
+        float a = (DIAL_A0 + DIAL_SPAN * (float)g * (1.0f / 255.0f)) * 6.28318531f;
+        int32_t gx = x + (int32_t)(9.0f * fm_cosf(a) + (fm_cosf(a) < 0.0f ? -0.5f : 0.5f)),
+                gy = y + (int32_t)(9.0f * fm_sinf(a) + (fm_sinf(a) < 0.0f ? -0.5f : 0.5f));
+        cv_round(gx - 2, gy - 2, 5, 5, 2, K_ACC);
+    }
+}
+
+/* a dial's ghost: its place along the ring, 0..255, or -1 */
+static int dial_ghost(int k)
+{
+    const wa_param_t *p;
+    float v, f;
+    if (k == K_NONE || !wa_live(k, &v))
+        return -1;
+    p = wa_param_info(k);
+    if (p->hi <= p->lo)
+        return -1;
+    f = (v - (float)p->lo) / (float)(p->hi - p->lo);
+    f = f < 0.0f ? 0.0f : f > 1.0f ? 1.0f : f;
+    return (int)(f * 255.0f + 0.5f);
+}
+
+/* the twelve knobs: the lit row is the one K1-K4 turn; the columns line up with the knobs */
+static void draw_stage_grid(void)
+{
+    int row = stage_row(), r, i, now_touch = ui.touch_until && (int32_t)(ui.touch_until - plat_ms()) > 0;
+    int16_t g[STAGE_ROWS][4];
+    uint32_t h = hash(hash(2166136261u, (uint32_t)row | (uint32_t)proj.par[P_THEME] << 4 | (uint32_t)proj.par[P_ENGINE] << 8 |
+                                             0x40000000u),
+                      (uint32_t)(uint8_t)ui.touched | (uint32_t)now_touch << 8), hg, now = plat_ms();
+    if (!now_touch)
+        ui.touch_until = 0u;
+    for (r = 0; r < STAGE_ROWS; r++)
+        for (i = 0; i < 4; i++) {
+            int k = stage_knob(r, i);
+            h = hash(h, k == K_NONE ? 0xFFFFu : (uint32_t)(uint16_t)proj.par[k] | (uint32_t)k << 16);
+        }
+    hg = h;
+    for (r = 0; r < STAGE_ROWS; r++)
+        for (i = 0; i < 4; i++) {
+            g[r][i] = (int16_t)dial_ghost(stage_knob(r, i));
+            hg = hash(hg, (uint32_t)(g[r][i] + 1));
+        }
+    if (hg == ui.sig[2])
+        return;
+    if (h == ui.sig[3] && now - ui.ghost_t < GHOST_MS)
+        return;
+    ui.sig[2] = hg;
+    ui.sig[3] = h;
+    ui.ghost_t = now;
+    for (i = 0; i < 4; i++)                     /* (as drawn; the host's ghostN: the lit row's) */
+        ui.ghost[i] = g[row][i];
+    cv_begin(240, STG_GRID_H, K_BG);
+    for (r = 0; r < STAGE_ROWS; r++) {
+        int32_t ry = 2 + r * 42;
+        int on = r == row;
+        if (on)
+            cv_round(4, ry, 232, 40, 6, K_PANEL);
+        for (i = 0; i < 4; i++) {
+            int k = stage_knob(r, i), hot = on && now_touch && ui.touched == i;
+            int32_t x = i * 60;
+            char t[16];
+            if (on && i)
+                cv_rect(x, ry + 8, 1, 24, K_LINE);
+            if (k == K_NONE)
+                continue;
+            dial(x + 16, ry + 22, k, on, hot, g[r][i]);
+            cv_text(x + 30, ry + 5, &FONT_XS, r == 1 ? wa_param_name(k) : STAGE_NAME[r / 2][i], on ? (hot ? K_TEXT : K_DIM) : blend565(K_DIM, K_BG, 170u));
+            if (k == P_DXPATCH)
+                itoa_u((uint32_t)proj.par[k] + 1u, t);
+            else
+                wa_param_text(k, proj.par[k], t);
+            cv_text(x + 30, ry + 16, &FONT_B, t, hot ? K_ACC : on ? K_TEXT : K_DIM);
+        }
+    }
+    cv_blit(0, STG_GRID_Y);
+}
+
 /* the page's button lit; the keys held, and the key of the note sounding when it is on the panel */
 static void leds(void)
 {
-    uint32_t b = 1u << VIEW_BTN[ui.view], k = ui.keys;
+    uint32_t b = 1u << (ui.stage ? B_PLAY : VIEW_BTN[ui.view]), k = ui.keys, d = 0u;
     int n = wa_state.top - KEY_F3 - 12 * proj.par[P_OCTAVE];
     if (wa_state.gate > 0.5f && n >= 0 && n < NKEYS)
         k |= 1u << n;
-    plat_leds(b, k, 0u);
+    if (ui.stage) {                                  /* Stage: the keys, dim, a breath meter from the left */
+        int m = (int)(wa_state.breath * (float)NKEYS + 0.5f);
+        m = m < 0 ? 0 : m > NKEYS ? NKEYS : m;
+        d = m >= 32 ? 0xFFFFFFFFu : (1u << m) - 1u;
+    }
+    plat_leds(b, k, d);
 }
 
 /* AUTOSAVE: a few seconds after a change, when nothing sounds and nothing is touched: a flash erase

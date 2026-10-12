@@ -4,6 +4,16 @@ A release is a push to `main` that changes `VERSION` to a version with no tag ye
 release build, tags the commit `vX.Y.Z` and publishes the GitHub Release with that version's notes,
 taken from its section below. Add the section in the same pull request as the `VERSION` change.
 
+## 0.0.24
+
+- **Stage, on PLAY.** One screen for playing: the note and how far off it is, breath (with its recent
+  peak), bite, glide and the output as live meters, over twelve knobs in three rows: Filter (Breath,
+  Cutoff, Reso, Noise), the engine's own four, and the effects' mixes. KNOB 1-4 turn the lit row, SELECT
+  moves the row, and the dials carry the same live ghosts as the knob bars. PLAY again goes back to the
+  page you came from; any page button goes to that page. The row is remembered.
+- **The keys show your breath on Stage.** They light dim from the left as you blow, with the note you're
+  playing lit on top.
+
 ## 0.0.23
 
 - **Live ghosts on the knobs.** A knob that something is moving shows an orange tick at its live value,

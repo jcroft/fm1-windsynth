@@ -1,0 +1,87 @@
+# Stage (PLAY): twelve knobs in three rows over the controllers. K1-K4 turn the lit row, SELECT moves the
+# row (saved, global), PLAY again goes back to the page it came from, a page button leaves for that page.
+# On Stage the keys light dim from the left as a breath meter.
+wait 200
+tap ENV
+expect view 3
+tap PLAY
+wait 100
+expect stage 1
+expect title Stage
+expect knob2 Cutoff
+expect dimkeys 0
+expect stale 0
+shot stage_filter.png
+# row 1 (Filter): K2 is Cutoff
+spin K2 5
+expect par0 20
+# SELECT: the Engine row (Classic: no Ratio or Index), K3 is Morph
+turn SELECT 1
+wait 100
+expect par68 1
+expect title Stage
+expect knob1 -
+expect knob3 Morph
+spin K3 5
+expect par2 30
+# the FX row: K2 is Modulation's Mix
+turn SELECT 1
+wait 100
+expect par68 2
+spin K2 5
+expect par53 5
+turn SELECT 1
+wait 100
+expect par68 2
+expect stale 0
+shot stage_fx.png
+# the row isn't part of a preset: another preset keeps it
+spin PRESET 1
+wait 100
+expect preset 2
+expect par68 2
+spin PRESET -1
+wait 100
+# the key lights: breath from the left, the sounding note's key lit on top
+midi 90 3C 64
+breath 0 64 60
+wait 300
+expect dimkeys 13
+expect litkeys 128
+breath 64 127 60
+wait 300
+expect dimkeys 26
+leds
+expect stale 0
+shot stage_play.png
+breath 127 0 60
+wait 300
+expect dimkeys 0
+midi 80 3C 00
+# PLAY: back to Breath, and the keys light as before
+tap PLAY
+wait 100
+expect stage 0
+expect view 3
+expect dimkeys 0
+# a page button leaves Stage for that page
+tap PLAY
+tap SEQ
+wait 100
+expect stage 0
+expect view 10
+# the row is kept over a reboot
+wait 4500
+expect dirty 0
+reboot
+wait 200
+tap PLAY
+wait 100
+expect par68 2
+expect knob2 Mix
+expect stale 0
+# a project saved before Stage: row 1
+oldproject 12
+reboot
+wait 200
+expect par68 0

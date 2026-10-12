@@ -36,6 +36,7 @@ enum {
     P_LFOSHAPE, P_LFORATE, P_LFODST, P_LFOAMT,       /* LFO page (0.0.18) */
     P_LFOFADE, P_LFOSYNC,                            /* LFO 2 page */
     P_BRCUT,                                         /* Filter page: breath to cutoff, always there (0.0.19) */
+    P_STAGEROW,                                      /* Stage: the row K1-K4 turn (0.0.24) */
     P_NPARAMS
 };
 typedef struct {
