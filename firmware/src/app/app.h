@@ -15,12 +15,12 @@
 /* The format counts the settings a project holds: a newer version reads an older project's values and
  * gives the settings it lacks their defaults (its spare bytes, zeros, are never taken for settings).
  * Add a setting at the end of P_*, bump the format, and add its count here. */
-#define PROJ_FORMAT 13u                   /* 1: the first (30 settings); 2: the Engine page (33); 3: FX (45);
+#define PROJ_FORMAT 14u                   /* 1: the first (30 settings); 2: the Engine page (33); 3: FX (45);
                                           * 4: Glide depth (46); 5: Shimmer (47); 6: 6-op's patch (48);
                                           * 7: Glide in ms, the least glide time (48); 8: Distortion and
                                           * Modulation (56); 9: Noise (60); 10: Aux (61);
                                           * 11: the LFO (67); 12: the Filter page's Breath (68);
-                                          * 13: Stage's row (69) */
+                                          * 13: Stage's row (69); 14: factory presets (the same values) */
 #define PROJ_NPAR_OF(f) ((f) == 1u ? 30 : (f) == 2u ? 33 : (f) == 3u ? 45 : (f) == 4u ? 46 : \
                          (f) == 5u ? 47 : (f) == 6u || (f) == 7u ? 48 : (f) == 8u ? 56 : (f) == 9u ? 60 : (f) == 10u ? 61 : (f) == 11u ? 67 : \
                          (f) == 12u ? 68 : P_NPARAMS)
@@ -42,13 +42,15 @@ void project_apply(void);                /* every value to the engine (boot, loa
 void project_forget(void);               /* the host's restart: the preset cache dropped, as RAM is */
 #endif
 
-/* presets: NPRESETS sounds in flash, 16 to a bank object. A slot never saved is the init sound. */
+/* presets: NPRESETS sounds in flash, 16 to a bank object. A slot never saved holds its factory preset
+ * (factory.inc), the init sound past them. */
 #define NPRESETS 64
 #define PRESET_NPAR 112                  /* room per preset: settings to come fit without a new format */
 void preset_load(int slot);              /* its sound into the project, applied (the rig is kept) */
 int preset_store(int slot);              /* the project's sound into the slot: 0 = saved */
 int preset_edited(void);                 /* 1: the sound differs from its preset's */
 void preset_peek(void);                  /* the project's preset as stored, for preset_edited (project_load) */
+const char *preset_title(int slot);      /* its factory preset's name while it holds that sound, else 0 */
 
 void ui_init(void);
 void ui_frame(void);

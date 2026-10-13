@@ -101,8 +101,8 @@ growing.
 
 ## Presets
 
-There are 64 presets, P01 to P64, and every one starts as the init sound. Turn **PRESETS** to play
-another; the header shows which, with a `*` once you've changed its sound. To keep a sound, press
+There are 64 presets, P01 to P64. The first 18 are factory presets, named on the screen as you turn
+to them, and the rest start as the init sound. Turn **PRESETS** to play another; the header shows which, with a `*` once you've changed its sound. To keep a sound, press
 **SAVE**: the header asks "SAVE TO P12". Turn **PRESETS** to pick another slot if you like, then
 press **SAVE** again (any other button leaves the presets alone). What you're playing, edits
 included, is also kept by itself a few seconds after you stop, so it comes back after a restart.
