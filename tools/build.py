@@ -359,7 +359,7 @@ def mmio_check():
             break
         regs |= more
     errors = []
-    for f in sorted([*(FW / "src").rglob("*.[ch]"), *(FW / "src").rglob("*.cc"), *(FW / "loader").glob("*.c")]):
+    for f in sorted([*(FW / "src").rglob("*.[ch]"), *(FW / "src").rglob("*.cc"), *(FW / "src").rglob("*.inc"), *(FW / "loader").glob("*.c")]):
         for no, ln in enumerate(strip(f.read_text()).splitlines(), 1):
             where = f"{f.relative_to(FW)}:{no}"
             for rx, what in ((MMIO_LIT, "register/window address"), (MMIO_CAST, "volatile pointer cast"),

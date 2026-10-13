@@ -425,10 +425,15 @@ static void input(void)
             save_ask(1);
         } else if (s != proj.preset) {
             char t[4];
+            const char *title;
             preset_load(s);
             mark_dirty();
             preset_name(s, t);
-            say("PRESET", t);
+            title = preset_title(s);                /* a factory preset: "P06", "Truth" */
+            if (title)
+                say(t, title);
+            else
+                say("PRESET", t);
         }
     }
     if ((e = plat_enc(EN_ALGO)) != 0) {             /* the engine */
