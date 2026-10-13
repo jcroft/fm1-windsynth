@@ -34,7 +34,7 @@ wait 20
 expect note 4800
 midi 80 30 00
 # Glide on: Always, from the Pitch page: now a detached note slides too
-spin K4 1
+spin K3 1
 expect par11 1
 midi 90 3C 64
 wait 500

@@ -4,6 +4,14 @@ A release is a push to `main` that changes `VERSION` to a version with no tag ye
 release build, tags the commit `vX.Y.Z` and publishes the GitHub Release with that version's notes,
 taken from its section below. Add the section in the same pull request as the `VERSION` change.
 
+## 0.0.30
+
+- **Breath CC and Glide CC move to Setup**, beside the MIDI channel: they say how your controller is
+  wired, so they sit with the rest of the rig. The Breath page is now Curve, Attack and Release; the
+  Pitch page Bend, Glide and Glide mode.
+- **Transpose and Tune move to Pitch 2**, beside CC depth.
+- Nothing else changes: your settings, presets and sound come back as they were.
+
 ## 0.0.29
 
 The Filter, Noise, Breath, Pitch and LFO pages each draw their own picture in the middle of the screen:

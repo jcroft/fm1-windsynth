@@ -168,15 +168,11 @@ expect rtmon3 NOTE|F4_off|ch1|0
 midi B0 05 50
 wait 20
 expect rtmon2 CC5|Glide|ch1|80
-tap SEQ
-spin K3 -5
+tap GLO
+spin K2 -5
 expect par9 0
-tap SEQ
-tap SEQ
-tap ENV
 spin K1 126
 expect par4 128
-tap GLO
 wait 30
 expect rtmon0 Press|Breath||-
 expect rtmon2 CC0|Glide||-
@@ -184,11 +180,8 @@ expect stale 0
 midi D0 32 00
 wait 20
 expect rtmon0 Press|Breath|ch1|50
-tap ENV
 spin K1 -126
-tap SEQ
-spin K3 5
-tap GLO
+spin K2 5
 expect par4 2
 expect par9 5
 # chosen back: what CC2 and CC5 sent before the change doesn't come back (it wasn't kept meanwhile)

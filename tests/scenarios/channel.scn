@@ -1,6 +1,14 @@
-# Setup: MIDI channel 2 hears channel 2 only; Omni hears all; transpose and tune move the pitch
+# Setup: MIDI channel 2 hears channel 2 only; Omni hears all; transpose and tune (Pitch 2) move the pitch
 wait 200
+# Setup's knobs: the breath and glide CCs (the controller's wiring), MIDI ch, Theme
 tap GLO
+expect view 12
+expect knob1 Breath
+expect val1 CC2
+expect knob2 Glide_CC
+expect val2 CC5
+expect knob3 MIDI_ch
+expect knob4 Theme
 spin K3 2
 expect par28 2
 midi 90 3C 64
@@ -14,8 +22,15 @@ wait 20
 expect gate 0
 spin K3 -2
 expect par28 0
-spin K1 12
-spin K2 -50
+tap SEQ
+tap SEQ
+expect view 11
+expect knob1 CC_depth
+expect knob2 Transpose
+expect knob3 Tune
+expect knob4 -
+spin K2 12
+spin K3 -50
 midi 93 3C 64
 wait 20
 expect note 7150

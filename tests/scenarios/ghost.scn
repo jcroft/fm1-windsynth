@@ -64,18 +64,24 @@ spin K1 400
 wait 100
 expect glide 404
 expect ghost1 16
-# the glide CC off: no ghost on Glide or CC depth, and what CC5 had set no longer adds
-tap SEQ
-spin K3 200
+# the glide CC off (Setup: Glide CC): no ghost on Glide or CC depth, and what CC5 had set no longer adds
+tap GLO
+spin K2 200
 wait 100
 expect par9 128
 expect glide 4
+tap SEQ
+expect view 10
 expect ghost2 -1
+tap SEQ
+expect ghost1 -1
 # ...and back on CC5: it adds again from 0, not from the old value
-spin K3 -123
+tap GLO
+spin K2 -123
 wait 100
 expect par9 5
 expect glide 4
+tap SEQ
 expect ghost2 68
 # Mod 2: Breath to Harmonics, -50. Classic has no Ratio, FM's Ratio isn't smooth: no ghost; Waveshape's is
 tap SEL
