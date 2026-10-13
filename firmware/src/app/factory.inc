@@ -19,8 +19,8 @@ typedef struct {
 static const fac_set_t F_SQUARE[] = {{P_MORPH, 50}, END};
 static const fac_set_t F_PULSE[] = {{P_MORPH, 65}, END};
 static const fac_set_t F_SUB[] = {{P_MORPH, 0}, END};
-/* Waveshape with the shaper and folder at rest and a symmetric slope: a triangle */
-static const fac_set_t F_TRI[] = {{P_ENGINE, WV_SHAPE}, {P_RATIO, 50}, {P_INDEX, 0}, {P_MORPH, 0},
+/* VA's saw oscillator at its triangle end (Square off, Saw 0): a triangle, very nearly symmetric */
+static const fac_set_t F_TRI[] = {{P_ENGINE, WV_VA}, {P_RATIO, 50}, {P_INDEX, 0}, {P_MORPH, 0},
                                   {P_CUTOFF, 25}, END};
 /* T-Square, the Lyricon years (Takeshi Itoh): the Lyricon into an Oberheim SEM on sawtooth, an enhancer,
  * two delays and reverb. VA's AUX at Square 0 is its two saws, here about 10 cents apart; 12 dB like
@@ -30,8 +30,8 @@ static const fac_set_t F_TRUTH[] = {{P_ENGINE, WV_VA}, {P_RATIO, 52}, {P_INDEX, 
                                     {P_DSMIX, 8}, {P_DSDRIVE, 15},
                                     {P_DLMODE, WF_DL_PINGPONG}, {P_DLMIX, 18}, {P_DLTIME, 330}, {P_DLFB, 30},
                                     {P_RVTYPE, WF_RV_HALL}, {P_RVMIX, 12}, {P_RVDECAY, 45}, END};
-/* The late-80s EWI sound (Akai's EWI4000s manual): two detuned saws, breath sweeping the filter a long
- * way, and a short doubling delay that smears each note's start */
+/* The late-80s EWI sound (Akai's EWI4000s manual): two detuned saws from a darker start, a 28 ms
+ * doubling delay and a touch of chorus */
 static const fac_set_t F_DOUBLER[] = {{P_ENGINE, WV_VA}, {P_RATIO, 52}, {P_INDEX, 0}, {P_MORPH, 33}, {P_AUX, 100},
                                       {P_CUTOFF, 8},
                                       {P_DLMIX, 30}, {P_DLTIME, 28}, {P_DLFB, 0},
@@ -78,9 +78,13 @@ static const fac_set_t F_CZ[] = {{P_ENGINE, WV_PD}, {P_RATIO, 24}, {P_INDEX, 30}
                                  {P_CUTOFF, 35}, BREATH_TO(WM_DST_TIMBRE, 35),
                                  {P_DLMIX, 15}, {P_DLTIME, 300}, END};
 /* a breathy pipe: a few harmonics, and the noise layer for the air, more of it the harder you blow */
-static const fac_set_t F_PIPE[] = {{P_ENGINE, WV_HARM}, {P_RATIO, 0}, {P_INDEX, 5}, {P_MORPH, 60},
+static const fac_set_t F_PIPE[] = {{P_ENGINE, WV_HARM}, {P_RATIO, 0}, {P_INDEX, 2}, {P_MORPH, 60},
                                    {P_NZLEVEL, 20}, {P_NZRESO, 20}, BREATH_TO(WM_DST_NOISE, 25),
                                    {P_RVTYPE, WF_RV_HALL}, {P_RVMIX, 20}, END};
+/* Waveshape's wavefolder, west-coast style: blowing harder folds the wave into brighter harmonics */
+static const fac_set_t F_FOLD[] = {{P_ENGINE, WV_SHAPE}, {P_RATIO, 50}, {P_INDEX, 15}, {P_MORPH, 0},
+                                   {P_CUTOFF, 30}, BREATH_TO(WM_DST_TIMBRE, 45),
+                                   {P_DLMIX, 12}, {P_DLTIME, 300}, END};
 static const fac_set_t F_INIT[] = {END};
 
 static const factory_t FACTORY[] = {
@@ -101,6 +105,7 @@ static const factory_t FACTORY[] = {
     {"Formant Vox", F_VOX},
     {"CZ Lead", F_CZ},
     {"Air Pipe", F_PIPE},
+    {"Fold Lead", F_FOLD},
 };
 #define NFACTORY ((int)(sizeof FACTORY / sizeof FACTORY[0]))
 typedef char factory_fits[NFACTORY <= NPRESETS ? 1 : -1];

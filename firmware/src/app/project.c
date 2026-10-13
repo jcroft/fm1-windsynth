@@ -2,6 +2,8 @@
 /* Windsynth project: one flash object (OBJ_PROJ). A project of another format, or none (or FoMni's),
  * gives the defaults. Part of the unity build, after app.h. */
 project_t proj;
+static int proj_old;                     /* the project loaded was saved before the factory presets */
+static void factory_project(void);       /* (presets, below) */
 
 void project_defaults(void)
 {
@@ -49,6 +51,7 @@ static int project_valid(int bytes)
         if (have > P_ENGINE && proj.par[P_ENGINE] == 6)    /* (and 6 was Swarm, now gone: Classic) */
             proj.par[P_ENGINE] = WV_CLASSIC;
     }
+    proj_old = proj.format < 13u;
     proj.format = PROJ_FORMAT;
     if (proj.preset >= NPRESETS)
         proj.preset = 0;
@@ -69,6 +72,8 @@ int project_load(void)
     n = plat_store_load(OBJ_PROJ, &proj, sizeof proj);
     if (n >= 8 && project_valid(n)) {
         preset_peek();
+        if (proj_old)
+            factory_project();
         return 0;
     }
     project_defaults();
@@ -92,7 +97,7 @@ typedef struct {
     uint32_t magic;
     uint16_t format, npar;               /* npar: the values each preset holds (P_NPARAMS when saved) */
     struct {
-        char name[12];                   /* (unused yet: zeros) */
+        char name[12];                   /* [0] FAC_MARK: its factory preset, as factory.inc has it now; else 0 */
         int16_t par[PRESET_NPAR];
     } p[BANK_N];
 } bank_t;
@@ -103,6 +108,15 @@ static int bank_at = -1;                 /* the bank in `bank`, -1 none */
 static int16_t snd[P_NPARAMS];           /* the project's preset as stored: what "edited" compares with */
 
 #include "factory.inc"
+#define FAC_MARK 1
+
+/* the init sound as a bank could hold it, for bank_read: v 1 now, 0 as 0.0.12 to 0.0.15 had it (no reverb) */
+static void init_sound(int16_t *par, int v)
+{
+    factory_sound(-1, par);
+    if (!v)
+        par[P_RVMIX] = 0;
+}
 
 /* the same sound: every setting but the rig's */
 static int same_sound(const int16_t *a, const int16_t *b)
@@ -115,12 +129,13 @@ static int same_sound(const int16_t *a, const int16_t *b)
 }
 
 /* one bank into `bank`: from flash, or (never saved, or not ours) the factory presets, the rest the init
- * sound. A bank saved before there were factory presets (format 2) held the init sound in every slot not
- * saved: those slots take theirs. */
+ * sound. A slot marked as its factory preset plays it as factory.inc has it now. A bank saved before
+ * there were factory presets (format 2 and before) held the init sound in every slot not saved: those
+ * slots take theirs. */
 static void bank_read(int b)
 {
     int n, i, k, fresh;
-    int16_t init[P_NPARAMS], fac[P_NPARAMS];
+    int16_t init[P_NPARAMS], init0[P_NPARAMS];
     if (bank_at == b)
         return;
     memset(&bank, 0, sizeof bank);
@@ -145,12 +160,17 @@ static void bank_read(int b)
     if (bank.npar > P_M4AMT && bank.npar <= P_BRCUT)
         for (i = 0; i < BANK_N; i++)
             breath_knob(bank.p[i].par);
-    factory_sound(-1, init);
-    for (i = 0; i < BANK_N; i++)
-        if (fresh || (bank.format < 3u && same_sound(bank.p[i].par, init))) {
-            factory_sound(b * BANK_N + i, fac);
-            memcpy(bank.p[i].par, fac, sizeof fac);
+    init_sound(init, 1);
+    init_sound(init0, 0);
+    for (i = 0; i < BANK_N; i++) {
+        int slot = b * BANK_N + i, fac = bank.format >= 3u ? bank.p[i].name[0] == FAC_MARK
+                                       : fresh || same_sound(bank.p[i].par, init) || same_sound(bank.p[i].par, init0);
+        memset(bank.p[i].name, 0, sizeof bank.p[i].name);
+        if (fac && slot < NFACTORY) {
+            factory_sound(slot, bank.p[i].par);
+            bank.p[i].name[0] = FAC_MARK;
         }
+    }
     bank.magic = BANK_MAGIC;
     bank.format = 3;
     bank.npar = P_NPARAMS;
@@ -192,6 +212,7 @@ int preset_store(int slot)
     bank_read(slot / BANK_N);
     for (k = 0; k < P_NPARAMS; k++)
         bank.p[slot % BANK_N].par[k] = wa_param_global(k) ? wa_param_info(k)->def : proj.par[k];
+    bank.p[slot % BANK_N].name[0] = 0;   /* (yours now, not the factory's) */
     if (plat_store_save(OBJ_BANK0 + (uint32_t)(slot / BANK_N), &bank, sizeof bank) != 0) {
         bank_at = -1;                    /* (re-read: what flash holds) */
         return -1;
@@ -205,9 +226,24 @@ int preset_edited(void) { return !same_sound(proj.par, snd); }
 
 const char *preset_title(int slot)
 {
-    int16_t fac[P_NPARAMS];
     if (slot < 0 || slot >= NFACTORY)
         return 0;
-    factory_sound(slot, fac);
-    return same_sound(preset_par(slot), fac) ? FACTORY[slot].name : 0;
+    bank_read(slot / BANK_N);
+    return bank.p[slot % BANK_N].name[0] == FAC_MARK ? FACTORY[slot].name : 0;
+}
+
+/* A project saved before the factory presets, playing the init sound on a slot that now holds one: it
+ * was on a slot never saved (the init sound then), so it plays the factory preset now, rig kept, rather
+ * than coming back changed from it. */
+static void factory_project(void)
+{
+    int16_t init[P_NPARAMS], init0[P_NPARAMS];
+    int k;
+    init_sound(init, 1);
+    init_sound(init0, 0);
+    if (proj.preset >= NFACTORY || !(same_sound(proj.par, init) || same_sound(proj.par, init0)))
+        return;
+    for (k = 0; k < P_NPARAMS; k++)
+        if (!wa_param_global(k))
+            proj.par[k] = snd[k];
 }

@@ -29,7 +29,7 @@
  *   reboot                       re-run boot from the simulated flash (persistence test)
  *   oldproject F                 rewrite the saved project as format F saved it (its values, then its preset)
  *   oldbank B                    rewrite saved bank B (0..3) as 0.0.20 saved it: the init sound in each slot
- *                                holding its factory preset
+ *                                holding its factory preset, and no marks
  */
 #define OM_HOST 1
 #ifndef _POSIX_C_SOURCE
@@ -599,13 +599,17 @@ int main(int argc, char **argv)
         } else if (!strcmp(cmd, "oldbank")) {      /* bank B as 0.0.20 wrote it: the init sound where a factory one is */
             static bank_t o;
             int b = atoi(a), i;
-            int16_t fac[P_NPARAMS], init[P_NPARAMS];
+            int16_t init[P_NPARAMS];
+            if (b < 0 || b >= NPRESETS / BANK_N || !store_have[OBJ_BANK0 + (uint32_t)b]) {
+                printf("line %d: oldbank %s: no such bank saved\n", lineno, a);
+                return 2;
+            }
             memcpy(&o, store[OBJ_BANK0 + (uint32_t)b], sizeof o);
             factory_sound(-1, init);
             for (i = 0; i < BANK_N; i++) {
-                factory_sound(b * BANK_N + i, fac);
-                if (same_sound(o.p[i].par, fac))
+                if (o.p[i].name[0] == FAC_MARK)
                     memcpy(o.p[i].par, init, sizeof init);
+                memset(o.p[i].name, 0, sizeof o.p[i].name);
             }
             o.format = 2;
             memcpy(store[OBJ_BANK0 + (uint32_t)b], &o, sizeof o);

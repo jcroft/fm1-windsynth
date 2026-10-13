@@ -6,18 +6,21 @@ taken from its section below. Add the section in the same pull request as the `V
 
 ## 0.0.21
 
-- **Factory presets.** The first 17 slots now hold factory presets, named on the screen as PRESETS turns
+- **Factory presets.** The first 18 slots now hold factory presets, named on the screen as PRESETS turns
   to them. All of them play the same way as the init sound: breath to cutoff +75, the same attack and
-  release, bend ±2 and 4 ms of glide. Only the tone changes.
+  release, bend ±2, 4 ms of glide and no LFO. Only the tone changes.
   - **The basics** (1 to 5): Simple (the init sound), Simple Square, Simple Pulse, Simple Sub and
     Simple Triangle.
   - **Famous wind leads:** Truth (T-Square's Lyricon sound: two saws through a 12 dB filter, then
     delays and a hall), EWI Doubler (the late-80s EWI sound), and three of Michael Brecker's EWI
     sounds: Brecker Rays, Sentimental (after "In a Sentimental Mood") and Brecker Octave. Also Lyricon.
-  - **One for each other engine:** FM Reed, DX Brass, DX CS-80, Formant Vox, CZ Lead and Air Pipe.
-- Saving over a factory preset replaces it; the slot then shows its number instead of a name. Presets
-  saved with an earlier version stay as they are. A slot that was never saved, and so still held the
-  init sound, now holds its factory preset.
+  - **One for each other engine:** FM Reed, DX Brass, DX CS-80, Formant Vox, CZ Lead, Air Pipe and
+    Fold Lead.
+- Saving over a factory preset makes the slot yours: it shows its number instead of a name. A slot you
+  haven't saved over keeps following the factory preset, so retuned presets in later versions reach it.
+- **From an earlier version:** presets you saved stay as they are. A slot that still held the init sound
+  (never saved, or saved unchanged) now holds its factory preset. If you were playing such a slot, you
+  come back to its factory preset rather than the init sound.
 
 ## 0.0.20
 

@@ -1,4 +1,5 @@
-# Presets: 64 slots, the first 17 the factory presets (factory.scn), the rest the init sound until saved. PRESETS picks one; SAVE, then SAVE again, saves the
+# Presets: 64 slots, the first 18 the factory presets (factory.scn), the rest the init sound until saved.
+# PRESETS picks one; SAVE, then SAVE again, saves the
 # sound into one ("SAVE TO", PRESETS picks where); the rig's settings stay out of them.
 wait 200
 expect preset 1
@@ -29,7 +30,7 @@ tap SAVE
 expect preset 3
 expect edited 0
 expect store_writes 1
-# P02 is still the init sound; the rig (Setup: transpose) stays as it is across presets
+# P02 is still its factory preset (Simple Square: the init cutoff); the rig (Setup: transpose) stays as it is across presets
 tap GLO
 spin K1 5
 expect par26 5

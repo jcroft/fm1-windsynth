@@ -1,5 +1,5 @@
-# The factory presets: the first 17 slots, until something is saved over them. Each is the init sound's
-# playing (breath to cutoff +75, attack, release, bend, glide) with its own tone; PRESETS shows its name.
+# The factory presets: the first 18 slots, until something is saved over them. Each is the init sound's
+# playing (breath to cutoff +75, attack, release, bend, glide, no LFO) with its own tone; PRESETS names it.
 wait 200
 expect preset 1
 expect edited 0
@@ -93,7 +93,7 @@ expect msg0 P05
 expect msg1 Simple_Triangle
 expect preset 5
 expect edited 0
-expect par30 4
+expect par30 5
 expect par67 75
 expect par6 5
 expect par7 60
@@ -374,16 +374,38 @@ breath 100 0 50
 midi 80 3C 0
 wait 600
 peakreset
+spin PRESET 1
+expect msg0 P18
+expect msg1 Fold_Lead
+expect preset 18
+expect edited 0
+expect par30 4
+expect par67 75
+expect par6 5
+expect par7 60
+expect par8 2
+expect par10 4
+expect par11 0
+expect par64 0
+midi 90 3C 64
+breath 0 100 100
+wait 400
+expect level >5
+expect peak_db_max <-1
+breath 100 0 50
+midi 80 3C 0
+wait 600
+peakreset
 # past them, the init sound, by number
 spin PRESET 1
-expect preset 18
+expect preset 19
 expect msg0 PRESET
-expect msg1 P18
+expect msg1 P19
 expect par30 0
 expect par2 25
 expect par34 3
 # Simple is exactly the init sound; Simple Square only its waveform
-spin PRESET -17
+spin PRESET -18
 expect msg1 Simple
 expect par2 25
 expect par0 15
@@ -427,8 +449,32 @@ spin PRESET -1
 expect par0 25
 spin PRESET 2
 expect msg1 Brecker_Rays
-# a bank 0.0.20 saved held the init sound where nothing was saved: those slots take their factory presets,
-# the saved one stays
+# the init sound saved over P02 stays the init sound (it's yours now), across a restart
+spin PRESET -6
+expect preset 2
+expect par2 50
+press SAVE
+wait 1600
+release SAVE
+tap SAVE
+expect par2 25
+tap SAVE
+tap SAVE
+expect edited 0
+spin PRESET 6
+wait 5000
+reboot
+wait 200
+expect preset 8
+spin PRESET -6
+expect preset 2
+expect par2 25
+expect edited 0
+expect msg0 PRESET
+expect msg1 P02
+# a bank 0.0.20 saved held the init sound where nothing was saved: those slots take their factory presets;
+# the ones saved stay (P06, and P02 saved as the init sound is one 0.0.20 can't tell apart: Simple Square)
+spin PRESET 6
 wait 5000
 oldbank 0
 reboot
@@ -448,5 +494,33 @@ spin PRESET 15
 expect msg1 Air_Pipe
 expect par30 7
 expect par56 20
+# a 0.0.20 project playing the init sound on a slot never saved (P18): it comes back on Fold Lead, unchanged
+spin PRESET 1
+expect preset 18
+press SAVE
+wait 1600
+release SAVE
+tap SAVE
+expect par30 0
+expect edited 1
+wait 5000
+oldproject 12
+reboot
+wait 200
+expect preset 18
+expect par30 4
+expect edited 0
+# ...but one saved with this version on the init sound stays on it
+press SAVE
+wait 1600
+release SAVE
+tap SAVE
+expect par30 0
+wait 5000
+reboot
+wait 200
+expect preset 18
+expect par30 0
+expect edited 1
 wait 50
 expect stale 0
