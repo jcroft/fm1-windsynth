@@ -37,6 +37,7 @@ void wv_slope(uint32_t slope);
 void wv_noise(float type, float semis, float reso);   /* the noise layer: LP..BP..HP 0..1, its pitch
                                                       * from the note, resonance 0..1 */
 void wv_env(float attack_s, float release_s);  /* the gate envelope: rise time, fall to -40 dB */
+float wv_env_level(void);              /* ...where it is now, 0..1 (at the end of the last render) */
 /* frames stereo frames, 24-bit in int32, the same signal on L and R */
 void wv_render(const wind_frame_t *f, int32_t *out_lr, uint32_t frames);
 /* the next wv_render also writes its signal before the VCA (the gate envelope on, the amp and MASTER not)

@@ -295,6 +295,7 @@ static float lfo_block(float gate, uint32_t n)
         if (lfo.sync)
             lfo.ph = 0.0f;
         lfo.fade = lfo.fade_s > 0.0f ? 0.0f : 1.0f;
+        wa_state.lfo_starts++;
     }
     lfo.last_gate = gate;
     lfo.ph += lfo.hz * t;
@@ -616,10 +617,15 @@ void wa_render(int32_t *out, uint32_t n, uint32_t gain_q12, int (*midi_in)(uint3
         wa_state.lfo = lv;
         wa_state.pitch = f.note;
         wa_state.top = wc_top_note();
+        wa_state.breath_in = c.breath_in;
+        wa_state.env = wv_env_level();
+        wa_state.lfo_fade = lfo.fade;
+        wa_state.lfo_ph = lfo.ph;
         wa_state.glide_ms = c.glide_ms;
         for (i = 0; i < WM_NSRC; i++)
             wa_state.src[i] = src[i];
         wa_state.mon = *wc_monitor();
+        wa_state.gliding = c.gliding;
         out += 2 * k;
         n -= k;
     }

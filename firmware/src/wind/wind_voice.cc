@@ -241,6 +241,8 @@ extern "C" void wv_env(float attack_s, float release_s)
     env_down = 1.0f - fm_expf(-4.6f / ((release_s > 0.002f ? release_s : 0.002f) * WV_SR));   /* -40 dB */
 }
 
+extern "C" float wv_env_level(void) { return env; }
+
 extern "C" void wv_engine(uint32_t id)
 {
     id = id < WV_NENGINE ? id : WV_CLASSIC;

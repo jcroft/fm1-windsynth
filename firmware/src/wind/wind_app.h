@@ -76,6 +76,13 @@ typedef struct {
     uint32_t midi_seen;                /* packets received */
     float src[WM_NSRC];                /* the matrix's sources now (WM_SRC_*; Bite -1..1, the LFO faded) */
     wc_mon_t mon;                      /* the controller monitor: raw values in, and when (wind_ctl) */
+    /* for the pages' views (0.0.29) */
+    float breath_in;                   /* the breath as it comes in, 0..1: before the curve and the smoothing */
+    float env;                         /* the gate envelope (Attack, Release), 0..1 */
+    float lfo_fade;                    /* the LFO's fade-in, 0..1 */
+    uint32_t lfo_starts;               /* notes from silence: each starts the fade again (Sync Note: the LFO) */
+    float lfo_ph;                      /* the LFO's phase, 0..1 */
+    float gliding;                     /* 1 while a glide moves (wind_ctl's) */
 } wa_state_t;
 extern volatile wa_state_t wa_state;
 

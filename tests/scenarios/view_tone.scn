@@ -1,0 +1,367 @@
+# The tone pages' views: Filter, Noise, Breath, Pitch, Pitch 2, LFO and LFO 2 each draw their own picture
+# in the middle band. Checks by colour: colX_Y and countC_X0_Y0_X1_Y1 (3 dim, 4 text, 6 accent, 8 blue).
+# the first frames: no live curve before anything has sounded
+wait 1
+expect count6_16_40_226_150 0
+wait 200
+expect view 0
+# Filter, quiet: the knobs' response in blue (C4 to start: Cutoff 15 is 185 Hz), no accent curve
+shot filter.png
+expect count6_16_40_226_150 0
+expect count8_16_40_226_150 >150
+# the dot at the cutoff (185 Hz: x 84, 12 dB down at 24 dB: y 88), blue
+expect col84_88 8
+# the labels "24 dB/oct" and "0 dB", whole ("24 dB/oct" is 71-74 dim pixels with the fonts as Pillow versions
+# draw them; the cutoff's label over it leaves ~50)
+expect count3_18_33_80_48 >66
+expect count3_190_52_226_66 36
+# Reso 60: a peak well above 0 dB (y 66); then 30
+spin K2 60
+wait 30
+expect count8_16_40_226_60 >10
+spin K2 -30
+wait 30
+expect count8_16_40_226_60 0
+# a note and breath: the live curve, in the accent, its dot where breath has the cutoff (2.9k: x 167)
+midi 90 41 64
+breath 0 60 300
+wait 50
+expect cutoff 50
+expect count6_16_40_226_150 >150
+expect col167_79 6
+shot filter_live.png
+expect stale 0
+# quiet again: back to the knobs' curve alone, and nothing redrawn
+breath 60 0 50
+midi 80 41 00
+wait 400
+expect count6_16_40_226_150 0
+wait 1000
+expect blits >-1
+wait 1000
+expect blits 0
+# the cutoff's label clear of the others: at Cutoff 0 and 100, Reso 100
+spin K2 70
+spin K1 -15
+wait 30
+shot filter_c0.png
+expect count3_18_33_80_48 >66
+spin K1 100
+wait 30
+shot filter_c100.png
+expect count3_190_52_226_66 36
+spin K1 -85
+spin K2 -100
+wait 30
+# Noise: its filter's response (accent) and the level as bars (blue): none at Level 0
+tap HOME
+tap HOME
+expect view 2
+wait 30
+expect count8_16_40_226_150 0
+expect count6_16_40_226_150 >100
+spin K1 40
+spin K4 50
+wait 30
+expect count8_16_40_226_150 >300
+shot noise.png
+expect stale 0
+# Level and Reso 100: the bars never higher than the curve (no column where blue tops the accent), at
+# the default Freq (+24) as BP and LP, at -46 (the peak between the curve's points) and at +5, Reso 60
+spin K1 60
+spin K4 50
+wait 30
+shot noise_full.png
+expect above8_6_16_32_226_150 0
+# the curve reaches its peak at fc (one of its points: x 145, y 52)
+expect col145_52 6
+spin K2 -50
+wait 30
+expect val2 LP
+shot noise_full_lp.png
+expect above8_6_16_32_226_150 0
+spin K2 50
+spin K3 -70
+wait 30
+expect val3 -46_st
+expect above8_6_16_32_226_150 0
+expect count8_16_52_226_120 >30
+expect count8_16_32_226_51 0
+# fc below the plot's 20 Hz (-48 st after a C3): the Freq label still inside it, nothing left of the plot
+spin K3 -2
+midi 90 30 40
+wait 20
+midi 80 30 00
+wait 30
+shot noise_low.png
+expect val3 -48_st
+expect count6_0_28_15_171 0
+spin K3 53
+spin K4 -40
+wait 30
+expect above8_6_16_32_226_150 0
+spin K1 -60
+spin K4 -10
+spin K3 19
+wait 30
+expect val3 +24_st
+expect blits >-1
+wait 1000
+expect blits 0
+# Breath: the curve (Curve +20: above the diagonal) and, blown, the breath on it; the history
+tap ENV
+expect view 3
+spin K2 20
+midi 90 41 64
+breath 0 100 300
+breath 100 40 300
+wait 30
+shot breath.png
+expect stale 0
+# the dot at CC2 40 (in 0.31: x 50; out 0.42: y 108)
+expect col50_108 6
+expect count6_142_40_226_150 >60
+# full breath: the dot clear of "CC2 127"
+breath 40 127 50
+wait 30
+shot breath_full.png
+expect count6_60_32_124_47 0
+expect count4_60_32_124_47 >40
+breath 127 40 50
+# a controller at rest (CC2 1, no note): not sound, nothing redrawn
+breath 40 0 50
+midi 80 41 00
+wait 1000
+midi B0 02 01
+wait 100
+expect blits >-1
+wait 1000
+expect blits 0
+midi B0 02 00
+midi 90 41 64
+breath 0 40 50
+# Pitch: the phrase. D4, then F4 legato with Glide 2 s: the trace in blue, the glide time in the accent
+# while it glides, then not
+breath 40 0 50
+midi 80 41 00
+wait 300
+tap SEQ
+expect view 10
+spin K2 1996
+expect par10 2000
+midi 90 3E 64
+breath 0 90 100
+wait 400
+midi 90 41 64
+midi 80 3E 00
+wait 300
+shot pitch.png
+expect stale 0
+expect count8_14_40_183_160 >150
+expect count6_196_115_232_135 >10
+# the note's name at its start, in the text colour (D4 and F4)
+expect count4_14_40_183_160 >40
+wait 2000
+expect count6_196_115_232_135 0
+# the note now in the text colour while held; let go, dim; quiet, nothing redrawn
+expect count4_196_50_232_66 >20
+breath 90 0 50
+midi 80 41 00
+wait 300
+expect count4_196_50_232_66 0
+expect blits >-1
+wait 1000
+expect blits 0
+# quick notes (40 ms apart): a tick each, one name
+spin K2 -1996
+midi 90 3E 64
+breath 0 90 30
+midi 90 40 64
+wait 40
+midi 90 41 64
+wait 40
+midi 90 43 64
+wait 40
+midi 90 45 64
+wait 300
+shot pitch_fast.png
+expect count4_14_40_183_160 <60
+midi 80 3E 00
+midi 80 40 00
+midi 80 41 00
+midi 80 43 00
+midi 80 45 00
+breath 90 0 30
+wait 3500
+spin K2 96
+# notes played on Stage are in the history back on the page: D4 then F4, both named
+tap PLAY
+midi 90 3E 64
+breath 0 90 50
+wait 600
+midi 90 41 64
+midi 80 3E 00
+wait 600
+tap PLAY
+expect view 10
+wait 50
+shot pitch_after_stage.png
+expect count4_14_40_183_160 >90
+midi 80 41 00
+breath 90 0 50
+wait 3000
+# Pitch 2: the bite at -0.75 (Bend 2): the pointer at x 84; Glide 100, the CC at 64 adds 202 ms: the
+# dot where 302 ms ends (x 140)
+tap SEQ
+expect view 11
+midi B0 05 40
+midi E0 00 28
+wait 50
+shot pitch2.png
+expect stale 0
+expect col84_56 8
+expect col140_116 6
+expect count8_22_66_218_66 >30
+midi E0 00 40
+midi B0 05 00
+wait 50
+expect col84_56 1
+expect col120_56 8
+# the CC back at 0: Glide alone, 100 ms (x 60)
+expect col60_116 6
+expect blits >-1
+wait 1000
+expect blits 0
+# the ruler's ends always named: Bend 5 ("+5" at x 218), 0, 12
+tap SEQ
+spin K1 3
+tap SEQ
+expect view 11
+wait 30
+shot pitch2_bend5.png
+expect count3_206_72_230_86 >5
+tap SEQ
+spin K1 -5
+tap SEQ
+wait 30
+shot pitch2_bend0.png
+tap SEQ
+spin K1 12
+tap SEQ
+wait 30
+shot pitch2_bend12.png
+expect count3_206_72_230_86 >5
+tap SEQ
+spin K1 -10
+# LFO: one cycle of the shape: Triangle, then Square (its top at y 48, its bottom clear of the Dest's
+# name); Amount +40 on Morph: Morph's value now in the accent
+tap LFO
+expect view 4
+spin K1 1
+spin K3 -5
+expect val3 Morph
+spin K4 40
+midi 90 43 64
+breath 0 80 50
+wait 100
+shot lfo.png
+expect stale 0
+expect count8_16_48_110_49 <40
+expect count6_180_128_226_152 >20
+spin K1 2
+wait 30
+expect val1 Square
+expect count8_16_48_110_49 >80
+expect count8_150_108_226_127 0
+shot lfo_square.png
+spin K1 -1
+wait 30
+shot lfo_saw.png
+spin K1 2
+wait 30
+shot lfo_sh.png
+spin K1 -4
+spin K2 23
+wait 30
+shot lfo_sine_20hz.png
+spin K2 -23
+spin K1 1
+breath 80 0 50
+midi 80 43 00
+wait 2000
+expect blits >-1
+wait 1000
+expect blits 0
+# LFO 2: Fade 0.8 s and Sync Note: a new note from silence starts the LFO and the fade again ("sync")
+tap LFO
+expect view 5
+spin K1 800
+spin K2 1
+midi 90 43 64
+breath 0 80 50
+wait 1500
+shot lfo2.png
+expect stale 0
+expect count3_14_34_226_47 >10
+expect count8_14_40_226_160 >300
+# just after a sync: its name left of the mark, inside the panel
+breath 80 0 50
+midi 80 43 00
+wait 300
+midi 90 43 64
+breath 0 80 30
+wait 30
+shot lfo2_sync.png
+expect count3_229_34_239_47 0
+expect count3_180_34_220_47 >5
+# Sync Free: no mark at the next note (the history counts time sounding: 3 s of it)
+spin K2 -1
+breath 80 0 50
+midi 80 43 00
+wait 3200
+midi 90 43 64
+breath 0 80 50
+wait 3200
+expect count3_14_34_226_47 0
+breath 80 0 50
+midi 80 43 00
+wait 2000
+expect blits >-1
+wait 1000
+expect blits 0
+# the theme: Dark, each page again (a note, breath at 40 for the Breath page's dot)
+midi 90 43 64
+breath 0 40 100
+tap GLO
+spin K4 1
+tap ENV
+wait 30
+shot breath_dark.png
+expect col50_108 6
+expect stale 0
+tap HOME
+wait 30
+expect view 0
+shot filter_dark.png
+expect stale 0
+tap HOME
+tap HOME
+wait 30
+shot noise_dark.png
+expect stale 0
+tap LFO
+wait 30
+shot lfo_dark.png
+expect stale 0
+tap LFO
+wait 30
+shot lfo2_dark.png
+expect stale 0
+tap SEQ
+wait 30
+shot pitch_dark.png
+expect stale 0
+tap SEQ
+wait 30
+shot pitch2_dark.png
+expect stale 0

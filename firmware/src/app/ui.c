@@ -2,7 +2,13 @@
 /* Windsynth UI: the panel and the screen. Part of the unity build (after gfx.c and project.c); the host
  * simulator includes it too. (The frame of it, knobs, bands and autosave, is FoMni's and FiMba's ui.c.)
  *
- *   the screen    the note playing and the bite's bend; breath, cutoff and level as bars; the page's
+ *   the screen    the page's picture: Filter its response (and, in the accent, where breath and the
+ *                 matrix have it now), Noise its filter and level, Breath the curve with the breath on
+ *                 it and the last moment of breath, Pitch the phrase (the last seconds of pitch), Pitch 2
+ *                 the bite's ruler and the glide, LFO its shape and where it is, LFO 2 the last seconds
+ *                 of it in its fade (view_tone.inc); the Engine page a scope of the voice, two periods
+ *                 of the note, locked to its pitch, the last traces fading (view_scope.inc); elsewhere
+ *                 the note playing and the bite's bend, breath, cutoff and level as bars. The page's
  *                 four values along the bottom, each with a ghost (an accent tick) at its live value
  *                 when something moves it: a Mod slot, the LFO, the Filter's Breath, the glide CC. The
  *                 Engine page: a scope of the voice instead, two periods of the note, locked to its
@@ -599,6 +605,7 @@ static void note_text(int n, char t[8])
     t[i] = 0;
 }
 
+#include "view_tone.inc"
 #include "view_scope.inc"
 #include "view_route.inc"
 #include "view_fx.inc"
@@ -610,6 +617,8 @@ static void draw_main(void)
         draw_stage_mon();
         return;
     }
+    if (vw_tone(ui.view))
+        return;
     if (vw_scope(ui.view))
         return;
     if (vw_route(ui.view)) return;
@@ -1091,6 +1100,7 @@ void ui_frame(void)
     fx_edges();                         /* (the FX views' note edges, on any page) */
     if (ui.stage)
         stage_peaks();
+    tn_tick();                         /* the pages' views' history (view_tone.inc) */
     draw_header();
     draw_main();
     draw_knobs();

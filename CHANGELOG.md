@@ -4,6 +4,27 @@ A release is a push to `main` that changes `VERSION` to a version with no tag ye
 release build, tags the commit `vX.Y.Z` and publishes the GitHub Release with that version's notes,
 taken from its section below. Add the section in the same pull request as the `VERSION` change.
 
+## 0.0.29
+
+The Filter, Noise, Breath, Pitch and LFO pages each draw their own picture in the middle of the screen:
+
+- **Filter:** the filter's response, frequency across and level up, at Cutoff, Reso and Slope (it follows
+  the note you play, as the filter does). While something moves the filter, breath or a Mod slot or the
+  LFO, a second curve in the accent shows where it is now, with its frequency.
+- **Noise:** the noise filter's response for its Type (low-pass, band-pass, high-pass or between), at Freq
+  above the note (marked) and Reso, with the Level as bars under it.
+- **Breath:** the Curve, with the breath coming in on it as you blow (and its value), and a plot of the
+  last moment of breath, as it came in and as it comes out of Attack and Release.
+- **Pitch:** the phrase, your pitch over the last few seconds as you play it, with each note's start
+  marked and named, glides and bites in the line and your breath under it; beside it the note, the bite
+  in semitones, and the glide time (in the accent while a glide moves).
+- **Pitch 2:** the bite on a ruler of the Bend range, and the glide: how long the pitch takes to reach a
+  new note at Glide alone, with all of CC depth added (dashed), and now, with what the glide CC adds.
+- **LFO:** one cycle of the shape with where the LFO is in it now (as faded in, and in full), the fade,
+  and the value of what it moves.
+- **LFO 2:** the LFO over the last few seconds inside its fade, with a mark where a note started it again
+  (Sync Note).
+
 ## 0.0.28
 
 - **Factory presets.** The first 18 slots now hold factory presets, named on the screen as PRESETS turns
