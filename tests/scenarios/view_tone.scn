@@ -87,7 +87,16 @@ expect val3 -46_st
 expect above8_6_16_32_226_150 0
 expect count8_16_52_226_120 >30
 expect count8_16_32_226_51 0
-spin K3 51
+# fc below the plot's 20 Hz (-48 st after a C3): the Freq label still inside it, nothing left of the plot
+spin K3 -2
+midi 90 30 40
+wait 20
+midi 80 30 00
+wait 30
+shot noise_low.png
+expect val3 -48_st
+expect count6_0_28_15_171 0
+spin K3 53
 spin K4 -40
 wait 30
 expect above8_6_16_32_226_150 0

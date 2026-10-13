@@ -393,7 +393,8 @@ static void tn_filter(void)
         uint16_t c = live ? K_ACC : K_BLUE;
         if (live)
             tn_poly(x, ly, TN_NPT, 2, K_ACC);
-        tn_dot(dx, dy, 3, c);
+        if (dx >= TN_FX0)                       /* (below the plot's 20 Hz: no dot, the label says it) */
+            tn_dot(dx, dy, 3, c);
         tn_text_r(TN_FX0 + TN_FW, tn_dby(0.0f) - 14, &FONT_XS, "0 dB", K_DIM);   /* (over the curves) */
         cv_text(18, 5, &FONT_XS, sl, K_DIM);
         tn_hz_text(hz, t);
@@ -470,7 +471,9 @@ static void tn_noise(void)
     wa_param_text(P_NZFREQ, semis, t);
     {   /* (on the side away from the note, clear of the peak) */
         int al = semis < 0 ? fx > 50 : fx > 190;
-        tn_text_o(al ? fx - 7 : fx + 7, top + 12, &FONT_XS, t, K_ACC, al ? 2 : 0);
+        int32_t lx = al ? fx - 7 : fx + 7;
+        lx = !al && lx < TN_FX0 + 2 ? TN_FX0 + 2 : lx;  /* (fc below the plot: the label still in it) */
+        tn_text_o(lx, top + 12, &FONT_XS, t, K_ACC, al ? 2 : 0);
     }
     wa_param_text(P_NZTYPE, type, t);
     cv_text(18, 5, &FONT_XS, t, K_DIM);
