@@ -262,8 +262,8 @@ static void preset_name(int slot, char *t)
     t[3] = 0;
 }
 
-/* back to the init sound: every sound setting. The rig's (breath source and curve, the glide CC, the
- * keys, Setup) stays, and so does the preset it would be saved to. Kept as any change is. */
+/* back to the init sound: every sound setting. The rig's (the breath curve, Pitch 2, the keys, Setup)
+ * stays, and so does the preset it would be saved to. Kept as any change is. */
 static void reset_defaults(void)
 {
     int k;

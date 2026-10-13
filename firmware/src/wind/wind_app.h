@@ -15,14 +15,14 @@
 /* parameters, in the order they are saved: add new ones at the end */
 enum {
     P_CUTOFF, P_RESO, P_MORPH, P_SLOPE,              /* Filter page (Morph: on the Engine page) */
-    P_BSRC, P_CURVE, P_ATTACK, P_RELEASE,            /* Breath page */
-    P_BEND, P_GSRC, P_GLIDE, P_GMODE,                /* Pitch page */
+    P_BSRC, P_CURVE, P_ATTACK, P_RELEASE,            /* Breath page (0.0.30: Breath CC on Setup) */
+    P_BEND, P_GSRC, P_GLIDE, P_GMODE,                /* Pitch page (0.0.30: Glide CC on Setup) */
     P_M1SRC, P_M1DST, P_M1AMT,                       /* Mod 1..4 pages: source, destination, amount */
     P_M2SRC, P_M2DST, P_M2AMT,
     P_M3SRC, P_M3DST, P_M3AMT,
     P_M4SRC, P_M4DST, P_M4AMT,
     P_KEYBREATH, P_OCTAVE,                           /* the panel's keys (0.0.18: Key breath unused, Octave on OCT-/+) */
-    P_TRANSPOSE, P_TUNE, P_MIDICH, P_THEME,          /* Setup page */
+    P_TRANSPOSE, P_TUNE, P_MIDICH, P_THEME,          /* Setup page (0.0.30: Transpose, Tune on Pitch 2) */
     P_ENGINE, P_RATIO, P_INDEX,                      /* Engine page (0.0.6) */
     P_RVTYPE, P_RVMIX, P_RVDECAY, P_RVTONE,          /* Reverb page (0.0.7) */
     P_RVPRE, P_RVSIZE, P_RVMOD, P_RVLOW,             /* Reverb 2 page */

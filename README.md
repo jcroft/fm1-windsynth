@@ -108,8 +108,8 @@ press **SAVE** again (any other button leaves the presets alone). What you're pl
 included, is also kept by itself a few seconds after you stop, so it comes back after a restart.
 
 A preset holds the sound: the Filter, Engine, Noise, LFO, Pitch and Mod pages, the effects, and Attack and
-Release. Your rig's settings stay put when you change presets: breath source and curve, the glide CC and its
-depth, the keys' octave and Setup.
+Release. Your rig's settings stay put when you change presets: the breath curve, Pitch 2 (the glide CC's
+depth, Transpose and Tune), the keys' octave and Setup (the breath and glide CCs, MIDI ch and Theme).
 Hold **SAVE** for 1.5 s, then press it again, for the init sound (the preset slot is untouched until
 you save).
 
