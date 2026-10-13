@@ -111,7 +111,7 @@ expect blits 0
 # Breath: the curve (Curve +20: above the diagonal) and, blown, the breath on it; the history
 tap ENV
 expect view 3
-spin K2 20
+spin K1 20
 midi 90 41 64
 breath 0 100 300
 breath 100 40 300

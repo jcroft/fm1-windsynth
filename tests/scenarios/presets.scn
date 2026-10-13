@@ -30,9 +30,11 @@ tap SAVE
 expect preset 3
 expect edited 0
 expect store_writes 1
-# P02 is still its factory preset (Simple Square: the init cutoff); the rig (Setup: transpose) stays as it is across presets
-tap GLO
-spin K1 5
+# P02 is still its factory preset (Simple Square: the init cutoff); the rig (Pitch 2: transpose) stays as it is across presets
+tap SEQ
+tap SEQ
+expect view 11
+spin K2 5
 expect par26 5
 spin PRESET -1
 expect preset 2

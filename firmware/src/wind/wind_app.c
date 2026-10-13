@@ -10,7 +10,7 @@ const char *const WA_NOTE_NAME[12] = {"C", "C#", "D", "D#", "E", "F", "F#", "G",
 
 static const wa_param_t PARAMS[P_NPARAMS] = {
     {"Cutoff", 0, 100, 15}, {"Reso", 0, 100, 0}, {"Morph", 0, 100, 25}, {"Slope", 0, 1, 1},
-    {"Breath", 0, 128, 2}, {"Curve", -100, 100, 0}, {"Attack", 1, 200, 5}, {"Release", 5, 2000, 60},
+    {"Breath CC", 0, 128, 2}, {"Curve", -100, 100, 0}, {"Attack", 1, 200, 5}, {"Release", 5, 2000, 60},
     {"Bend", 0, 12, 2}, {"Glide CC", 0, 128, 5}, {"Glide", 0, 2000, 4}, {"Glide on", 0, 1, 0},
     {"Source", 0, WM_SRC_LFO - 1, WM_SRC_OFF}, {"Dest", 0, WM_NDST - 1, WM_DST_CUTOFF}, {"Amount", -100, 100, 0},
     {"Source", 0, WM_SRC_LFO - 1, WM_SRC_OFF}, {"Dest", 0, WM_NDST - 1, WM_DST_CUTOFF}, {"Amount", -100, 100, 0},
@@ -66,8 +66,8 @@ const char *wa_param_name(int i)
     }
 }
 
-/* the controller's and the room's settings: breath source and curve, the glide CC, the panel keys and
- * Setup. A preset is the rest, the sound. */
+/* the controller's and the room's settings: the breath curve, Pitch 2 (the glide CC's depth, Transpose,
+ * Tune), the panel keys and Setup (the breath and glide CCs, MIDI ch, Theme). A preset is the rest, the sound. */
 int wa_param_global(int i)
 {
     switch (i) {

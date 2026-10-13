@@ -37,13 +37,13 @@ step through every page.
 | HOME | Filter | Cutoff, Resonance, Slope (12 or 24 dB), Breath (how far breath opens the cutoff, −100 to +100, +75 to start) |
 | HOME again | Engine (the header names it) | The engine's own three knobs, named for what they do on it: Harmonics and Timbre (Classic has neither), Morph (Classic: the waveform, a saw up to 25, a square at 50, then a pulse that narrows and widens again, with a sub-octave below 20 and above 80; FM: the feedback, none at 50); then Aux: from the engine's main output (0) to its second output alone (100; not on 6-op, whose second output is the same). The ALGORITHM knob picks the engine. See the engines below. |
 | HOME again | Noise | Level (0 is off), Type (low-pass through band-pass to high-pass), Freq (the noise filter's pitch, in semitones from the note), Reso |
-| ENV | Breath | Source (a CC, or aftertouch), Curve, Attack, Release |
+| ENV | Breath | Curve, Attack, Release |
 | LFO | LFO | Shape (Sine, Triangle, Saw, Square, S&H), Rate (0.05 to 20 Hz, 5 Hz by default), Dest (the Mod slots' destinations, plus Pitch), Amount (−100 to +100; on Pitch, in cents; 0 by default, so it's off) |
 | LFO again | LFO 2 | Fade (how long it takes to come in after a note starts from silence), Sync (Free, or Note: each new phrase restarts it) |
 | SEL | Mod 1–4 (press again for the next) | Source (breath, bite, mod wheel, pressure, velocity), Destination (cutoff, resonance, amp, morph, timbre: the Engine page's third knob, FM's Index; noise: the noise layer's level; harmonics: the Engine page's second knob, on Formant, Waveshape, VA and Harmonic only, "Harm off" elsewhere; aux: the Aux mix), Amount (−100 to +100) |
-| SEQ | Pitch | Bend range, Glide (the glide time with the glide CC at 0: 4 ms by default, up to 2 s), Glide CC, Glide mode (always or legato) |
-| SEQ again | Pitch 2 | CC depth: how much the glide CC adds to Glide at full (400 ms by default, up to 2 s) |
-| GLO | Setup | Transpose, Tune, MIDI channel (Omni by default), Theme (Light or Dark); the version |
+| SEQ | Pitch | Bend range, Glide (the glide time with the glide CC at 0: 4 ms by default, up to 2 s), Glide mode (always or legato) |
+| SEQ again | Pitch 2 | CC depth: how much the glide CC adds to Glide at full (400 ms by default, up to 2 s), Transpose, Tune |
+| GLO | Setup | Breath CC (CC2 by default, another CC, or aftertouch), Glide CC (CC5 by default, another CC, or off), MIDI channel (Omni by default), Theme (Light or Dark); the version |
 | FX | Distortion | Type (Overdrive, Distort, Fuzz, Fold, Crush), Mix, Drive, Tone |
 | FX again | Modulation | Type (Chorus, Ensemble, Flanger, Phaser), Mix, Rate (0.05 Hz to 10 Hz), Depth |
 | FX again | Delay | Mode (Digital, Tape, Analog, Ping-pong), Mix, Time (20 ms to 2 s; Ping-pong to 1.1 s), Feedback |
@@ -108,8 +108,8 @@ press **SAVE** again (any other button leaves the presets alone). What you're pl
 included, is also kept by itself a few seconds after you stop, so it comes back after a restart.
 
 A preset holds the sound: the Filter, Engine, Noise, LFO, Pitch and Mod pages, the effects, and Attack and
-Release. Your rig's settings stay put when you change presets: breath source and curve, the glide CC and its
-depth, the keys' octave and Setup.
+Release. Your rig's settings stay put when you change presets: the breath curve, Pitch 2 (the glide CC's
+depth, Transpose and Tune), the keys' octave and Setup (the breath and glide CCs, MIDI ch and Theme).
 Hold **SAVE** for 1.5 s, then press it again, for the init sound (the preset slot is untouched until
 you save).
 

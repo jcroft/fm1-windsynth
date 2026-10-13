@@ -20,7 +20,8 @@
  *                 distortion's curve, the modulation's sweep, the delay's echoes, the reverb's tail and
  *                 its room
  *   HOME ENV LFO SEL SEQ GLO FX   the pages (pressed again: the button's next page): HOME Filter,
- *                 Engine (named for the engine: ALGORITHM picks it) and Noise, ENV Breath, LFO LFO and LFO 2, SEL Mod 1-4, SEQ Pitch and Pitch 2, GLO Setup, FX Distortion,
+ *                 Engine (named for the engine: ALGORITHM picks it) and Noise, ENV Breath, LFO LFO and LFO 2, SEL Mod 1-4, SEQ Pitch and Pitch 2 (CC depth, Transpose, Tune), GLO Setup
+ *                 (Breath CC, Glide CC, MIDI ch, Theme), FX Distortion,
  *                 Modulation, Delay, Reverb and Reverb 2 (the order the sound goes through them). EDIT and
  *                 SELECT step through them all.
  *   PLAY          Stage: the controllers (note, breath, bite, glide, output) over twelve knobs in three
@@ -49,16 +50,16 @@ static const uint8_t VIEW_KNOB[NVIEWS][4] = {
     {P_CUTOFF, P_RESO, P_SLOPE, P_BRCUT},
     {P_RATIO, P_INDEX, P_MORPH, P_AUX},          /* (the engine itself: ALGORITHM, and the header shows it) */
     {P_NZLEVEL, P_NZTYPE, P_NZFREQ, P_NZRESO},
-    {P_BSRC, P_CURVE, P_ATTACK, P_RELEASE},
+    {P_CURVE, P_ATTACK, P_RELEASE, K_NONE},
     {P_LFOSHAPE, P_LFORATE, P_LFODST, P_LFOAMT},
     {P_LFOFADE, P_LFOSYNC, K_NONE, K_NONE},
     {P_M1SRC, P_M1DST, P_M1AMT, K_NONE},
     {P_M2SRC, P_M2DST, P_M2AMT, K_NONE},
     {P_M3SRC, P_M3DST, P_M3AMT, K_NONE},
     {P_M4SRC, P_M4DST, P_M4AMT, K_NONE},
-    {P_BEND, P_GLIDE, P_GSRC, P_GMODE},
-    {P_GDEPTH, K_NONE, K_NONE, K_NONE},
-    {P_TRANSPOSE, P_TUNE, P_MIDICH, P_THEME},
+    {P_BEND, P_GLIDE, P_GMODE, K_NONE},
+    {P_GDEPTH, P_TRANSPOSE, P_TUNE, K_NONE},
+    {P_BSRC, P_GSRC, P_MIDICH, P_THEME},
     {P_DSTYPE, P_DSMIX, P_DSDRIVE, P_DSTONE},
     {P_MOTYPE, P_MOMIX, P_MORATE, P_MODEPTH},
     {P_DLMODE, P_DLMIX, P_DLTIME, P_DLFB},
@@ -261,8 +262,8 @@ static void preset_name(int slot, char *t)
     t[3] = 0;
 }
 
-/* back to the init sound: every sound setting. The rig's (breath source and curve, the glide CC, the
- * keys, Setup) stays, and so does the preset it would be saved to. Kept as any change is. */
+/* back to the init sound: every sound setting. The rig's (the breath curve, Pitch 2, the keys, Setup)
+ * stays, and so does the preset it would be saved to. Kept as any change is. */
 static void reset_defaults(void)
 {
     int k;
