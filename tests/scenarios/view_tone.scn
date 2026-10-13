@@ -11,8 +11,9 @@ expect count6_16_40_226_150 0
 expect count8_16_40_226_150 >150
 # the dot at the cutoff (185 Hz: x 84, 12 dB down at 24 dB: y 88), blue
 expect col84_88 8
-# the labels "24 dB/oct" and "0 dB", whole
-expect count3_18_33_80_48 74
+# the labels "24 dB/oct" and "0 dB", whole ("24 dB/oct" is 71-74 dim pixels with the fonts as Pillow versions
+# draw them; the cutoff's label over it leaves ~50)
+expect count3_18_33_80_48 >66
 expect count3_190_52_226_66 36
 # Reso 60: a peak well above 0 dB (y 66); then 30
 spin K2 60
@@ -44,7 +45,7 @@ spin K2 70
 spin K1 -15
 wait 30
 shot filter_c0.png
-expect count3_18_33_80_48 74
+expect count3_18_33_80_48 >66
 spin K1 100
 wait 30
 shot filter_c100.png
