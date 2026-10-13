@@ -38,9 +38,11 @@ class Windsynth extends AudioWorkletProcessor {
       if (this.ex._initialize) this.ex._initialize();
       const max = this.ex.web_store_max();
       for (const [obj, bytes] of Object.entries(m.store || {})) {
+        const o = Number(obj);           // (a newer build's object, unknown here: skipped, not written at 0)
+        if (!Number.isInteger(o) || o < 0 || o >= this.ex.web_nobj()) continue;
         const b = new Uint8Array(bytes).subarray(0, max);
-        new Uint8Array(this.mem.buffer, this.ex.web_store(+obj), b.length).set(b);
-        this.ex.web_store_set_len(+obj, b.length);
+        new Uint8Array(this.mem.buffer, this.ex.web_store(o), b.length).set(b);
+        this.ex.web_store_set_len(o, b.length);
       }
       this.sentWrites = this.ex.web_store_writes();
       this.ex.web_master(m.master ?? 2800);

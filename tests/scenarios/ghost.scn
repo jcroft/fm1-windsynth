@@ -1,0 +1,125 @@
+# Ghosts: a knob that something moves shows an orange tick at its live value (the x it sits at). The
+# Filter page's Breath moves Cutoff from the start; a Mod slot moves Morph; CC5 moves Glide and uses CC depth.
+# Knobs nothing moves have none (-1), and turning the route off takes the ghost away.
+wait 200
+expect view 0
+expect ghost1 14
+expect acc15_224 1
+expect ghost2 -1
+expect ghost3 -1
+expect ghost4 -1
+midi 90 3C 64
+breath 0 127 60
+wait 200
+expect ghost1 47
+expect acc47_224 1
+expect acc15_224 0
+expect stale 0
+shot ghost_cutoff.png
+# Breath at 0: nothing moves Cutoff
+spin K4 -75
+wait 100
+expect par67 0
+expect ghost1 -1
+expect stale 0
+spin K4 75
+# Mod 1: Breath to Morph, +50
+tap SEL
+spin K1 1
+spin K2 3
+spin K3 50
+tap HOME
+tap HOME
+expect title Classic
+wait 200
+expect ghost3 161
+expect ghost4 -1
+expect stale 0
+shot ghost_morph.png
+breath 127 0 60
+wait 300
+expect ghost3 139
+# Glide: CC5 adds to it, up to CC depth
+tap SEQ
+expect ghost1 -1
+expect ghost2 68
+midi B0 05 7F
+wait 100
+expect ghost2 76
+expect glide 404
+expect stale 0
+shot ghost_glide.png
+tap SEQ
+expect ghost1 16
+# CC depth at 0: the glide CC adds nothing, so neither knob has a ghost
+spin K1 -400
+wait 100
+expect par45 0
+expect glide 4
+expect ghost1 -1
+tap SEQ
+expect ghost2 -1
+tap SEQ
+spin K1 400
+wait 100
+expect glide 404
+expect ghost1 16
+# the glide CC off: no ghost on Glide or CC depth, and what CC5 had set no longer adds
+tap SEQ
+spin K3 200
+wait 100
+expect par9 128
+expect glide 4
+expect ghost2 -1
+# ...and back on CC5: it adds again from 0, not from the old value
+spin K3 -123
+wait 100
+expect par9 5
+expect glide 4
+expect ghost2 68
+# Mod 2: Breath to Harmonics, -50. Classic has no Ratio, FM's Ratio isn't smooth: no ghost; Waveshape's is
+tap SEL
+tap SEL
+spin K1 1
+spin K2 6
+spin K3 -50
+breath 0 127 60
+tap HOME
+tap HOME
+expect title Classic
+wait 100
+expect ghost1 -1
+spin ALGO 1
+wait 100
+expect title FM
+expect ghost1 -1
+expect ghost2 -1
+spin ALGO 1
+wait 100
+expect title 6-op
+expect ghost1 -1
+spin ALGO 1
+wait 100
+spin ALGO 1
+wait 100
+expect title Waveshape
+# below its setting (Ratio 24: the bar ends at 18)
+expect ghost1 8
+expect acc8_224 1
+expect stale 0
+shot ghost_below.png
+# while Ratio turns, its tick is the text colour
+spin K1 1
+wait 20
+expect txt8_224 1
+wait 1500
+# the dark theme
+tap GLO
+spin K4 1
+tap HOME
+tap HOME
+wait 100
+expect acc8_224 1
+expect stale 0
+shot ghost_dark.png
+midi 80 3C 00

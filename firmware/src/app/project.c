@@ -51,7 +51,7 @@ static int project_valid(int bytes)
         if (have > P_ENGINE && proj.par[P_ENGINE] == 6)    /* (and 6 was Swarm, now gone: Classic) */
             proj.par[P_ENGINE] = WV_CLASSIC;
     }
-    proj_old = proj.format < 13u;
+    proj_old = proj.format < 14u;
     proj.format = PROJ_FORMAT;
     if (proj.preset >= NPRESETS)
         proj.preset = 0;
@@ -106,6 +106,16 @@ typedef char bank_fits[sizeof(bank_t) <= PLAT_STORE_MAX ? 1 : -1];
 static bank_t bank;
 static int bank_at = -1;                 /* the bank in `bank`, -1 none */
 static int16_t snd[P_NPARAMS];           /* the project's preset as stored: what "edited" compares with */
+
+#ifdef OM_HOST
+/* the host's restart: what a device's cleared RAM forgets, so presets come back from the store */
+void project_forget(void)
+{
+    bank_at = -1;
+    memset(&bank, 0xA5, sizeof bank);
+    memset(snd, 0, sizeof snd);
+}
+#endif
 
 #include "factory.inc"
 #define FAC_MARK 1

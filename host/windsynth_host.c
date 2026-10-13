@@ -18,15 +18,40 @@
  *   wav FILE | wavstop           start / stop recording the output
  *   peakreset                    restart the output peak (expect peak_db_min / peak_db_max)
  *   shot FILE.png                save the screen
- *   leds                         print the lit buttons and keys
+ *   leds                         print the lit buttons and keys (keys: # lit, - dim)
  *   expect WHAT VALUE            check state: exit 1 on mismatch; VALUE "<N" / ">N" is a bound
- *                                (WHAT: view dirty store_writes preset edited parN gate top (the note sounding)
+ *                                (WHAT: view dirty store_writes store_tries preset edited parN gate top (the note sounding)
  *                                 note (x100) breath cutoff res amp morph timbre noise level (x100) litkeys (bits)
- *                                 stale (pixels a redraw from scratch changes: 0, or the screen missed a change)
+ *                                 stale (pixels a redraw from scratch changes: 0, or the screen missed a change;
+ *                                 this ms's whole ui_frame runs first, input and autosave too, then
+ *                                 the redraw, at the same ms)
+ *                                 blits (screen transfers since the last blits check, or the start)
+ *                                 pxX_Y (the pixel at X, Y as RGB565)
+ *                                 ghostN (knob N's ghost tick: its x on the screen, -1 none; on Stage:
+ *                                 the lit row's dial N, its place along the ring 0..42)
+ *                                 stage (1: Stage is showing) dimkeys (how many keys are lit dim)
+ *                                 glide (the glide time in force, ms) txtX_Y (1: the pixel is the text colour)
+ *                                 accX_Y (1: the pixel at X, Y is the theme's accent colour)
  *                                 lumaY (brightness 0..255 of the screen at x 2, row Y: the theme)
+ *                                 scope_period (the Engine page's scope: the period it locks to, samples x 10; 0 quiet)
+ *                                 scope_cycle (tenths of a px its trace's two periods differ by, on average: ~0, it
+ *                                 holds one period of the sound's) scope_still (tenths of a px its last trace read
+ *                                 differs from the one before, on average: ~0, it stands still; 999 no trace)
+ *                                 scope_since (the same, from the one scopemark kept: it doesn't drift)
+ *                                 scope_height (px from its newest trace's top to its bottom; 0 none)
+ *                                 scope_note (the note its traces show, MIDI) scope_trail (traces it shows, 0..3)
+ *                                 scope_label (text: its label on the right, "Square_40", "-" none)
+ *                                 offbgY0_Y1 (pixels in rows Y0..Y1 that aren't the background); text: rtrowN
+ *                                 rtoff rtdst rtmonN (the Mod and Setup views' rows, see view_route.inc)
+ *                                 colX_Y (the theme's colour at pixel X,Y: 0 bg 1 panel 2 line 3 dim 4 text
+ *                                 5 white 6 accent 7 accent tint 8 blue 9 blue tint, -1 none of them)
+ *                                 topX_C (the top row of the middle band, 28..171, in column X that is theme
+ *                                 colour C, as colX_Y numbers them; -1 none) botX_C (the same, the bottom row)
  *                                 peak_db_max peak_db_min; text, "_" a space: msg0 msg1 (the message's
  *                                 lines) knob1..knob4 (a knob's name on this page, "-" none) val1..val4 (its value as shown))
+ *   scopemark                    keep the Engine page's newest scope trace (expect scope_since)
  *   reboot                       re-run boot from the simulated flash (persistence test)
+ *   storefail 0|1                every save fails (1) or works (0); store_tries counts from here
  *   oldproject F                 rewrite the saved project as format F saved it (its values, then its preset)
  *   oldbank B                    rewrite saved bank B (0..3) as 0.0.20 saved it: the init sound in each slot
  *                                holding its factory preset, and no marks
@@ -128,8 +153,12 @@ int plat_store_load(uint32_t obj, void *dst, uint32_t max)
     memcpy(dst, store[obj], (size_t)n);
     return n;
 }
+static int store_fail, store_tries;       /* storefail 1: every save fails, as a worn sector's would */
 int plat_store_save(uint32_t obj, const void *src, uint32_t len)
 {
+    store_tries++;
+    if (store_fail)
+        return -7;
     if (obj >= OBJ_NOBJ || len > PLAT_STORE_MAX)
         return -1;
     memcpy(store[obj], src, len);
@@ -306,7 +335,7 @@ static void run_ms(uint32_t ms)
             render_budget_ns_total += 256.0 * 1e9 / WV_SR;
 #ifdef OM_WEB
             cpu_pct = (uint32_t)(100.0 * dt / (256.0 * 1e9 / WV_SR));
-#endif                                          /* (a script's run stays 0%: the screen the same every run) */
+#endif                                          /* (a script's screen: simulated time only, so 0) */
             for (k = 0; k < 256; k++) {
                 float l = (float)blk[2 * k] / 8388608.0f, r = (float)blk[2 * k + 1] / 8388608.0f;
                 int16_t s[2];
@@ -348,19 +377,36 @@ static int find_name(const char *const *t, int n, const char *s)
 
 static int key_of(const char *s) { return atoi(s) % NKEYS; }
 
+static int16_t scope_mark[VS_N];        /* scopemark: a trace, for expect scope_since */
+
 static int expect(const char *what, const char *val)
 {
     int got;
     if (!strncmp(what, "msg", 3) || !strncmp(what, "knob", 4) || !strncmp(what, "val", 3) ||
-        !strcmp(what, "title")) {                 /* text, "_": a space; title: the page's name in the header */
-        char want[64], txt[24];                   /* msg0, msg1: the message's lines; knobN: knob N's name; */
+        !strcmp(what, "title") || !strcmp(what, "notename") || !strcmp(what, "scope_label") ||
+        !strncmp(what, "rt", 2)) {                /* text, "_": a space; title: the page's */
+                                          /* name in the header; notename: the note on the main screen */
+        char want[64], txt[64];                   /* msg0, msg1: the message's lines; knobN: knob N's name; */
         const char *s;                            /* valN: its value as the screen shows it */
         int i, k;
         for (i = 0; val[i] && i < 63; i++)
             want[i] = val[i] == '_' ? ' ' : val[i];
         want[i] = 0;
-        if (what[0] == 't') {
-            s = view_name(ui.view);
+        if (what[0] == 's') {
+            if (!vs_label(txt))
+                strcpy(txt, "-");
+            s = txt;
+        } else if (what[0] == 'r') {                     /* the routing views' text (view_route.inc) */
+            s = rt_text(what, txt);
+            if (!s) {
+                printf("FAIL unknown expect %s\n", what);
+                return 1;
+            }
+        } else if (what[0] == 't') {
+            s = title_now();
+        } else if (what[0] == 'n') {
+            note_text((int)(wa_state.note + 0.5f + 1200.0f) - 1200, txt);
+            s = txt;
         } else if (what[0] == 'm') {
             s = ui.msg[atoi(what + 3) & 1];
         } else if (what[0] == 'v') {
@@ -386,6 +432,8 @@ static int expect(const char *what, const char *val)
         got = ui.dirty;
     else if (!strcmp(what, "store_writes"))
         got = (int)store_writes;
+    else if (!strcmp(what, "store_tries"))       /* saves tried since the last storefail, failed or not */
+        got = store_tries;
     else if (!strcmp(what, "preset"))             /* the preset, 1..64 as the screen shows it */
         got = proj.preset + 1;
     else if (!strcmp(what, "edited"))             /* the sound differs from its preset's */
@@ -422,12 +470,67 @@ static int expect(const char *what, const char *val)
         got = (int)(wa_state.pitch * 100.0f + (wa_state.pitch < 0.0f ? -0.5f : 0.5f));
     else if (!strcmp(what, "level"))
         got = (int)(wa_state.level * 100.0f + 0.5f);
+    else if (!strncmp(what, "px", 2)) {           /* pxX_Y: the pixel's RGB565 value */
+        uint16_t p = fb[(atoi(strchr(what, '_') ? strchr(what, '_') + 1 : "0") % 240) * 240 + atoi(what + 2) % 240];
+        got = (uint16_t)((p >> 8) | (p << 8));
+    }
+    else if (!strcmp(what, "blits")) {            /* transfers since the last check */
+        static uint32_t blits_seen;
+        got = (int)(blits - blits_seen);
+        blits_seen = blits;
+    }
+    else if (!strncmp(what, "acc", 3)) {          /* accX_Y: 1 when the pixel at (X, Y) is the accent colour */
+        int x = atoi(what + 3) % 240, y = atoi(strchr(what, '_') ? strchr(what, '_') + 1 : "0") % 240;
+        uint16_t p = fb[y * 240 + x];
+        got = (uint16_t)((p >> 8) | (p << 8)) == K_ACC;
+    }
+    else if (!strncmp(what, "txt", 3)) {          /* txtX_Y: 1 when the pixel at (X, Y) is the text colour */
+        int x = atoi(what + 3) % 240, y = atoi(strchr(what, '_') ? strchr(what, '_') + 1 : "0") % 240;
+        uint16_t p = fb[y * 240 + x];
+        got = (uint16_t)((p >> 8) | (p << 8)) == K_TEXT;
+    }
+    else if (!strcmp(what, "glide"))              /* the glide time in force, ms */
+        got = (int)(wa_state.glide_ms + 0.5f);
+    else if (!strncmp(what, "ghost", 5))          /* ghostN: knob N's ghost, the x it sits at (-1: none) */
+        got = ui.ghost[(atoi(what + 5) - 1) & 3];
+    else if (!strcmp(what, "scope_period"))
+        got = (int)(vs.per * 10.0f + 0.5f);
+    else if (!strcmp(what, "scope_still"))       /* the last read against the one before */
+        got = vs.n ? vs.still : 999;
+    else if (!strcmp(what, "scope_cycle") || !strcmp(what, "scope_since")) {   /* tenths of a px, on average */
+        int i, d, c = what[6] == 'c', m = c ? VS_N / 2 : VS_N, sum = 0;
+        for (i = 0; i < m; i++) {
+            d = vs.y[0][i] - (c ? vs.y[0][i + VS_N / 2] : scope_mark[i]);
+            sum += d < 0 ? -d : d;
+        }
+        got = vs.n ? (sum * 10 + m / 2) / m : 999;   /* (999: no trace) */
+    }
+    else if (!strcmp(what, "scope_note"))
+        got = vs.note;
+    else if (!strcmp(what, "scope_trail"))
+        got = vs.n;
+    else if (!strcmp(what, "scope_height")) {
+        int i, lo = 999, hi = -999;
+        for (i = 0; vs.n && i < VS_N; i++) {
+            lo = vs.y[0][i] < lo ? vs.y[0][i] : lo;
+            hi = vs.y[0][i] > hi ? vs.y[0][i] : hi;
+        }
+        got = vs.n ? hi - lo : 0;
+    }
     else if (!strcmp(what, "litkeys"))            /* the keys lit (bit per key) */
         got = (int)lit_keys;
+    else if (!strcmp(what, "dimkeys")) {          /* how many keys are lit dim */
+        uint32_t d = dim_keys;
+        for (got = 0; d; d &= d - 1u)
+            got++;
+    }
+    else if (!strcmp(what, "stage"))              /* 1: Stage is showing */
+        got = ui.stage;
     else if (!strcmp(what, "stale")) {            /* pixels that change when the screen is drawn from scratch */
         static uint16_t was[240 * 240];
         uint32_t i;
-        memcpy(was, fb, sizeof fb);
+        ui_frame();                               /* this ms's frame, then the same ms from scratch: a */
+        memcpy(was, fb, sizeof fb);               /* moving view draws the same time in both */
         ui_repaint();
         uint32_t x0 = 240, y0 = 240, x1 = 0, y1 = 0;
         got = 0;
@@ -440,10 +543,37 @@ static int expect(const char *what, const char *val)
         if (got)
             printf("  stale pixels in x %u..%u, y %u..%u\n", x0, x1, y0, y1);
     }
+    else if (!strncmp(what, "col", 3) || !strncmp(what, "top", 3) || !strncmp(what, "bot", 3)) {
+        /* colX_Y, topX_C, botX_C: the theme's colours */
+        const uint16_t tc[10] = {K_BG, K_PANEL, K_LINE, K_DIM, K_TEXT, K_WHITE, K_ACC, K_ACC_T, K_BLUE, K_BLUE_T};
+        int x = atoi(what + 3) % 240, a = strchr(what, '_') ? atoi(strchr(what, '_') + 1) : 0, y, c;
+        got = -1;
+        for (y = what[0] == 'c' ? a % 240 : MAIN_Y; y < (what[0] == 'c' ? a % 240 + 1 : MAIN_Y + MAIN_H); y++) {
+            uint16_t p = fb[y * 240 + x];
+            p = (uint16_t)((p >> 8) | (p << 8));
+            for (c = 0; c < 10 && tc[c] != p; c++)
+                ;
+            if (what[0] == 'c') {
+                got = c < 10 ? c : -1;
+            } else if (c == a) {
+                got = y;
+                if (what[0] == 't')
+                    break;
+            }
+        }
+    }
     else if (!strncmp(what, "luma", 4)) {         /* lumaY: the screen's brightness at (2, Y) */
         uint16_t p = fb[(atoi(what + 4) % 240) * 240 + 2];
         p = (uint16_t)((p >> 8) | (p << 8));
         got = (int)((((p >> 11) & 31) * 255 / 31 * 3 + ((p >> 5) & 63) * 255 / 63 * 6 + (p & 31) * 255 / 31) / 10);
+    }
+    else if (!strncmp(what, "offbg", 5)) {        /* offbgY0_Y1: pixels in rows Y0..Y1 not the background */
+        const char *u = strchr(what, '_');
+        int y = atoi(what + 5) % 240, y1 = u ? atoi(u + 1) % 240 : y, x;
+        uint16_t bg = (uint16_t)((K_BG >> 8) | (K_BG << 8));
+        for (got = 0; y <= y1; y++)
+            for (x = 0; x < 240; x++)
+                got += fb[y * 240 + x] != bg;
     }
     else if (!strcmp(what, "peak_db_max") || !strcmp(what, "peak_db_min")) {
         double db = 20.0 * log10(peak_out > 1e-9f ? peak_out : 1e-9f);
@@ -577,13 +707,18 @@ int main(int argc, char **argv)
                     printf(" %s", BTN_N[i]);
             printf(" | keys ");
             for (i = 0; i < NKEYS; i++)
-                printf("%c", (lit_keys >> i & 1u) ? '#' : '.');
+                printf("%c", (lit_keys >> i & 1u) ? '#' : (dim_keys >> i & 1u) ? '-' : '.');
             printf("\n");
+        } else if (!strcmp(cmd, "storefail")) {
+            store_fail = atoi(a);
+            store_tries = 0;
         } else if (!strcmp(cmd, "expect"))
             fails += expect(a, b);
+        else if (!strcmp(cmd, "scopemark"))
+            memcpy(scope_mark, vs.y[0], sizeof scope_mark);
         else if (!strcmp(cmd, "reboot")) {
             memset(&proj, 0, sizeof proj);
-            bank_at = -1;                           /* (RAM: only flash survives) */
+            project_forget();
             boot();
         } else if (!strcmp(cmd, "oldproject")) {   /* the layout an older version wrote: fewer values */
             int f = atoi(a), n = PROJ_NPAR_OF((uint32_t)f);

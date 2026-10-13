@@ -33,6 +33,7 @@ static const wa_param_t PARAMS[P_NPARAMS] = {
     {"Dest", 0, WM_DST_PITCH, WM_DST_PITCH}, {"Amount", -100, 100, 0},  /* (Pitch: cents) */
     {"Fade", 0, 2000, 0}, {"Sync", 0, 1, 0},
     {"Breath", -100, 100, 75},             /* breath to cutoff */
+    {"Row", 0, 2, 0},                      /* Stage: Filter, Engine, FX */
 };
 
 const wa_param_t *wa_param_info(int i) { return &PARAMS[(unsigned)i < P_NPARAMS ? i : 0]; }
@@ -71,7 +72,7 @@ int wa_param_global(int i)
 {
     switch (i) {
     case P_BSRC: case P_CURVE: case P_GSRC: case P_GDEPTH: case P_KEYBREATH: case P_OCTAVE:
-    case P_TRANSPOSE: case P_TUNE: case P_MIDICH: case P_THEME:
+    case P_TRANSPOSE: case P_TUNE: case P_MIDICH: case P_THEME: case P_STAGEROW:
         return 1;
     default:
         return 0;
@@ -285,8 +286,8 @@ static void kq_put(uint32_t v)
 void wa_key(int note, int on) { kq_put((uint32_t)(note & 0x7F) | (on ? 0x100u : 0u)); }
 void wa_panic(void) { kq_put(KQ_PANIC); }
 
-/* the LFO's value for a block of n frames, -1..1: advanced by the block, faded in after a note starts from
- * silence, restarted by it on Sync Note */
+/* the LFO's value for a block of n frames, -1..1, unfaded: advanced by the block, restarted by a note
+ * from silence on Sync Note. lfo.fade (0..1), its depth, fades in after such a note. */
 static float lfo_block(float gate, uint32_t n)
 {
     float t = (float)n * (1.0f / WV_SR), x, ph;
@@ -312,7 +313,7 @@ static float lfo_block(float gate, uint32_t n)
     case WA_LFO_SH: x = lfo.sh; break;
     default: x = fm_sin_turns(ph); break;
     }
-    return x * lfo.fade;
+    return x;
 }
 
 void wa_init(void)
@@ -404,6 +405,135 @@ void wa_set(int k, int v)
     }
 }
 
+/* is a route reaching destination d: a slot with a source and an amount */
+static int routed(int d)
+{
+    int i;
+    for (i = 0; i < WM_NSLOT; i++)
+        if (slot[i].dst == d && slot[i].src != WM_SRC_OFF && slot[i].amount != 0)
+            return 1;
+    return 0;
+}
+
+int wa_live(int k, float *v)
+{
+    int d;
+    switch (k) {
+    case P_CUTOFF: d = WM_DST_CUTOFF; *v = wa_state.cutoff; break;
+    case P_RESO: d = WM_DST_RES; *v = wa_state.res; break;
+    case P_MORPH: d = WM_DST_MORPH; *v = wa_state.morph; break;
+    case P_INDEX: d = WM_DST_TIMBRE; *v = wa_state.timbre; break;
+    case P_NZLEVEL: d = WM_DST_NOISE; *v = wa_state.noise; break;
+    case P_AUX: d = WM_DST_AUX; *v = wa_state.aux; break;
+    case P_RATIO:                      /* (only the smooth engines' HARMONICS can be moved) */
+        if (!wa_harm_smooth(engine))
+            return 0;
+        d = WM_DST_HARM;
+        *v = wa_state.harmonics;
+        break;
+    case P_GLIDE: case P_GDEPTH:       /* the glide CC adds to Glide, up to CC depth */
+        if (wc_cfg.glide_src == WC_SRC_OFF || !wc_cfg.glide_depth)
+            return 0;
+        *v = wa_state.glide_ms - (k == P_GDEPTH ? (float)wc_cfg.glide : 0.0f);
+        return 1;
+    default: return 0;
+    }
+    if (k == P_INDEX && engine == WV_CLASSIC)   /* (Classic's TIMBRE is our cutoff) */
+        return 0;
+    *v *= 100.0f;
+    return routed(d);
+}
+
+/* the scope: the voice (before the effects: their tails would smear a note's shape) in a ring of
+ * points, each the mean of d samples, d so a period of the note takes at most SC_PER points (a little
+ * more before d changes: a note wobbling at a boundary keeps its d): two periods of any note, and the one
+ * it is in, fit the ring. A phase turning once a period of the note, at the frequency the voice plays it
+ * (wv_note_freq: Plaits' own tables), marks where the last one began (sc_sync, and sc_sync_f points on
+ * from it), so the trace starts at the same place in the wave every time. Read only from points of the
+ * note playing (sc_gen: a d or a note, 3 % away, since). Tapped before the VCA, then scaled by the amp
+ * the sound asks for (breath, the Mod slots) but not by MASTER: the trace's size is the sound's, not the
+ * room's. A few operations a sample, no allocation. */
+#define SC_N 512u
+#define SC_PER 160.0f
+#define SC_HI 168.0f                                /* points a period: past this, a bigger d... */
+#define SC_LO 152.0f                                /* ...and under this with one less, a smaller */
+static volatile int16_t sc_buf[SC_N];
+static volatile uint32_t sc_w, sc_sync, sc_d;      /* points written; the point a period began in; d */
+static volatile uint32_t sc_gen;                   /* the first point of this d and this note */
+static volatile float sc_sync_f, sc_per;           /* where in that point (-1..1); the period, in points */
+static float sc_acc, sc_gen_per;                   /* (the audio interrupt's own; the period at sc_gen) */
+static uint32_t sc_n, sc_ph;                       /* (the phase: a turn is 2^32) */
+
+static void scope_block(const float *x, uint32_t k, float note, float amp)
+{
+    float f = fm_clampf(wv_note_freq(note), 1.0f / 8000.0f, 0.5f), per = 1.0f / f, rd,
+          sc = fm_clampf(amp, 0.0f, 1.0f) * 32767.0f;
+    uint32_t d = sc_d, i, w = sc_w, inc = (uint32_t)(f * 4294967296.0f);
+    int fresh;
+    if (!d || per > SC_HI * (float)d || per <= SC_LO * (float)(d - 1u))
+        d = (uint32_t)(per * (1.0f / SC_PER)) + 1u;    /* (at most 51: a block of 64 writes a point) */
+    fresh = d != sc_d;
+    if (fresh) {                                   /* (the points before were means of another d) */
+        sc_d = d;
+        sc_acc = 0.0f;
+        sc_n = 0u;
+    }
+    if (fresh || sc_gen_per <= 0.0f || fm_fabsf(per - sc_gen_per) > 0.03f * sc_gen_per) {
+        sc_gen = w;                                /* ...or of another note: read none of them */
+        sc_gen_per = per;
+    }
+    rd = 1.0f / (float)d;
+    sc_per = per * rd;
+    for (i = 0; i < k; i++) {
+        uint32_t ph = sc_ph + inc;
+        if (ph < sc_ph) {                          /* a period began ph/inc samples before this one */
+            sc_sync = w;
+            sc_sync_f = ((float)sc_n - (float)ph / (float)inc) * rd;
+        }
+        sc_ph = ph;
+        sc_acc += x[i];
+        if (++sc_n >= d) {
+            float v = sc_acc * rd * sc;
+            sc_buf[w % SC_N] = (int16_t)fm_clampf(v, -32767.0f, 32767.0f);
+            w++;
+            sc_acc = 0.0f;
+            sc_n = 0u;
+        }
+    }
+    sc_w = w;
+}
+
+float wa_scope(float *y, int n, int cycles)
+{
+    int tries, i;
+    for (tries = 0; tries < 4; tries++) {
+        uint32_t w0 = sc_w, sync = sc_sync, d = sc_d, gen = sc_gen;
+        float per = sc_per, span, s, m, c;
+        if (!d || per <= 0.0f || n < 2 || (int32_t)(sync - gen) < 0)
+            return 0.0f;                          /* (no period begun since d changed) */
+        span = per * (float)cycles;
+        /* the latest period start with `span` written points after it (and one more, to blend with: the
+         * last written is w0 - 1) */
+        s = (float)(int32_t)(sync - w0) + sc_sync_f;
+        m = s + span + 2.0f;
+        if (m > 0.0f) {
+            c = fm_floorf(m / per);
+            s -= per * (c * per < m ? c + 1.0f : c);
+        }
+        if (s < -(float)(SC_N - 2u) || s < (float)(int32_t)(gen - w0))
+            return 0.0f;                          /* (not yet two periods of points with this d) */
+        for (i = 0; i < n; i++) {
+            float t = s + span * (float)i / (float)(n - 1), fl = fm_floorf(t), fr = t - fl;
+            uint32_t j = w0 + (uint32_t)(int32_t)fl;
+            float a = (float)sc_buf[j % SC_N], b = (float)sc_buf[(j + 1u) % SC_N];
+            y[i] = (a + (b - a) * fr) * (1.0f / 32767.0f);
+        }
+        if (sc_w == w0 && sc_sync == sync)        /* (the audio interrupt didn't run while it read) */
+            return per * (float)d;
+    }
+    return 0.0f;
+}
+
 static void drain(int (*midi_in)(uint32_t *pkt))
 {
     uint32_t pkt;
@@ -429,6 +559,7 @@ void wa_render(int32_t *out, uint32_t n, uint32_t gain_q12, int (*midi_in)(uint3
         wc_out_t c;
         float src[WM_NSRC], m[WM_NDST], lv;
         wind_frame_t f;
+        float tap[WA_BLOCK];                       /* (the voice before its VCA: the scope's) */
         drain(midi_in);
         wc_block(k, WV_SR, &c);
         src[WM_SRC_OFF] = 0.0f;
@@ -438,7 +569,15 @@ void wa_render(int32_t *out, uint32_t n, uint32_t gain_q12, int (*midi_in)(uint3
         src[WM_SRC_PRESSURE] = c.pressure;
         src[WM_SRC_VELOCITY] = c.velocity;
         lv = lfo_block(c.gate, k);
-        src[WM_SRC_LFO] = slot[WA_LFO_SLOT].dst == WM_DST_AMP ? 0.5f + 0.5f * lv : lv;  /* (Amp: from 1 down) */
+        if (slot[WA_LFO_SLOT].dst == WM_DST_AMP) {    /* Amp: from 1 down, faded in as depth (no dip at 0) */
+            float s = 0.5f + 0.5f * lv;
+            if (lfo.fade < 1.0f)
+                s = slot[WA_LFO_SLOT].amount > 0 ? 1.0f - lfo.fade * (1.0f - s) : lfo.fade * s;
+            src[WM_SRC_LFO] = s;
+        } else {
+            src[WM_SRC_LFO] = lv * lfo.fade;
+        }
+        lv *= lfo.fade;
         wm_apply(slot, base, src, m);
         f.note = c.note;
         if (slot[WA_LFO_SLOT].dst == WM_DST_PITCH)                /* the LFO's vibrato: Amount in cents */
@@ -452,7 +591,9 @@ void wa_render(int32_t *out, uint32_t n, uint32_t gain_q12, int (*midi_in)(uint3
         f.harmonics = wa_harm_smooth(engine) ? m[WM_DST_HARM] : ratio;
         f.noise = m[WM_DST_NOISE];
         f.aux = m[WM_DST_AUX];
+        wv_tap(tap);
         wv_render(&f, out, k);
+        scope_block(tap, k, f.note, m[WM_DST_AMP]);
         wf_process(out, k);
         for (i = 0; i < k; i++) {
             float a = fm_fabsf((float)out[2 * i] * (1.0f / 8388608.0f)),
@@ -475,6 +616,10 @@ void wa_render(int32_t *out, uint32_t n, uint32_t gain_q12, int (*midi_in)(uint3
         wa_state.lfo = lv;
         wa_state.pitch = f.note;
         wa_state.top = wc_top_note();
+        wa_state.glide_ms = c.glide_ms;
+        for (i = 0; i < WM_NSRC; i++)
+            wa_state.src[i] = src[i];
+        wa_state.mon = *wc_monitor();
         out += 2 * k;
         n -= k;
     }

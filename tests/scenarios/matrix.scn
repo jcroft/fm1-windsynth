@@ -27,3 +27,44 @@ wait 200
 # nothing on the screen is stale
 wait 50
 expect stale 0
+# Mod 2: velocity to Amp. A panel key has a fixed velocity (100), not the last MIDI note's
+expect view 7
+spin K1 4
+expect par15 5
+midi 90 39 10
+wait 30
+expect amp 13
+midi 80 39 00
+wait 200
+key 4 down
+wait 30
+expect amp 79
+key 4 up
+wait 300
+# Mod 1 and Mod 2: bite to Amp at 100. Full bite up is full level; full bite down mutes: each slot's
+# gain stops at 0, so two below it don't multiply back up to full
+spin K1 -3
+expect par15 2
+tap SEL
+tap SEL
+tap SEL
+expect view 6
+spin K1 2
+spin K2 2
+spin K3 100
+expect par12 2
+expect par13 2
+expect par14 100
+midi 90 39 64
+breath 0 127 30
+midi E0 7F 7F
+wait 30
+expect amp 100
+midi E0 00 00
+wait 30
+expect amp 0
+midi E0 00 40
+midi 80 39 00
+spin K1 -2
+spin K3 -100
+wait 200

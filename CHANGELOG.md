@@ -4,7 +4,7 @@ A release is a push to `main` that changes `VERSION` to a version with no tag ye
 release build, tags the commit `vX.Y.Z` and publishes the GitHub Release with that version's notes,
 taken from its section below. Add the section in the same pull request as the `VERSION` change.
 
-## 0.0.21
+## 0.0.28
 
 - **Factory presets.** The first 18 slots now hold factory presets, named on the screen as PRESETS turns
   to them. All of them play the same way as the init sound: breath to cutoff +75, the same attack and
@@ -21,6 +21,113 @@ taken from its section below. Add the section in the same pull request as the `V
 - **From an earlier version:** presets you saved stay as they are. A slot that still held the init sound
   (never saved, or saved unchanged) now holds its factory preset. If you were playing such a slot, you
   come back to its factory preset rather than the init sound.
+
+## 0.0.27
+
+The FX pages show what each effect does to the sound, instead of the note and the bars:
+
+- **The chain**, along the top of all five: DIST, MOD, DELAY and VERB in the order the sound goes
+  through them, this page's lit, and a bar under each one whose Mix is up (full at 50, where the effect
+  is at full level).
+- **Distortion:** the Type's curve at this Drive, with a dot where the note you're playing lands on it,
+  and a sine wave before and after it, Tone's darkening included.
+- **Modulation:** how the left and right delay times sweep over the last few seconds (Phaser: its
+  notches), moving while you play.
+- **Delay:** the echoes laid out in time from Time and Feedback, the dry note first. Ping-pong goes left,
+  right, left (Time past its longest, about 1.1 s, says "max"); Tape and Analog get darker each repeat. Each
+  echo lights as it sounds.
+- **Reverb:** the tail falling away in dB over a time scale from 50 ms to 80 s, so Decay moves where it
+  reaches -60 dB from 0.2 s all the way to 60 s; it starts after the Pre-delay, and a dashed line shows
+  the highs, which fall faster as Tone goes down. It shows the note feeding it while you play, then a marker runs
+  down the tail.
+- **Reverb 2:** the room, sized by Size and the Type, its walls moving with Mod; the pre-delay on the
+  direct path, Shimmer's octaves climbing, and Low end as a bass line above or below flat.
+
+An effect whose Mix is 0 draws in grey. The pictures come from the effects' own numbers, so they match
+what you hear. The pictures only redraw when something on them changes, and moving parts step at most
+30 times a second.
+
+## 0.0.26
+
+New screens for the Mod and Setup pages:
+
+- **Mod 1-4: the routing, live.** The slot is drawn as a cable from its source to its destination: the
+  source's level as you play it, the amount on the cable (thicker and brighter the harder you blow), and
+  the destination's knob value with a mark where it is now, "40 → 67" (the "now" is every route
+  together, not this slot alone). A destination that does nothing on the engine playing (Harmonics on
+  FM, for one) is drawn greyed out, like an off slot. Under it, everything modulating the sound at the
+  moment: the Mod slots in use, the LFO and the Filter page's Breath, each with its source's level, and
+  which slots are off. With no note the LFO rests there, so the screen holds still.
+- **Setup: a tuner and a controller monitor.** The note you're sounding, big, with a needle and how many
+  cents off it is, with Transpose, Tune and the bite applied. Under it, what your controller is sending
+  as it arrives: the breath CC (or "Press", aftertouch, if that's the breath source), pitch bend, the
+  glide CC and the last note with its velocity, each with a dot that lights as a value comes in. It
+  shows every MIDI channel and which channel each value came on, marked in orange when the MIDI ch
+  setting isn't listening to it: a controller on the wrong channel shows up here. Changing the breath
+  source or the glide CC clears that row until the new one sends.
+
+## 0.0.25
+
+- **Engine page: a scope.** The middle of the screen shows the engine's wave as you play: two periods of
+  the note, locked to the pitch the voice plays, with the last two traces fading behind the newest. A
+  steady wave holds still; one that moves by itself (VA's two detuned oscillators beating, a 6-op patch's
+  envelopes) moves on the screen too. The note and the engine's tone control (its live value, after
+  breath and the Mod slots) are named above it. Quiet, it shows a flat line and "Blow a note", and stops
+  redrawing. It shows the voice before the effects and before MASTER: its size is the sound's, and it
+  shows even with MASTER down.
+
+## 0.0.24
+
+- **Stage, on PLAY.** One screen for playing: the note and how far off it is, breath (with its recent
+  peak), bite, glide and the output as live meters, over twelve knobs in three rows: Filter (Breath,
+  Cutoff, Reso, Noise), the engine's own four, and the effects' mixes. KNOB 1-4 turn the lit row, SELECT
+  moves the row, and the dials carry the same live ghosts as the knob bars. PLAY again (or EDIT) goes back to
+  the page you came from; another page button goes to its page. SELECT goes round the rows, and the
+  row is remembered.
+- **The keys show your breath on Stage.** They light dim from the left as you blow, with the note you're
+  playing lit on top.
+
+## 0.0.23
+
+- **Live ghosts on the knobs.** A knob that something is moving shows an orange tick at its live value,
+  joined to where it's set: Cutoff (the Filter's Breath, Mod slots, the LFO), Reso, Morph, Timbre,
+  Harmonics on the smooth engines, Aux, Noise Level, and Glide and CC depth while the glide CC adds to
+  the glide. Knobs nothing moves look as before. While you turn a knob, its tick takes the text colour.
+- **Glide CC: choosing another CC, or Off, lets go of the old one.** The glide used to stay as long as the
+  old CC had last set it until the new one moved.
+
+## 0.0.22
+
+Fixes from a full code review (eight reviewers, each finding checked by two skeptics):
+
+- **Delay: no more bursts of noise.** Switching the delay to Ping-pong with Time above about 1.1 s read
+  outside the delay line for most of a second, and Times that are multiples of 17 ms read one sample past
+  its end once a trip. Both played whatever memory sat beside the line, and fed it back into the echoes.
+- **Distortion: no click when it comes on or goes off.** Its dry path started with 5 samples of silence
+  and jumped back in time when it went off; now the dry slides to and from the distortion's latency.
+- **LFO to Amp with Fade:** a note now starts at full level, and the tremolo fades in from there (it
+  started 6 dB down).
+- **Mod slots:** two Bite (or other bipolar) to Amp slots no longer multiply two negative gains back to
+  full level at full bite down. Panel keys play at a fixed velocity (100), so Velocity to Amp no longer
+  mutes them at power-on or follows the last MIDI note.
+- **Screen:** small bites and Tune changes redraw the cents and the bite bar; notes below MIDI 0 show the
+  right octave, and notes above 119 both digits; messages and the knob highlight no longer stick after
+  49.7 days of uptime. The splash says "A windsynth for the FM-1".
+- **Saving:** a pending edit is saved before an update over USB or entering update mode, and a failed
+  autosave waits for the next quiet spell instead of erasing flash every frame.
+- **Browser:** changing the MIDI input silences held notes on every channel, and a store saved by a newer
+  build can no longer overwrite the emulator's memory.
+- **Tests and CI:** the published page is now opened and played in Chrome in CI (it was skipped), the
+  effects and maths run under the address and undefined-behaviour sanitizers, the host's restart forgets
+  its cached presets as the device does, the Setup page's screen check no longer depends on the host's
+  speed, and FiMba-1's old changelog sections can no longer be released as Windsynth's.
+
+## 0.0.21
+
+- **The web page says it isn't released yet.** It says it's for trying Windsynth in the browser, with
+  the FM-1 firmware to follow once it has been tested on the real thing. The link to the source is
+  gone (the repository is private), and the installer is folded away under "Have a test build?" until
+  a release exists. Then it opens by itself and the notice goes.
 
 ## 0.0.20
 
@@ -205,7 +312,7 @@ taken from its section below. Add the section in the same pull request as the `V
 
 The history below is FiMba-1's.
 
-## 0.6.0
+## FiMba-1 0.6.0
 
 - **Reset to the defaults:** hold SAVE for 1.5 s, then press SAVE again to confirm (anything else, or
   waiting 5 s, keeps everything). Every sound setting goes back to its default; the Setup page (Tune,
@@ -217,14 +324,14 @@ The history below is FiMba-1's.
 - **The middle of the kalimba glows:** the key under the lowest tine (white key 9 in Tine, 8 in
   Mirror; in Keyboard, the key that plays middle C) is dimly lit, and lights fully while it rings.
 
-## 0.5.2
+## FiMba-1 0.5.2
 
 - **Wah is how much wah.** With Wah rate on, the hand now flutters from open to the Wah setting and
   back, so Wah 100 is the full sweep and low settings a gentle one. In 0.5.1 it was the other way
   round: the flutter filled what Wah left open, so Wah 1 swept the whole way and Wah 100 didn't move.
 - The fastest Wah rates (up to ~8 Hz) now sweep fully instead of being smoothed away.
 
-## 0.5.1
+## FiMba-1 0.5.1
 
 - **The wah is now heard.** Covering the sound hole (ENV → Body: Wah, the mod wheel, pressure, the Hole
   key, or Wah rate) muffles the sound like a vowel closing: bright with the hole open, dark and a little
@@ -234,7 +341,7 @@ The history below is FiMba-1's.
 - The hand glides over the hole in about 20 ms, so the Hole key covers and uncovers it without a click.
 - **Wah rate**'s lowest setting reads **Off** (it was "Hand"): the hole moves only when you move it.
 
-## 0.5.0
+## FiMba-1 0.5.0
 
 - **Theme**, a new knob on the Setup page (GLO, KNOB 4): **Light**, the pale wood and dark ink as
   before, or **Dark**, near-black with cream and amber. In Dark the knob bars and the chips turn cream
@@ -243,7 +350,7 @@ The history below is FiMba-1's.
 - The Setup page's header shows the firmware's version, beside the CPU load.
 - Saved settings carry over; Theme starts on Light.
 
-## 0.4.1
+## FiMba-1 0.4.1
 
 - **Tine is now left-first**, as on a 17-key kalimba in C. C4 sits on white key 9, the next note up
   (D4) is on its left, and the scale alternates outward: D6 on the far left, C6 on the far right
@@ -252,7 +359,7 @@ The history below is FiMba-1's.
   key 8, D4 on its right.
 - Saved settings carry over. A project saved on Tine plays the new way; pick Mirror for the old one.
 
-## 0.4.0
+## FiMba-1 0.4.0
 
 - **16 voices** (up from 12): fewer tines cut short when long-ringing steel tines and patterns overlap.
   Upper overtones that have died away are skipped, so ordinary playing costs less.
@@ -264,15 +371,15 @@ The history below is FiMba-1's.
 - **ARP**: tap to start or stop the pattern; **hold** to open its settings.
 - Settings saved by earlier versions carry over; new settings start at their defaults.
 
-## 0.3.0
+## FiMba-1 0.3.0
 
 - The web page installs FiMba-1 on the FM-1 over USB, and offers the highest release.
 - It runs on the FM-1: the first install on real hardware boots and plays.
 
-## 0.2.0
+## FiMba-1 0.2.0
 
 - CI builds the firmware package and checks it against FoMni's; a version tag makes a release.
 
-## 0.1.0
+## FiMba-1 0.1.0
 
 - The first release.

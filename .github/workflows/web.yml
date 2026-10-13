@@ -51,7 +51,7 @@ jobs:
             exit 0
           fi
           # a new version: it needs its notes (checked on pull requests too, before it's merged)
-          awk -v v="$ver" '$0 == "## " v {f = 1; next} /^## / {f = 0} f' CHANGELOG.md | grep -q . ||
+          awk -v v="$ver" '$0 == "## " v {f = 1; next} /^## / {if (f) exit} f' CHANGELOG.md | grep -q . ||
             { echo "::error::CHANGELOG.md has no '## $ver' section"; exit 1; }
           if [ "$GITHUB_REF" = refs/heads/main ] && [ "$GITHUB_EVENT_NAME" != pull_request ]; then
             echo "releasing $ver"
@@ -165,6 +165,36 @@ jobs:
             build/windsynth*.fwsc
             build/windsynth.bin
 
+  browser:
+    name: The built page in Chrome
+    # the web job's container has emcc but no Chrome; this runner has Chrome: the page it built, opened
+    # from file:// and played, and its installer against a simulated FM-1 with the firmware job's package
+    needs: [web, firmware]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: Windsynth-web
+          path: build/emu
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: windsynth-firmware
+          path: build
+
+      - name: Standalone page and installer tests
+        run: |
+          [ -f build/windsynth.fwsc ] || cp build/windsynth-*.fwsc build/windsynth.fwsc
+          chrome=$(command -v google-chrome || command -v chromium)
+          node tests/host/standalone_test.mjs "$chrome"
+          node tests/web/installer_page_test.mjs "$chrome"
+
   pages:
     name: Publish the web app (and its installer's firmware) to GitHub Pages
     # main: the latest release's firmware goes beside the page; on a release, this run's, once it's out
@@ -228,7 +258,7 @@ jobs:
   release:
     name: GitHub Release
     if: needs.version.outputs.release != ''
-    needs: [version, web, firmware]
+    needs: [version, web, firmware, browser]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -245,7 +275,7 @@ jobs:
           VER: ${{ needs.version.outputs.release }}
         run: |
           { echo "### What's new in $VER"; echo
-            awk -v v="$VER" '$0 == "## " v {f = 1; next} /^## / {f = 0} f' CHANGELOG.md | sed '/./,$!d'
+            awk -v v="$VER" '$0 == "## " v {f = 1; next} /^## / {if (f) exit} f' CHANGELOG.md | sed '/./,$!d'
             echo; sed "s/VERSION/$VER/g" .github/release-notes.md; } > notes.md
           gh release create "v$VER" --target "$GITHUB_SHA" --title "Windsynth $VER (beta)" --notes-file notes.md \
             --prerelease dist/windsynth-firmware/windsynth-"$VER".fwsc dist/Windsynth-web/Windsynth.html

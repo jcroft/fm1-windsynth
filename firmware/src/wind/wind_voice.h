@@ -29,7 +29,8 @@ enum { WV_SLOPE_12, WV_SLOPE_24 };      /* VA-VCF's filter: 12 dB/oct (LP) or 24
 
 void wv_init(void);
 void wv_engine(uint32_t id);
-float wv_fm_ratio(float harmonics);    /* the FM engine's modulator ratio for a HARMONICS value */
+float wv_fm_ratio(float harmonics);     /* the FM engine's modulator ratio for a HARMONICS value */
+float wv_note_freq(float note);        /* the note's frequency as the engines play it, cycles a sample */
 void wv_dx_patch(uint32_t patch);      /* 6-op: the patch, 0..95 */
 void wv_dx_name(uint32_t patch, char *name);   /* ...its name, as the DX7 has it (11 bytes) */
 void wv_slope(uint32_t slope);
@@ -38,6 +39,9 @@ void wv_noise(float type, float semis, float reso);   /* the noise layer: LP..BP
 void wv_env(float attack_s, float release_s);  /* the gate envelope: rise time, fall to -40 dB */
 /* frames stereo frames, 24-bit in int32, the same signal on L and R */
 void wv_render(const wind_frame_t *f, int32_t *out_lr, uint32_t frames);
+/* the next wv_render also writes its signal before the VCA (the gate envelope on, the amp and MASTER not)
+ * to `to`, a float a frame (0: not) */
+void wv_tap(float *to);
 
 /* the engine alone, as upstream Plaits sees it: no envelope, VCA, DC blocker or clip (tests);
  * wv_render_raw is VA-VCF, wv_render_raw_engine any engine (the post-filter left out) */

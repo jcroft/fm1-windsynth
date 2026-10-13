@@ -8,6 +8,7 @@
 #pragma once
 #include <stdint.h>
 #include "wind_matrix.h"
+#include "wind_ctl.h"
 
 #define WA_BLOCK 64                    /* frames per control block (1.45 ms) */
 
@@ -36,6 +37,7 @@ enum {
     P_LFOSHAPE, P_LFORATE, P_LFODST, P_LFOAMT,       /* LFO page (0.0.18) */
     P_LFOFADE, P_LFOSYNC,                            /* LFO 2 page */
     P_BRCUT,                                         /* Filter page: breath to cutoff, always there (0.0.19) */
+    P_STAGEROW,                                      /* Stage: the row K1-K4 turn (0.0.24) */
     P_NPARAMS
 };
 typedef struct {
@@ -69,7 +71,20 @@ typedef struct {
     float lfo;                         /* the LFO, -1..1 (faded in) */
     float pitch;                       /* the note sounding, with the LFO's vibrato (note: without it) */
     float level;                       /* the output's peak in the last block, 0..1 */
+    float glide_ms;                    /* the glide time in force (Glide, plus the glide CC's share) */
     int top;                           /* the note sounding (MIDI number), -1 none yet */
     uint32_t midi_seen;                /* packets received */
+    float src[WM_NSRC];                /* the matrix's sources now (WM_SRC_*; Bite -1..1, the LFO faded) */
+    wc_mon_t mon;                      /* the controller monitor: raw values in, and when (wind_ctl) */
 } wa_state_t;
 extern volatile wa_state_t wa_state;
+
+/* a knob's live value, in its own units, when something moves it (a Mod slot, the LFO, the Filter's
+ * Breath, the glide CC): 1 and *v; 0 when nothing does (its value is its setting) */
+int wa_live(int k, float *v);
+
+/* the scope (the Engine page): n points, -1..1, spanning `cycles` periods of the note sounding from where
+ * one began, out of the voice (before the effects and MASTER), so a held note's steady wave stands still.
+ * Returns the period in samples (0: nothing to show yet, not enough of this note yet, or the audio moved
+ * on while it read). From the UI; the audio interrupt only writes the ring it reads. */
+float wa_scope(float *y, int n, int cycles);

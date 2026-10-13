@@ -15,7 +15,10 @@
  *                Distort is the dry WF_DS_LATENCY samples late (so Mix 50 doesn't comb); Drive adds
  *                harmonics; the oversampling keeps a 5 kHz tone's aliases down; Crush has few levels
  *   modulation   every type stays bounded and near the dry's level, left and right differ; Phaser and
- *                Flanger notch the spectrum at Mix 50 */
+ *                Flanger notch the spectrum at Mix 50
+ *   switching    the delay into Ping-pong from a long Time, and at a Time that reads the line's very end,
+ *                stays in the line; the distortion on and off mid-note: no dropout, no jump
+ */
 #include <stdio.h>
 #include <string.h>
 #include "wind/wind_fx.h"
@@ -500,8 +503,111 @@ static void test_modulation(void)
     }
 }
 
+/* switching while it plays: the delay's Time glide into Ping-pong's shorter limit, and Times whose read
+ * lands exactly on the line's end, stay inside the line (the sanitizer build checks every read); the
+ * distortion comes on and goes off without a dropout or a jump in the dry */
+static void test_switching(void)
+{
+    uint32_t i, n = SR, sw = 64u * 344u;     /* (on a block's start, half a second in) */
+    float d, steady = 0.0f, worst = 0.0f;
+    char m[160];
+    defaults();
+    wf_cfg.dl_mix = 0.5f;
+    wf_cfg.dl_ms = 2000.0f;
+    wf_cfg.dl_fb = 0.5f;
+    fill_click(n);
+    run(n);
+    wf_cfg.dl_mode = WF_DL_PINGPONG;
+    fill_click(n);
+    run(n);
+    check(at(n - 1, 1) == at(n - 1, 1), "Delay 2 s, then Ping-pong: plays on (reads in the line)");
+    defaults();
+    wf_cfg.dl_mix = 0.5f;
+    wf_cfg.dl_ms = 340.0f;              /* (a read exactly at the line's end, once a trip) */
+    wf_cfg.dl_fb = 0.5f;
+    fill_click(n);
+    run(3 * n / 4);
+    check(at(10, 0) == at(10, 0), "Delay 340 ms: plays (reads in the line)");
+    for (i = 0; i < 2; i++) {           /* on, then off */
+        uint32_t j;
+        defaults();
+        wf_cfg.ds_type = WF_DS_DISTORT;
+        wf_cfg.ds_drive = 0.0f;
+        wf_cfg.ds_tone = 1.0f;
+        wf_cfg.ds_mix = i ? 0.01f : 0.0f;
+        fill_sine(n, 440.0f, 0.4f);
+        for (j = 0; j < n; j += 64) {
+            if (j == sw)
+                wf_cfg.ds_mix = i ? 0.0f : 0.01f;
+            wf_process(buf + 2 * j, 64);
+        }
+        steady = worst = 0.0f;
+        for (j = 1000; j < sw - 1000; j++)
+            d = fm_fabsf(at(j, 0) - at(j - 1, 0)), steady = d > steady ? d : steady;
+        for (j = sw - 64; j < sw + 256; j++)
+            d = fm_fabsf(at(j, 0) - at(j - 1, 0)), worst = d > worst ? d : worst;
+        snprintf(m, sizeof m, "Distortion switched %s mid-note: the largest step %.4f, %.4f steady",
+                 i ? "off" : "on", worst, steady);
+        check(worst < 1.5f * steady, m);
+    }
+}
+
+/* the screen's numbers (wf_ds_shape, wf_rv_rt_at, wf_dl_pass_gain) against the sound */
+static void test_screen(void)
+{
+    char m[160];
+    float want, got, a, b;
+    uint32_t i, hold;
+    int32_t x = (int32_t)(0.3f * 8388608.0f);
+    /* Crush, Mix 100 and Tone open: one sample through it is the shaper's step, as the screen's curve has it */
+    defaults();
+    wf_cfg.ds_type = WF_DS_CRUSH;
+    wf_cfg.ds_drive = 0.25f;
+    wf_cfg.ds_tone = 1.0f;
+    wf_cfg.ds_mix = 1.0f;
+    memset(buf, 0, sizeof buf);
+    run(64);                            /* (the gains up to the wet alone) */
+    buf[0] = buf[1] = x;
+    for (i = 1; i < 64; i++)
+        buf[2 * i] = buf[2 * i + 1] = 0;
+    wf_process(buf, 64);
+    want = wf_ds_shape(WF_DS_CRUSH, 0.25f, (float)x * (1.0f / 8388608.0f), &hold);
+    snprintf(m, sizeof m, "Crush: a sample out %d is the screen's step %d (held %u)", (int)buf[2 * WF_DS_LATENCY],
+             (int)(want * 8388607.0f), (unsigned)hold);
+    check(buf[2 * WF_DS_LATENCY] == (int32_t)(want * 8388607.0f) && hold == 1u &&
+              want != (float)x * (1.0f / 8388608.0f), m);
+    check(wf_ds_shape(WF_DS_DISTORT, 0.4f, 0.5f, 0) == 1.0f && wf_ds_shape(WF_DS_FUZZ, 0.4f, 0.9f, 0) == 0.6f,
+          "Distort clips at 1, Fuzz's top at 0.6");
+    check(wf_ds_tone_hz(1.0f) == 0.0f && wf_ds_tone_hz(0.0f) == 700.0f, "Tone: open at 100, 700 Hz at 0");
+    /* the reverb: open Tone, Decay's time at every pitch; the highs' time at Tone 30, as measured */
+    for (i = 0; i < WF_RV_NTYPE; i++)
+        if (wf_rv_rt_at(i, 0.5f, 0.45f, 1.0f, 4000.0f) != wf_decay_s(0.45f))
+            break;
+    check(i == WF_RV_NTYPE, "Reverb: at Tone 100 the highs fall in Decay's time");
+    defaults();
+    wf_cfg.rv_type = WF_RV_HALL;
+    wf_cfg.rv_mix = 1.0f;
+    wf_cfg.rv_decay = 0.45f;
+    wf_cfg.rv_tone = 0.3f;
+    wf_cfg.rv_pre_ms = 0.0f;
+    fill_click(2 * SR);
+    run(2 * SR);
+    want = wf_rv_rt_at(WF_RV_HALL, 0.5f, 0.45f, 0.3f, 4000.0f);
+    a = tone_at(SR / 5, SR / 5, 4000.0f);
+    b = tone_at(SR * 6 / 10, SR / 5, 4000.0f);
+    got = 0.4f * 60.0f / (20.0f * fm_log2f(a / b) * 0.30103f);
+    snprintf(m, sizeof m, "Reverb: 4 kHz at Tone 30 falls 60 dB in %.2f s, the screen says %.2f s (Decay %.2f s)", got, want,
+             wf_decay_s(0.45f));
+    check(got > want * 0.7f && got < want * 1.4f && want < 0.8f * wf_decay_s(0.45f), m);
+    check(wf_dl_pass_gain(WF_DL_TAPE, 3000.0f) < wf_dl_pass_gain(WF_DL_DIGITAL, 3000.0f) &&
+              wf_dl_pass_gain(WF_DL_ANALOG, 3000.0f) < wf_dl_pass_gain(WF_DL_TAPE, 3000.0f) &&
+              wf_dl_pass_gain(WF_DL_DIGITAL, 3000.0f) > 0.9f,
+          "Delay: Tape and Analog repeats darker than Digital's");
+}
+
 int main(void)
 {
+    test_screen();
     test_off();
     test_reverb();
     test_tail();
@@ -509,6 +615,7 @@ int main(void)
     test_delay();
     test_distortion();
     test_modulation();
+    test_switching();
     if (fails)
         printf("wind_fx: %d FAILED\n", fails);
     else

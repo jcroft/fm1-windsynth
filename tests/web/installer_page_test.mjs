@@ -51,10 +51,11 @@ const finish = (code) => { p.kill("SIGKILL"); server.close(); try { rmSync(profi
 setTimeout(() => { console.log("TIMEOUT"); finish(2); }, 150000);
 
 let target;
-for (let i = 0; i < 50 && !target; i++) {
+for (let i = 0; i < 200 && !target; i++) {   // (up to 40 s: a cold runner can be slow to start Chrome)
   await new Promise((r) => setTimeout(r, 200));
   try { target = (await (await fetch(`http://127.0.0.1:${port}/json`)).json()).find((t) => t.type === "page"); } catch {}
 }
+if (!target) { console.log("FAIL Chrome's DevTools never came up"); finish(2); }
 const ws = new WebSocket(target.webSocketDebuggerUrl);
 let id = 0; const pending = new Map(); const errors = [];
 const call = (method, params = {}) => new Promise((res) => { const i = ++id; pending.set(i, res); ws.send(JSON.stringify({ id: i, method, params })); });

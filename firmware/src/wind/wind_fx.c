@@ -176,6 +176,12 @@ static float shimmer(float x)
     return y;
 }
 
+/* Tone as the ring's damping (1 kHz .. 10 kHz; Shimmer's higher, room to climb): the audio's and the screen's */
+static float rv_damp_hz(const rv_type_t *t, float tone)
+{
+    return 1000.0f * fm_exp2f(tone * 3.3219f) * (t->shimmer > 0.0f ? 1.6f : 1.0f);
+}
+
 float wf_decay_s(float decay) { return 0.2f * fm_exp2f(decay * 8.2288f); }   /* 0.2 x 300^decay */
 
 /* per block: everything the knobs set, for the samples of the block */
@@ -202,7 +208,7 @@ static void rv_block(rv_k_t *k)
         k->glow[i] = fm_exp2f(-9.9658f * l / (rt * lowm * SR2));
     }
     /* Tone: the ring's damping, 1 kHz .. 10 kHz, open at the top */
-    fc = 1000.0f * fm_exp2f(wf_cfg.rv_tone * 3.3219f) * (t->shimmer > 0.0f ? 1.6f : 1.0f);  /* (room to climb) */
+    fc = rv_damp_hz(t, wf_cfg.rv_tone);
     k->damp = wf_cfg.rv_tone >= 0.995f ? 1.0f : 1.0f - fm_expf(-FM_TWO_PI * fc / SR2);
     fc = fc * 1.5f;
     k->in_a = fc >= 10000.0f ? 1.0f : 1.0f - fm_expf(-FM_TWO_PI * fc / SR2);
@@ -314,7 +320,7 @@ static float dl_t = 8000.0f, dl_lp, dl_lp2, dl_hp, dl_wow, dl_flut;
 
 typedef struct {
     const dl_mode_t *m;
-    float t, slew, lp_a, hp_a, fb, wow_w, flut_w;
+    float t, lim, slew, lp_a, hp_a, fb, wow_w, flut_w;
     int ping;
 } dl_k_t;
 
@@ -326,6 +332,7 @@ static void dl_block(dl_k_t *k)
     k->ping = mode == WF_DL_PINGPONG;
     if (k->ping)
         lim *= 0.5f;
+    k->lim = lim;
     k->t = t < 2.0f ? 2.0f : t > lim ? lim : t;
     k->slew = 1.0f - fm_expf(-1.0f / (k->m->slew_s * SR2));
     k->lp_a = 1.0f - fm_expf(-FM_TWO_PI * k->m->lp_hz / SR2);
@@ -335,15 +342,21 @@ static void dl_block(dl_k_t *k)
     k->flut_w = FM_TWO_PI * 7.1f / SR2;
 }
 
+/* d is kept inside the line, so one wrap is enough. Just below 0, p + DL_N can round up to exactly
+ * DL_N; that index wraps to 0. */
 static float dl_rd(float d)
 {
-    float p = (float)dl_wp - d, f, a, b;
+    float p, f, a, b;
     int32_t i;
     uint32_t j;
+    d = d < 1.0f ? 1.0f : d > (float)(DL_N - 2u) ? (float)(DL_N - 2u) : d;
+    p = (float)dl_wp - d;
     if (p < 0.0f)
         p += (float)DL_N;
     i = (int32_t)p;
     f = p - (float)i;
+    if (i >= (int32_t)DL_N)
+        i -= (int32_t)DL_N;
     j = (uint32_t)i + 1u;
     a = (float)dl_buf[i];
     b = (float)dl_buf[j >= DL_N ? 0u : j];
@@ -355,6 +368,9 @@ static void dl_sample(const dl_k_t *k, float x, float *l, float *r)
     const dl_mode_t *m = k->m;
     float t, y1, y2, w;
     dl_t += (k->t - dl_t) * k->slew;
+    /* a switch to Ping-pong halves the longest Time: drop to it at once, as the right tap reads 2t */
+    if (dl_t > k->lim)
+        dl_t = k->lim;
     t = dl_t;
     if (m->wow > 0.0f) {
         dl_wow += k->wow_w;
@@ -401,10 +417,10 @@ typedef struct {
     float g, comp, lp_a, step;
 } ds_k_t;
 
-static void ds_block(ds_k_t *k)
+/* a type's gain at Drive d (and Crush's step and hold): the audio's, and the screen's curve */
+static void ds_gain(ds_k_t *k, uint32_t type, float d)
 {
-    float d = wf_cfg.ds_drive, fc;
-    k->type = wf_cfg.ds_type < WF_DS_NTYPE ? wf_cfg.ds_type : 0u;
+    k->type = type < WF_DS_NTYPE ? type : 0u;
     k->step = 1.0f;
     k->hold = 1u;
     switch (k->type) {
@@ -426,9 +442,17 @@ static void ds_block(ds_k_t *k)
         k->g *= k->type == WF_DS_FUZZ ? 2.0f : 1.0f;
         break;
     }
+}
+
+float wf_ds_tone_hz(float tone) { return tone >= 0.995f ? 0.0f : 700.0f * fm_exp2f(tone * 4.3219f); }
+
+static void ds_block(ds_k_t *k)
+{
+    float fc;
+    ds_gain(k, wf_cfg.ds_type, wf_cfg.ds_drive);
     /* Tone: a 12 dB low-pass after the shaper, 700 Hz .. 14 kHz, open at the top */
-    fc = 700.0f * fm_exp2f(wf_cfg.ds_tone * 4.3219f);
-    k->lp_a = wf_cfg.ds_tone >= 0.995f ? 1.0f : 1.0f - fm_expf(-FM_TWO_PI * fc / WV_SR);
+    fc = wf_ds_tone_hz(wf_cfg.ds_tone);
+    k->lp_a = fc <= 0.0f ? 1.0f : 1.0f - fm_expf(-FM_TWO_PI * fc / WV_SR);
 }
 
 static float shape(uint32_t type, float u)
@@ -476,11 +500,13 @@ static float ds_sample(const ds_k_t *k, float x, float *dry)
     return y;
 }
 
+/* the shaper's state; not ds_x, the input's history, which runs on while the distortion is off so that
+ * the delayed dry it starts with is the voice, not silence */
 static void ds_clear(void)
 {
     int j;
     for (j = 0; j < 6; j++)
-        ds_x[j] = ds_o[j] = 0.0f;
+        ds_o[j] = 0.0f;
     ds_e[0] = ds_e[1] = ds_e[2] = 0.0f;
     ds_lp1 = ds_lp2 = ds_dcx = ds_dcy = ds_hold = 0.0f;
     ds_n = 0u;
@@ -615,6 +641,7 @@ static float up_l[6], up_r[6];
 static uint32_t phase;
 static float g_dry = 1.0f, g_dw, g_dd = 1.0f, g_rw, g_rd = 1.0f;   /* the gains at the end of the last block */
 static float g_sw, g_sd = 1.0f, g_mw, g_md = 1.0f;
+static float g_lat;                     /* the dry's delay, 0 (none) to 1 (WF_DS_LATENCY), faded in and out */
 static int rv_on, dl_on, ds_on, mo_on;
 
 void wf_init(void)
@@ -647,6 +674,9 @@ void wf_init(void)
     g_sw = g_mw = 0.0f;
     rv_on = dl_on = ds_on = mo_on = 0;
     ds_clear();
+    for (i = 0; i < 6; i++)
+        ds_x[i] = 0.0f;
+    g_lat = 0.0f;
     mo_clear();
     mo_w = 0;
     mo_c[0] = mo_c[1] = 1.0f;
@@ -686,13 +716,20 @@ void wf_process(int32_t *lr, uint32_t n)
     float rm = wf_cfg.rv_mix, dm = wf_cfg.dl_mix, sm = wf_cfg.ds_mix, mm = wf_cfg.mo_mix;
     float dw = wet_of(dm), dd = dry_of(dm), rw = wet_of(rm), rd = dry_of(rm);
     float sw = wet_of(sm), sd = dry_of(sm), mw = wet_of(mm), md = dry_of(mm);
-    float inc_dry, inc_dw, inc_dd, inc_rw, inc_rd, inc_sw, inc_sd, inc_mw, inc_md, inv = 1.0f / (float)(n ? n : 1u);
+    float inc_dry, inc_dw, inc_dd, inc_rw, inc_rd, inc_sw, inc_sd, inc_mw, inc_md, inc_lat, inv = 1.0f / (float)(n ? n : 1u);
+    float lat = sw > 0.0f ? 1.0f : 0.0f;
     rv_k_t rk;
     dl_k_t dk;
     ds_k_t sk;
     mo_k_t mk;
     uint32_t i, j;
-    if (sw > 0.0f && !ds_on) {         /* switched on: from silence, not what it last held */
+    if (!ds_on && sw == 0.0f)           /* off: the input's last samples, for when it comes on */
+        for (i = n > 6u ? n - 6u : 0u; i < n; i++) {
+            for (j = 5; j > 0; j--)
+                ds_x[j] = ds_x[j - 1];
+            ds_x[0] = (float)lr[2 * i] * (1.0f / 8388608.0f);
+        }
+    if (sw > 0.0f && !ds_on) {         /* switched on: the shaper from silence, not what it last held */
         ds_clear();
         ds_on = 1;
     }
@@ -729,6 +766,7 @@ void wf_process(int32_t *lr, uint32_t n)
     inc_sd = (sd - g_sd) * inv;
     inc_mw = (mw - g_mw) * inv;
     inc_md = (md - g_md) * inv;
+    inc_lat = (lat - g_lat) * inv;
     ds_block(&sk);
     mo_block(&mk);
     dl_block(&dk);
@@ -741,6 +779,9 @@ void wf_process(int32_t *lr, uint32_t n)
         g_md += inc_md;
         if (ds_on) {                    /* the distortion, then the modulation: stereo from here */
             float dry, w = ds_sample(&sk, x, &dry);
+            /* the dry slides to the wet's latency as it comes on, and back as it goes off, without a step */
+            g_lat += inc_lat;
+            dry = g_lat >= 1.0f ? dry : x + g_lat * (dry - x);
             x = dry * g_sd + w * g_sw;
         }
         xl = xr = x;
@@ -793,6 +834,7 @@ void wf_process(int32_t *lr, uint32_t n)
         lr[2 * i + 1] = (int32_t)(yr * 8388607.0f);
     }
     g_sw = sw;                          /* (exact at the block's end) */
+    g_lat = ds_on ? lat : 0.0f;
     g_sd = sd;
     g_mw = mw;
     g_md = md;
@@ -827,4 +869,61 @@ void wf_process(int32_t *lr, uint32_t n)
         dl_on = 0;
     if (rw == 0.0f && g_rw == 0.0f)
         rv_on = 0;
+}
+
+/* ------------------------------------------------------- the screen --- */
+/* the effects' own numbers, for the pages that draw them (pure: no state, any thread) */
+float wf_ds_shape(uint32_t type, float drive, float x, uint32_t *hold)
+{
+    ds_k_t k;
+    ds_gain(&k, type, drive);
+    if (hold)
+        *hold = k.hold;
+    if (k.type == WF_DS_CRUSH)
+        return k.step * fm_floorf(x / k.step + 0.5f);
+    return shape(k.type, x * k.g);
+}
+
+float wf_rv_scale(uint32_t type, float size) { return TYPES[type < WF_RV_NTYPE ? type : 0u].size * (0.5f + size); }
+
+/* the time a tone at hz takes to fall 60 dB: Decay's, and faster above Tone as the ring's damping takes
+ * it a little more on every trip round (the bass control aside) */
+float wf_rv_rt_at(uint32_t type, float size, float decay, float tone, float hz)
+{
+    const rv_type_t *t = &TYPES[type < WF_RV_NTYPE ? type : 0u];
+    float rt = wf_decay_s(decay), l = 0.0f, fc, a, w, c, h2, lg, lh;
+    int i;
+    for (i = 0; i < 4; i++)
+        l += LEN[L_AP1 + i] + LEN[L_AP2 + i] + LEN[L_DL + i];
+    l *= 0.25f * t->size * (0.5f + size);
+    fc = rv_damp_hz(t, tone);
+    if (tone >= 0.995f)
+        return rt;
+    a = 1.0f - fm_expf(-FM_TWO_PI * fc / SR2);
+    w = FM_TWO_PI * (hz < SR2 * 0.49f ? hz : SR2 * 0.49f) / SR2;
+    c = 1.0f - a;
+    h2 = a * a / (1.0f - 2.0f * c * fm_cosf(w) + c * c);        /* the one-pole's gain, squared */
+    lg = -9.9658f * l / (rt * SR2);                              /* a trip's loss, log2: Decay's... */
+    lh = 0.5f * fm_log2f(h2);                                    /* ...and the damping's */
+    return rt * lg / (lg + lh);
+}
+
+/* a repeat's gain at hz through the feedback path's filters (a mode's darkening) */
+float wf_dl_pass_gain(uint32_t mode, float hz)
+{
+    const dl_mode_t *m = &MODES[mode < WF_DL_NMODE ? mode : 0u];
+    float w = FM_TWO_PI * hz / SR2, cw = fm_cosf(w), a, c, lp2, hp2;
+    a = 1.0f - fm_expf(-FM_TWO_PI * m->lp_hz / SR2);
+    c = 1.0f - a;
+    lp2 = a * a / (1.0f - 2.0f * c * cw + c * c);                /* one low-pass pole, squared */
+    a = 1.0f - fm_expf(-FM_TWO_PI * m->hp_hz / SR2);
+    c = 1.0f - a;
+    hp2 = c * c * (2.0f - 2.0f * cw) / (1.0f - 2.0f * c * cw + c * c);   /* x minus its low-pass */
+    return lp2 * fm_sqrtf(hp2);                                  /* (two low-pass poles, one high-pass) */
+}
+
+/* the longest Time a mode plays (ms): the line's, Ping-pong's half of it (its right tap reads 2t) */
+float wf_dl_max_ms(uint32_t mode)
+{
+    return (float)(DL_N - 64u) * (mode == WF_DL_PINGPONG ? 0.5f : 1.0f) * (1000.0f / SR2);
 }

@@ -1,0 +1,262 @@
+# The FX pages' views: the chain along the top (this page lit, a bar under each effect whose Mix is up),
+# and each page's picture drawn from its settings: the shaper's curve (Type, Drive) and the sine after it
+# (Tone); the modulation's sweep (Type, Depth); the echoes (Mix, Time, Ping-pong, Tape's darkening), lit as
+# they sound; the reverb's tail (Decay), a note feeding it and the marker after; the room (Size, Shimmer)
+# and Low end. Grey while the effect's Mix is 0; nothing redrawn while nothing changes. Light, then Dark.
+# (colX_Y: the theme colour at a pixel, 1 panel 2 line 3 dim 5 white 6 accent 8 blue, -1 none of them;
+# topX_C / botX_C: the top / bottom row of column X in that colour)
+wait 200
+tap FX
+expect view 13
+wait 50
+# the chain: DIST lit, MOD not; Distortion's Mix at 0: no bar, the curve grey; the reverb's Mix 3: a stub
+expect col9_38 6
+expect col67_38 1
+expect col10_45 6
+expect col68_112 3
+expect col193_45 6
+expect col196_45 1
+shot dist_light.png
+expect stale 0
+# still: nothing redrawn
+expect blits >-1
+wait 1000
+expect blits 0
+spin K2 25
+wait 50
+expect col10_45 5
+expect col68_112 8
+# Tone: open, the sine after it squared off to the top; closed, rounded and lower
+spin K4 40
+wait 50
+expect top150_6 131
+spin K4 -100
+wait 50
+expect top150_6 >138
+spin K4 60
+# Distort clipped at Drive 40 a quarter of the way out, at Drive 0 the line; Fuzz flat at 0.6 above; Fold
+# turned back over
+spin K1 1
+wait 50
+expect top91_8 66
+spin K3 -40
+wait 50
+expect top91_8 89
+spin K3 40
+spin K1 1
+wait 50
+expect top91_8 84
+expect bot45_8 >130
+spin K1 1
+wait 50
+expect top91_8 102
+spin K1 -3
+# a note: the dot where its level lands, moving no faster than every 32 ms
+midi 90 45 64
+breath 0 120 50
+wait 300
+expect top114_6 75
+expect blits >-1
+wait 1000
+expect blits <34
+midi 80 45 00
+breath 120 0 20
+wait 100
+# Modulation: at Depth 0, flat; grey until its Mix is up, and the end of it accent; each Type's two sides
+tap FX
+expect view 14
+spin K4 -50
+wait 50
+expect col100_92 3
+spin K2 12
+wait 50
+expect col100_92 8
+expect col214_92 6
+spin K4 50
+wait 50
+expect top214_6 78
+expect bot214_6 148
+spin K1 1
+wait 50
+expect top214_6 80
+expect bot214_6 152
+spin K1 1
+wait 50
+expect top214_6 78
+expect bot214_6 156
+spin K1 1
+wait 50
+expect top214_6 77
+expect bot214_6 148
+spin K1 -3
+wait 50
+shot mod_light.png
+expect stale 0
+# Delay: Mix 0, the echoes grey at full height; on, smaller and blue, on both sides; Ping-pong: left,
+# then right
+tap FX
+expect view 15
+wait 50
+expect col64_80 2
+spin K2 18
+wait 50
+expect col64_95 8
+expect top64_8 86
+expect col64_106 8
+expect col49_95 1
+# Tape: the third echo darker than Digital's
+spin K2 32
+spin K4 40
+wait 50
+expect col64_95 8
+expect px148_95 11281
+spin K1 1
+wait 50
+expect col64_95 8
+expect px148_95 23568
+spin K1 -1
+spin K2 -32
+spin K4 -40
+spin K1 3
+wait 50
+expect col64_106 1
+expect col105_106 8
+shot delay_light.png
+expect stale 0
+# ...Time 500 ms: the first echo moves (the span 3.2 s)
+spin K3 150
+expect par43 500
+wait 50
+expect col52_95 8
+expect col64_95 1
+spin K3 -150
+# a note: the first echo lights as it sounds; after, a few redraws as the echoes light and go
+midi 90 45 64
+breath 0 120 20
+wait 360
+expect col64_95 6
+expect stale 0
+midi 80 45 00
+breath 120 0 20
+expect blits >-1
+wait 2000
+expect blits <20
+expect col64_95 8
+# Reverb: a longer Decay holds the tail up longer
+tap FX
+expect view 16
+wait 50
+expect top102_8 93
+spin K3 20
+wait 50
+expect top102_8 77
+spin K3 -20
+wait 50
+shot reverb_light.png
+expect stale 0
+# a note feeds it (the accent bar at the tail's start), at most every 32 ms; after, a marker runs down it
+midi 90 45 64
+breath 0 120 50
+wait 200
+expect col17_140 6
+expect stale 0
+expect blits >-1
+wait 1000
+expect blits <34
+midi 80 45 00
+breath 120 0 20
+wait 500
+expect col17_140 1
+expect col84_100 6
+expect stale 0
+wait 4000
+expect col84_100 -1
+expect blits >-1
+wait 1000
+expect blits 0
+# Reverb 2: the room grows with Size (Mod at 0: its walls still); Low end up lifts the bass's line;
+# Shimmer's octaves climb out of the top
+tap FX
+expect view 17
+spin K3 -50
+wait 50
+expect col9_38 1
+expect col183_38 6
+expect top61_3 83
+expect top118_6 -1
+spin K2 50
+wait 50
+expect top61_3 74
+expect top167_8 110
+spin K4 40
+wait 50
+expect top167_8 <90
+spin K2 -50
+spin K4 -40
+tap FX
+tap FX
+tap FX
+tap FX
+expect view 16
+spin K1 4
+expect val1 Shimmer
+tap FX
+expect view 17
+wait 50
+expect knob3 Shimmer
+expect top118_6 72
+spin K3 -50
+wait 50
+expect top118_6 -1
+spin K3 50
+tap FX
+tap FX
+tap FX
+tap FX
+spin K1 -4
+tap FX
+expect view 17
+spin K3 50
+wait 50
+shot reverb2_light.png
+expect stale 0
+# Dark: the same pages in the other theme
+tap GLO
+spin K4 1
+expect par29 1
+tap FX
+wait 50
+expect col2_100 0
+expect luma100 <60
+expect col9_38 6
+expect col68_112 8
+shot dist_dark.png
+expect stale 0
+tap FX
+wait 50
+shot mod_dark.png
+tap FX
+wait 50
+shot delay_dark.png
+tap FX
+wait 50
+shot reverb_dark.png
+tap FX
+wait 50
+expect col183_38 6
+shot reverb2_dark.png
+# a note on the moving pages: nothing stale
+midi 90 45 64
+breath 0 120 50
+wait 250
+expect stale 0
+tap FX
+tap FX
+wait 100
+expect stale 0
+wait 33
+expect stale 0
+midi 80 45 00
+breath 120 0 20
+wait 400
+expect stale 0
