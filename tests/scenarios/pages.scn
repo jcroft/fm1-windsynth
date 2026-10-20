@@ -1,4 +1,4 @@
-# The pages: one button each (HOME: Filter, Engine (named for the engine) and Noise, LFO: LFO and LFO 2, SEL: Mod 1-4, SEQ: Pitch and Pitch 2,
+# The pages: one button each (HOME: Filter, Engine (named for the engine) and Noise, LFO: LFO and LFO 2, SEL: Mod 1-4, SEQ: Pitch and Pitch 2, GLO: Setup and Setup 2,
 # FX: Distortion, Modulation, Delay, Reverb and Reverb 2,
 # pressed again), EDIT and SELECT step through all
 wait 200
@@ -64,9 +64,16 @@ shot pitch2_page.png
 tap GLO
 expect view 12
 shot setup_page.png
-tap EDIT
+tap GLO
 expect view 13
-tap FX
+expect knob1 Speaker
+expect val1 Auto
+expect knob2 -
+shot setup2_page.png
+tap GLO
+expect view 12
+tap GLO
+tap EDIT
 expect view 14
 tap FX
 expect view 15
@@ -75,7 +82,9 @@ expect view 16
 tap FX
 expect view 17
 tap FX
-expect view 13
+expect view 18
+tap FX
+expect view 14
 tap FX
 tap FX
 tap FX
@@ -85,7 +94,7 @@ expect view 0
 turn SELECT 3
 expect view 3
 turn SELECT -4
-expect view 17
+expect view 18
 tap HOME
 expect view 0
 # nothing on the screen is stale

@@ -34,6 +34,7 @@ static const wa_param_t PARAMS[P_NPARAMS] = {
     {"Fade", 0, 2000, 0}, {"Sync", 0, 1, 0},
     {"Breath", -100, 100, 75},             /* breath to cutoff */
     {"Row", 0, 2, 0},                      /* Stage: Filter, Engine, FX */
+    {"Speaker", 0, WA_SPK_N - 1, WA_SPK_AUTO},
 };
 
 const wa_param_t *wa_param_info(int i) { return &PARAMS[(unsigned)i < P_NPARAMS ? i : 0]; }
@@ -67,12 +68,13 @@ const char *wa_param_name(int i)
 }
 
 /* the controller's and the room's settings: the breath curve, Pitch 2 (the glide CC's depth, Transpose,
- * Tune), the panel keys and Setup (the breath and glide CCs, MIDI ch, Theme). A preset is the rest, the sound. */
+ * Tune), the panel keys and Setup (the breath and glide CCs, MIDI ch, Theme; the Speaker). A preset is the
+ * rest, the sound. */
 int wa_param_global(int i)
 {
     switch (i) {
     case P_BSRC: case P_CURVE: case P_GSRC: case P_GDEPTH: case P_KEYBREATH: case P_OCTAVE:
-    case P_TRANSPOSE: case P_TUNE: case P_MIDICH: case P_THEME: case P_STAGEROW:
+    case P_TRANSPOSE: case P_TUNE: case P_MIDICH: case P_THEME: case P_STAGEROW: case P_SPEAKER:
         return 1;
     default:
         return 0;
@@ -238,6 +240,7 @@ void wa_param_text(int i, int v, char *b)
             put_u(b, (uint32_t)v);
         return;
     case P_THEME: copy_s(b, v ? "Dark" : "Light"); return;
+    case P_SPEAKER: copy_s(b, v == WA_SPK_ON ? "On" : "Auto"); return;
     case P_ENGINE: copy_s(b, WA_ENGINE_NAME[(unsigned)v < WV_NENGINE ? v : 0]); return;
     case P_DXPATCH: wv_dx_name((uint32_t)v, b); return;
     case P_RATIO:                                        /* FM's: the modulator's ratio, "1.00", "3.50" */

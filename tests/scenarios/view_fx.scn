@@ -7,7 +7,7 @@
 # topX_C / botX_C: the top / bottom row of column X in that colour)
 wait 200
 tap FX
-expect view 13
+expect view 14
 wait 50
 # the chain: DIST lit, MOD not; Distortion's Mix at 0: no bar, the curve grey; the reverb's Mix 3: a stub
 expect col9_38 6
@@ -64,7 +64,7 @@ breath 120 0 20
 wait 100
 # Modulation: at Depth 0, flat; grey until its Mix is up, and the end of it accent; each Type's two sides
 tap FX
-expect view 14
+expect view 15
 spin K4 -50
 wait 50
 expect col100_92 3
@@ -95,7 +95,7 @@ expect stale 0
 # Delay: Mix 0, the echoes grey at full height; on, smaller and blue, on both sides; Ping-pong: left,
 # then right
 tap FX
-expect view 15
+expect view 16
 wait 50
 expect col64_80 2
 spin K2 18
@@ -144,7 +144,7 @@ expect blits <20
 expect col64_95 8
 # Reverb: a longer Decay holds the tail up longer
 tap FX
-expect view 16
+expect view 17
 wait 50
 expect top102_8 93
 spin K3 20
@@ -177,7 +177,7 @@ expect blits 0
 # Reverb 2: the room grows with Size (Mod at 0: its walls still); Low end up lifts the bass's line;
 # Shimmer's octaves climb out of the top
 tap FX
-expect view 17
+expect view 18
 spin K3 -50
 wait 50
 expect col9_38 1
@@ -197,11 +197,11 @@ tap FX
 tap FX
 tap FX
 tap FX
-expect view 16
+expect view 17
 spin K1 4
 expect val1 Shimmer
 tap FX
-expect view 17
+expect view 18
 wait 50
 expect knob3 Shimmer
 expect top118_6 72
@@ -215,7 +215,7 @@ tap FX
 tap FX
 spin K1 -4
 tap FX
-expect view 17
+expect view 18
 spin K3 50
 wait 50
 shot reverb2_light.png

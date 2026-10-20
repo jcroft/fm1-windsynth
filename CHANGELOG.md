@@ -4,6 +4,19 @@ A release is a push to `main` that changes `VERSION` to a version with no tag ye
 release build, tags the commit `vX.Y.Z` and publishes the GitHub Release with that version's notes,
 taken from its section below. Add the section in the same pull request as the `VERSION` change.
 
+## 0.0.31
+
+- **The speaker goes quiet while a computer records the FM-1 over USB.** A new page, Setup 2 (GLO
+  pressed again), has one setting, Speaker. On Auto, the default, the FM-1's own output fades out while
+  a computer records its USB audio, and fades back when the recording stops. The computer still gets
+  everything. On keeps the speaker on. The page shows whether a computer is recording and whether the
+  speaker is on.
+- The headphone jack goes quiet with the speaker. One output feeds both, and nothing in the FM-1 turns
+  the speaker off on its own: M-VAVE's own firmware has no control for it either.
+- "Recording" means an app on the computer is taking the FM-1's USB audio. Some apps do that whenever
+  the FM-1 is their input, even with nothing armed; Setup 2 shows it, and Speaker On keeps the sound.
+- Your settings and presets come back as they were, with Speaker on Auto.
+
 ## 0.0.30
 
 - **Breath CC and Glide CC move to Setup**, beside the MIDI channel: they say how your controller is

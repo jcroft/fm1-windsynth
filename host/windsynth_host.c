@@ -55,6 +55,7 @@
  *   scopemark                    keep the Engine page's newest scope trace (expect scope_since)
  *   reboot                       re-run boot from the simulated flash (persistence test)
  *   storefail 0|1                every save fails (1) or works (0); store_tries counts from here
+ *   usbrec 0|1                   a computer is recording over USB audio (1) or not (0)
  *   oldproject F                 rewrite the saved project as format F saved it (its values, then its preset)
  *   oldbank B                    rewrite saved bank B (0..3) as 0.0.20 saved it: the init sound in each slot
  *                                holding its factory preset, and no marks
@@ -174,6 +175,8 @@ int plat_store_save(uint32_t obj, const void *src, uint32_t len)
 static uint32_t cpu_pct;
 uint32_t plat_cpu_pct(void) { return cpu_pct; }
 uint32_t plat_xruns(void) { return 0; }
+static int usb_rec;                       /* usbrec 1: as if a computer were recording over USB audio */
+int plat_usb_recording(void) { return usb_rec; }
 
 /* -------------------------------------------------------------- app --- */
 #include "../firmware/src/app/app.h"
@@ -762,7 +765,9 @@ int main(int argc, char **argv)
         } else if (!strcmp(cmd, "storefail")) {
             store_fail = atoi(a);
             store_tries = 0;
-        } else if (!strcmp(cmd, "expect"))
+        } else if (!strcmp(cmd, "usbrec"))
+            usb_rec = atoi(a);
+        else if (!strcmp(cmd, "expect"))
             fails += expect(a, b);
         else if (!strcmp(cmd, "scopemark"))
             memcpy(scope_mark, vs.y[0], sizeof scope_mark);

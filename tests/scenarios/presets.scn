@@ -71,7 +71,7 @@ tap FX
 tap FX
 tap FX
 tap FX
-expect view 16
+expect view 17
 spin K2 37
 expect par34 40
 oldproject 1
@@ -120,7 +120,7 @@ expect view 10
 spin K2 196
 expect par10 200
 tap FX
-expect view 13
+expect view 14
 spin K2 50
 expect par49 50
 oldproject 7
@@ -131,7 +131,7 @@ expect par49 0
 expect par50 40
 # 0.0.14 and 0.0.15 (format 8) had no noise layer: it comes back at its defaults, the effects as saved
 tap FX
-expect view 13
+expect view 14
 spin K2 50
 expect par49 50
 tap HOME

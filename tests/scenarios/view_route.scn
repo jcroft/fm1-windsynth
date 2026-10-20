@@ -168,7 +168,7 @@ expect rtmon3 NOTE|F4_off|ch1|0
 midi B0 05 50
 wait 20
 expect rtmon2 CC5|Glide|ch1|80
-tap GLO
+expect view 12
 spin K2 -5
 expect par9 0
 spin K1 126

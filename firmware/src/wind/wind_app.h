@@ -38,6 +38,7 @@ enum {
     P_LFOFADE, P_LFOSYNC,                            /* LFO 2 page */
     P_BRCUT,                                         /* Filter page: breath to cutoff, always there (0.0.19) */
     P_STAGEROW,                                      /* Stage: the row K1-K4 turn (0.0.24) */
+    P_SPEAKER,                                       /* Setup 2 page: the speaker while USB records (0.0.31) */
     P_NPARAMS
 };
 typedef struct {
@@ -50,6 +51,7 @@ int wa_param_global(int i);            /* 1: the rig's, not the sound's (kept ou
 void wa_param_text(int i, int v, char *buf);   /* the value as the screen shows it (12 bytes) */
 
 enum { THEME_LIGHT, THEME_DARK, THEME_N };
+enum { WA_SPK_AUTO, WA_SPK_ON, WA_SPK_N };   /* Speaker: silent while a computer records over USB, or always on */
 enum { WA_LFO_SINE, WA_LFO_TRI, WA_LFO_SAW, WA_LFO_SQUARE, WA_LFO_SH, WA_LFO_NSHAPE };
 int wa_harm_smooth(int engine);        /* 1: HARMONICS can be modulated on it (Formant, Waveshape, VA, Harmonic) */
 extern const char *const WA_NOTE_NAME[12];

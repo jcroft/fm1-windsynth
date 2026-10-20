@@ -38,6 +38,7 @@ static void render_block(int32_t *o)                /* ALNK0: one half, measured
             wa_render(o + 2u * k, REND_FRAMES, master_q12, plat_midi_in);
 #if FELUCCA_UAC
             uac_tap(o + 2u * k, REND_FRAMES);       /* the USB audio input: the same master output */
+            uac_local_out(o + 2u * k, REND_FRAMES, proj.par[P_SPEAKER] == WA_SPK_AUTO);   /* then the speaker */
 #endif
         }
     }

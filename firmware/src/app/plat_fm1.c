@@ -78,3 +78,8 @@ int plat_store_save(uint32_t obj, const void *src, uint32_t len) { return flash_
 static volatile uint32_t audio_cpu_pct, audio_xruns;
 uint32_t plat_cpu_pct(void) { return audio_cpu_pct; }
 uint32_t plat_xruns(void) { return audio_xruns; }
+#if FELUCCA_UAC
+int plat_usb_recording(void) { return uac_recording(); }
+#else
+int plat_usb_recording(void) { return 0; }
+#endif
