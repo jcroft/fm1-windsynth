@@ -11,6 +11,15 @@ wait 50
 # not recording: on, nothing in the accent where it says so
 expect count6_18_100_230_124 0
 shot speaker_on.png
+# changed while nothing records: the hint under it follows (the page redraws)
+spin K1 1
+expect val1 On
+wait 50
+expect stale 0
+spin K1 -1
+expect val1 Auto
+wait 50
+expect stale 0
 usbrec 1
 wait 50
 # recording: "Silent", in the accent
@@ -23,8 +32,6 @@ expect val1 On
 wait 50
 expect count6_18_100_230_124 0
 expect stale 0
-spin K1 1
-expect par69 1
 # the rig's: kept across a reboot, and not in a preset (a preset changes the sound, not the speaker)
 wait 5000
 expect dirty 0

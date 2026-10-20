@@ -13,6 +13,8 @@ taken from its section below. Add the section in the same pull request as the `V
   speaker is on.
 - The headphone jack goes quiet with the speaker. One output feeds both, and nothing in the FM-1 turns
   the speaker off on its own: M-VAVE's own firmware has no control for it either.
+- "Recording" means an app on the computer is taking the FM-1's USB audio. Some apps do that whenever
+  the FM-1 is their input, even with nothing armed; Setup 2 shows it, and Speaker On keeps the sound.
 - Your settings and presets come back as they were, with Speaker on Auto.
 
 ## 0.0.30

@@ -617,7 +617,8 @@ static void note_text(int n, char t[8])
 static void draw_setup2(void)
 {
     int rec = plat_usb_recording() != 0, quiet = rec && proj.par[P_SPEAKER] == WA_SPK_AUTO;
-    uint32_t h = hash(hash(2166136261u, 0x5E7200u | (uint32_t)rec | (uint32_t)quiet << 1), (uint32_t)proj.par[P_THEME]);
+    uint32_t h = hash(hash(2166136261u, 0x5E7200u | (uint32_t)rec | (uint32_t)quiet << 1 | (uint32_t)proj.par[P_SPEAKER] << 2),
+                      (uint32_t)proj.par[P_THEME]);
     if (h == ui.sig[1])
         return;
     ui.sig[1] = h;

@@ -888,7 +888,7 @@ static __attribute__((noinline)) void uac_tap(const int32_t *out, uint32_t n)   
  * the codec's half buffer instead, after uac_tap: the host still gets every sample. A ramp over one
  * block each way, so neither edge clicks. Audio ISR, after uac_tap, block by block. */
 static float uac_local_g = 1.0f;
-static int uac_recording(void) { return uac.feed; }
+static int uac_recording(void) { return *(volatile uint8_t *)&uac.feed; }   /* from the UI too */
 static __attribute__((noinline)) void uac_local_out(int32_t *out, uint32_t n, int mute_while_recording)
 {
     float to = mute_while_recording && uac.feed ? 0.0f : 1.0f, g = uac_local_g, d;
