@@ -15,13 +15,14 @@
  *                 pitch, the last traces fading (view_scope.inc).
  *                 Mod 1-4: the slot as a cable from its source's live level
  *                 to the destination's value, and all that modulates the sound now; Setup: a tuner and
- *                 the controller monitor (view_route.inc).
+ *                 the controller monitor (view_route.inc); Setup 2: whether a computer is recording
+ *                 over USB, and so whether the speaker is on.
  *                 The FX pages draw their own (view_fx.inc): the chain along the top, then the
  *                 distortion's curve, the modulation's sweep, the delay's echoes, the reverb's tail and
  *                 its room
  *   HOME ENV LFO SEL SEQ GLO FX   the pages (pressed again: the button's next page): HOME Filter,
  *                 Engine (named for the engine: ALGORITHM picks it) and Noise, ENV Breath, LFO LFO and LFO 2, SEL Mod 1-4, SEQ Pitch and Pitch 2 (CC depth, Transpose, Tune), GLO Setup
- *                 (Breath CC, Glide CC, MIDI ch, Theme), FX Distortion,
+ *                 (Breath CC, Glide CC, MIDI ch, Theme) and Setup 2 (Speaker), FX Distortion,
  *                 Modulation, Delay, Reverb and Reverb 2 (the order the sound goes through them). EDIT and
  *                 SELECT step through them all.
  *   PLAY          Stage: the controllers (note, breath, bite, glide, output) over twelve knobs in three
@@ -39,12 +40,12 @@
 #include "../dsp/fastmath.h"            /* (Stage's dials: no libm on the device) */
 
 enum { V_FILTER, V_ENGINE, V_NOISE, V_BREATH, V_LFO, V_LFO2, V_MOD1, V_MOD2, V_MOD3, V_MOD4, V_PITCH, V_PITCH2, V_SETUP,
-       V_DIST, V_MODFX, V_DELAY, V_REVERB, V_REVERB2, NVIEWS };
+       V_SETUP2, V_DIST, V_MODFX, V_DELAY, V_REVERB, V_REVERB2, NVIEWS };
 static const char *const VIEW_NAME[NVIEWS] = {"Filter", "Engine", "Noise", "Breath", "LFO", "LFO 2", "Mod 1", "Mod 2", "Mod 3",
-                                              "Mod 4", "Pitch", "Pitch 2", "Setup", "Distortion", "Modulation", "Delay",
+                                              "Mod 4", "Pitch", "Pitch 2", "Setup", "Setup 2", "Distortion", "Modulation", "Delay",
                                               "Reverb", "Reverb 2"};
 static const uint8_t VIEW_BTN[NVIEWS] = {B_HOME, B_HOME, B_HOME, B_ENV, B_LFO, B_LFO, B_SEL, B_SEL, B_SEL, B_SEL, B_SEQ, B_SEQ,
-                                         B_GLO, B_FX, B_FX, B_FX, B_FX, B_FX};
+                                         B_GLO, B_GLO, B_FX, B_FX, B_FX, B_FX, B_FX};
 #define K_NONE 255                     /* a knob with nothing on it */
 static const uint8_t VIEW_KNOB[NVIEWS][4] = {
     {P_CUTOFF, P_RESO, P_SLOPE, P_BRCUT},
@@ -60,6 +61,7 @@ static const uint8_t VIEW_KNOB[NVIEWS][4] = {
     {P_BEND, P_GLIDE, P_GMODE, K_NONE},
     {P_GDEPTH, P_TRANSPOSE, P_TUNE, K_NONE},
     {P_BSRC, P_GSRC, P_MIDICH, P_THEME},
+    {P_SPEAKER, K_NONE, K_NONE, K_NONE},
     {P_DSTYPE, P_DSMIX, P_DSDRIVE, P_DSTONE},
     {P_MOTYPE, P_MOMIX, P_MORATE, P_MODEPTH},
     {P_DLMODE, P_DLMIX, P_DLTIME, P_DLFB},
@@ -611,6 +613,25 @@ static void note_text(int n, char t[8])
 #include "view_route.inc"
 #include "view_fx.inc"
 
+/* Setup 2: is a computer recording over USB, and so is the speaker (and the jack: one output feeds both) on */
+static void draw_setup2(void)
+{
+    int rec = plat_usb_recording() != 0, quiet = rec && proj.par[P_SPEAKER] == WA_SPK_AUTO;
+    uint32_t h = hash(hash(2166136261u, 0x5E7200u | (uint32_t)rec | (uint32_t)quiet << 1), (uint32_t)proj.par[P_THEME]);
+    if (h == ui.sig[1])
+        return;
+    ui.sig[1] = h;
+    cv_begin(240, MAIN_H, K_BG);
+    cv_round(6, 4, 228, 120, 6, K_PANEL);
+    cv_text(18, 16, &FONT_XS, "USB AUDIO", K_DIM);
+    cv_text(18, 30, &FONT_B, rec ? "Recording" : "Not recording", rec ? K_TEXT : K_DIM);
+    cv_text(18, 62, &FONT_XS, "SPEAKER AND JACK", K_DIM);
+    cv_text(18, 76, &FONT_B, quiet ? "Silent" : "On", quiet ? K_ACC : K_TEXT);
+    cv_text(18, 104, &FONT_XS, proj.par[P_SPEAKER] == WA_SPK_AUTO ? "Auto: silent while a computer records"
+                                                                   : "On: always, recording or not", K_DIM);
+    cv_blit(0, MAIN_Y);
+}
+
 /* the instrument: the note (and how far the bite bends it) on the left; breath, cutoff and level */
 static void draw_main(void)
 {
@@ -625,6 +646,10 @@ static void draw_main(void)
     if (vw_route(ui.view)) return;
     if (vw_fx(ui.view))
         return;
+    if (ui.view == V_SETUP2) {
+        draw_setup2();
+        return;
+    }
     float note = wa_state.note, bend = wa_state.bend;
     int top = wa_state.top, gate = wa_state.gate > 0.5f;
     /* the note, its cents and the bite bar's end, as drawn; the bars by the pixel they fill to: so any

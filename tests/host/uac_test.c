@@ -64,9 +64,72 @@ static int run(double rate_in)
            uac.fill_min > UA_MID / 2u && uac.fill_min < 2u * UA_MID;
 }
 
+/* the FM-1's own output while the host records (Speaker Auto): after uac_tap, so the host keeps every
+ * sample; silent after one block's ramp, the ramp without a step, back the same way when the host stops,
+ * and bit-exact whenever it isn't muting (On, or nobody recording) */
+static int local(void)
+{
+    static int32_t blk[512], ref[512];
+    int ok = 1, b, k, mute;
+    double ph = 0, maxstep = 0;
+    memset(&uac, 0, sizeof uac);
+    memset(&usb, 0, sizeof usb);
+    ua_w = ua_r = 0;
+    uac_local_g = 1.0f;
+    usb.config = 1;
+    uac.alt = 1;
+    uac.flowing = 1;
+    for (mute = 0; mute < 2; mute++)
+        for (b = 0; b < 8; b++) {                         /* recording: blocks 0..5; the host stops at 6 */
+            uac.alt = b < 6;
+            uac_render_start();
+            for (k = 0; k < 256; k++, ph += 1000.0 / 44100.0)
+                blk[2 * k] = blk[2 * k + 1] = (int32_t)(sin(2 * M_PI * ph) * 0.5 * 8388607.0) * 256;
+            memcpy(ref, blk, sizeof ref);
+            {
+                uint32_t w0 = ua_w, i, peak = 0;
+                uac_tap(blk, 256);
+                for (i = w0; i != ua_w; i++) {            /* what the host gets of this block */
+                    int16_t v = (int16_t)(ua_ring[i & (UA_N - 1u)] & 0xFFFFu);
+                    if ((uint32_t)abs(v) > peak)
+                        peak = (uint32_t)abs(v);
+                }
+                if (b < 6 && peak < 10000u)              /* (the sine at half scale: ~16,000) */
+                    ok = 0, printf("  local: block %d not sent to the host (peak %u)\n", b, peak);
+                ua_r = ua_w;                              /* (the host took it) */
+            }
+            uac_local_out(blk, 256, mute);
+            if (!mute || b == 7) {                        /* not muting (and after the ramp back): untouched */
+                if (memcmp(blk, ref, sizeof blk))
+                    ok = 0, printf("  local: block %d changed (mute %d)\n", b, mute);
+            } else if (b >= 1 && b <= 5) {                /* muted, after the first block's ramp: silent */
+                for (k = 0; k < 512; k++)
+                    if (blk[k])
+                        ok = 0;
+            } else {                                      /* a ramp: the gain moves by at most a step a frame */
+                for (k = 0; k < 256; k++) {
+                    double g = ref[2 * k] ? (double)blk[2 * k] / ref[2 * k] : -1;
+                    if (g >= 0 && (g < -0.001 || g > 1.001))
+                        ok = 0;
+                    if (k && ref[2 * k] && ref[2 * k - 2]) {
+                        double g0 = (double)blk[2 * k - 2] / ref[2 * k - 2], d = fabs(g - g0);
+                        if (fabs(ref[2 * k]) > 1e6 && fabs(ref[2 * k - 2]) > 1e6 && d > maxstep)
+                            maxstep = d;
+                    }
+                }
+            }
+        }
+    printf("  local out: the largest gain step in a ramp %.4f (one block: %.4f)\n", maxstep, 1.0 / 256);
+    if (maxstep > 2.0 / 256 || maxstep == 0)
+        ok = 0;
+    if (uac.alt == 0 && uac_recording())
+        ok = 0;
+    return ok;
+}
+
 int main(void)
 {
-    int ok = run(44145.0) & run(44100.0) & run(44300.0);
+    int ok = local() & run(44145.0) & run(44100.0) & run(44300.0);
     printf(ok ? "uac: ok\n" : "uac: FAILED\n");
     return !ok;
 }

@@ -883,6 +883,31 @@ static __attribute__((noinline)) void uac_tap(const int32_t *out, uint32_t n)   
     ua_w = w;
 }
 
+/* The FM-1's own output while the host records. One codec feeds the speaker and the jack, and no pin
+ * turns the speaker's amp off by itself (M-VAVE's V15 drives none), so the app's Speaker Auto silences
+ * the codec's half buffer instead, after uac_tap: the host still gets every sample. A ramp over one
+ * block each way, so neither edge clicks. Audio ISR, after uac_tap, block by block. */
+static float uac_local_g = 1.0f;
+static int uac_recording(void) { return uac.feed; }
+static __attribute__((noinline)) void uac_local_out(int32_t *out, uint32_t n, int mute_while_recording)
+{
+    float to = mute_while_recording && uac.feed ? 0.0f : 1.0f, g = uac_local_g, d;
+    uint32_t i;
+    if (g == to) {                                      /* steady: as rendered, or silent */
+        if (to == 0.0f)
+            for (i = 0; i < 2u * n; i++)
+                out[i] = 0;
+        return;
+    }
+    d = (to - g) / (float)n;
+    for (i = 0; i < n; i++) {
+        g += d;
+        out[2u * i] = (int32_t)((float)out[2u * i] * g) & ~0xFF;
+        out[2u * i + 1u] = (int32_t)((float)out[2u * i + 1u] * g) & ~0xFF;
+    }
+    uac_local_g = to;
+}
+
 /* the next packet into d: 44 / 45 frames, the 44.1 pattern, from the ring or, until it is
  * primed, silence. An empty ring repeats the last frame. Returns the frame count. */
 static uint32_t uac_packet(uint32_t *d)

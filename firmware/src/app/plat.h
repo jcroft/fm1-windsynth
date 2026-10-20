@@ -46,3 +46,5 @@ enum { OBJ_PROJ, OBJ_PANEL, OBJ_BANK0, OBJ_BANK1, OBJ_BANK2, OBJ_BANK3, OBJ_NOBJ
 /* audio load in % of the render budget, and xruns since boot (device: from the ISR) */
 uint32_t plat_cpu_pct(void);
 uint32_t plat_xruns(void);
+/* 1: a computer is recording the FM-1 over USB audio (device: usb.c's stream is being read) */
+int plat_usb_recording(void);

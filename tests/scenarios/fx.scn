@@ -3,7 +3,7 @@
 # note keeps sounding after it stops, and every Mix at 0 is dry.
 wait 200
 tap FX
-expect view 13
+expect view 14
 expect par49 0
 expect par50 40
 expect knob3 Drive
@@ -16,7 +16,7 @@ expect par49 50
 wait 50
 shot distortion_page.png
 tap FX
-expect view 14
+expect view 15
 expect par53 0
 expect knob3 Rate
 spin K3 1
@@ -29,7 +29,7 @@ expect par53 50
 wait 50
 shot modulation_page.png
 tap FX
-expect view 15
+expect view 16
 spin K1 3
 expect par41 3
 spin K2 30
@@ -37,7 +37,7 @@ expect par42 30
 wait 50
 shot delay_page.png
 tap FX
-expect view 16
+expect view 17
 expect par33 0
 expect par34 3
 expect par35 50
@@ -46,11 +46,11 @@ expect par34 40
 wait 50
 shot reverb_page.png
 tap FX
-expect view 17
+expect view 18
 wait 50
 shot reverb2_page.png
 tap FX
-expect view 13
+expect view 14
 # a note through all four, then its tail
 midi 90 45 64
 breath 0 127 50
@@ -79,7 +79,7 @@ expect level 0
 spin K1 4
 expect par33 4
 tap FX
-expect view 17
+expect view 18
 spin K3 30
 expect par46 80
 expect par39 50
@@ -89,11 +89,11 @@ tap FX
 tap FX
 tap FX
 tap FX
-expect view 16
+expect view 17
 spin K1 -4
 expect par33 0
 tap FX
-expect view 17
+expect view 18
 spin K3 -10
 expect par39 40
 expect par46 80

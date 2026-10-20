@@ -44,6 +44,7 @@ step through every page.
 | SEQ | Pitch | Bend range, Glide (the glide time with the glide CC at 0: 4 ms by default, up to 2 s), Glide mode (always or legato) |
 | SEQ again | Pitch 2 | CC depth: how much the glide CC adds to Glide at full (400 ms by default, up to 2 s), Transpose, Tune |
 | GLO | Setup | Breath CC (CC2 by default, another CC, or aftertouch), Glide CC (CC5 by default, another CC, or off), MIDI channel (Omni by default), Theme (Light or Dark); the version |
+| GLO again | Setup 2 | Speaker: Auto (the default) silences the FM-1's speaker while a computer records it over USB audio; On keeps it on. The headphone jack goes quiet with it: one output feeds both, and the FM-1 has no switch for the speaker alone. The page shows whether a computer is recording and whether the speaker is on |
 | FX | Distortion | Type (Overdrive, Distort, Fuzz, Fold, Crush), Mix, Drive, Tone |
 | FX again | Modulation | Type (Chorus, Ensemble, Flanger, Phaser), Mix, Rate (0.05 Hz to 10 Hz), Depth |
 | FX again | Delay | Mode (Digital, Tape, Analog, Ping-pong), Mix, Time (20 ms to 2 s; Ping-pong to 1.1 s), Feedback |
@@ -109,7 +110,7 @@ included, is also kept by itself a few seconds after you stop, so it comes back 
 
 A preset holds the sound: the Filter, Engine, Noise, LFO, Pitch and Mod pages, the effects, and Attack and
 Release. Your rig's settings stay put when you change presets: the breath curve, Pitch 2 (the glide CC's
-depth, Transpose and Tune), the keys' octave and Setup (the breath and glide CCs, MIDI ch and Theme).
+depth, Transpose and Tune), the keys' octave and Setup (the breath and glide CCs, MIDI ch and Theme; the Speaker).
 Hold **SAVE** for 1.5 s, then press it again, for the init sound (the preset slot is untouched until
 you save).
 
