@@ -555,6 +555,16 @@ static void drain(int (*midi_in)(uint32_t *pkt))
     }
 }
 
+/* the breath gate: a note with no breath behind it is silent, as on a wind patch whose level follows the
+ * breath (a controller's stray notes at its threshold, with the breath CC near 0). It opens over the first
+ * BREATH_GATE of breath, squared, and above that leaves the level alone: breath still only opens the filter */
+#define BREATH_GATE 0.08f
+static float breath_gate(float b)
+{
+    float x = b >= BREATH_GATE ? 1.0f : b <= 0.0f ? 0.0f : b * (1.0f / BREATH_GATE);
+    return x * x;
+}
+
 void wa_render(int32_t *out, uint32_t n, uint32_t gain_q12, int (*midi_in)(uint32_t *pkt))
 {
     float g = (float)gain_q12 * (1.0f / 4096.0f), pk = 0.0f;
@@ -589,6 +599,7 @@ void wa_render(int32_t *out, uint32_t n, uint32_t gain_q12, int (*midi_in)(uint3
         f.gate = c.gate;
         f.cutoff = m[WM_DST_CUTOFF];
         f.res = m[WM_DST_RES];
+        m[WM_DST_AMP] *= breath_gate(c.breath);
         f.amp = m[WM_DST_AMP] * g;
         f.morph = m[WM_DST_MORPH];
         f.timbre = m[WM_DST_TIMBRE];

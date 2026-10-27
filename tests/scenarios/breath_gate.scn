@@ -1,0 +1,34 @@
+# The breath gate: a note with no breath behind it is silent (a controller's stray notes at its threshold,
+# breath CC near 0); a sliver of breath opens it, and above that the level is the breath's no more
+wait 200
+midi 90 3D 40
+wait 200
+expect gate 1
+expect amp 0
+peakreset
+wait 100
+expect peak_db_max <-90
+# breath CC 3: still closed to a whisper
+midi B0 02 03
+wait 100
+peakreset
+wait 100
+expect peak_db_max <-50
+# CC 11 (over 8 %): open
+midi B0 02 0B
+wait 100
+expect amp 100
+# more breath: the level stays (breath opens the filter, not the amp)
+midi B0 02 7F
+wait 100
+expect amp 100
+midi 80 3D 00
+wait 300
+# a panel key plays at full breath: never gated
+key 4 down
+wait 50
+expect amp 100
+expect level >5
+key 4 up
+wait 50
+expect stale 0
