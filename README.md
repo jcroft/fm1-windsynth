@@ -20,7 +20,7 @@ full breath (they're switches, so they sense no pressure). **OCT−** / **OCT+**
 
 | Control | Default | Options |
 | --- | --- | --- |
-| Breath | CC2, to filter cutoff (the Filter page's Breath knob, +75) | Aftertouch or any CC as the source; a curve; how much it opens the cutoff (Breath, −100 to +100); the Mod slots also send it to amp, resonance, morph and the rest |
+| Breath | CC2, to filter cutoff (the Filter page's Breath knob, +75); a phrase with no breath is silent (the level opens over the first sliver of breath, CC 0 to 10, once the breath source has been heard) | Aftertouch or any CC as the source; a curve; how much it opens the cutoff (Breath, −100 to +100); the Mod slots also send it to amp, resonance, morph and the rest |
 | Bite | Pitch bend, ±2 semitones | 0 to 12 semitones |
 | Glide | 4 ms; CC5 adds up to 400 ms to it, and at 0 adds nothing | The glide time itself (up to 2 s, or off); another CC, or none; how much the CC adds at full (CC depth, up to 2 s); glide on every note or legato only |
 

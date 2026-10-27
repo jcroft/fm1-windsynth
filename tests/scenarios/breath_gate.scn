@@ -1,0 +1,79 @@
+# The breath gate: a phrase with no breath behind it is silent (a controller's stray notes at its
+# threshold, breath CC near 0); a sliver of breath opens it, and above that the level is the breath's no more
+wait 200
+# no breath heard yet (a controller without it, or on another CC): notes play, as before
+midi 90 3D 40
+wait 200
+expect amp 100
+midi 80 3D 00
+wait 300
+# the breath heard once: a note with no breath is silent
+breath 0 60 50
+breath 60 0 50
+wait 300
+midi 90 3D 40
+wait 200
+expect gate 1
+expect amp 0
+peakreset
+wait 100
+expect peak_db_max -70
+# breath CC 3: still closed to a whisper
+midi B0 02 03
+wait 100
+peakreset
+wait 100
+expect peak_db_max -50
+# CC 11 (over 8 %): open
+midi B0 02 0B
+wait 100
+expect amp 100
+# more breath: the level stays (breath opens the filter, not the amp)
+midi B0 02 7F
+wait 100
+expect amp 100
+# tapering off with the note held: the level the phrase reached holds
+midi B0 02 00
+wait 100
+expect amp 100
+midi 80 3D 00
+wait 300
+# a stray note from silence again: closed
+midi 90 3D 40
+midi B0 02 01
+wait 100
+expect amp <2
+midi 80 3D 00
+wait 300
+# the release rings: breath and note off together, Release 360 ms, the level 40 ms on is the release's
+tap ENV
+wait 50
+spin K3 300
+wait 300
+midi 90 3D 40
+breath 0 100 30
+wait 300
+breath 100 0 20
+midi 80 3D 00
+wait 40
+peakreset
+wait 20
+expect peak_db_min -42
+# the curve doesn't move it: at Curve -100 (x^4), CC 40 is open
+spin K1 -200
+wait 300
+expect par5 -100
+midi 90 3D 40
+midi B0 02 28
+wait 100
+expect amp 100
+midi 80 3D 00
+wait 300
+# a panel key plays at full breath: never closed
+key 4 down
+wait 50
+expect amp 100
+expect level >5
+key 4 up
+wait 50
+expect stale 0
