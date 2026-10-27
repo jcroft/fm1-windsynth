@@ -4,8 +4,9 @@
 #include "../dsp/fastmath.h"
 
 #define BREATH_MS 3.0f                 /* smoothing: 7-bit breath steps, ironed out */
-#define HINT_BLOCKS 690u               /* the breath hint's window: a second of blocks (1.451 ms each) */
-#define HINT_N 4u                      /* ...and the messages in a row it takes */
+#define HINT_BLOCKS 690u               /* the breath hint: gone a second (of 1.451 ms blocks) after the last */
+#define HINT_GAP 138u                  /* ...a source's run of messages: each within 0.2 s of the one before */
+#define HINT_N 8u                      /* ...and a run of 8 is a stream (breath: tens a second; a knob's nudge: not) */
 
 wc_cfg_t wc_cfg;
 
@@ -23,6 +24,8 @@ static struct {
 static wc_mon_t mon;                   /* the controller monitor */
 static uint8_t mon_msb;                /* the breath CC's MSB, as the monitor saw it */
 static uint8_t mon_bsrc, mon_gsrc;     /* the breath and glide sources the monitor last saw set */
+static uint8_t run[WC_SRC_AT + 1];     /* the other sources (CCs, channel pressure): each one's run of messages */
+static uint16_t run_t[WC_SRC_AT + 1];  /* ...and when its last came (the clock's low 16 bits) */
 
 void wc_reset(void)
 {
@@ -59,6 +62,8 @@ void wc_init(void)
     mon.breath_src = mon.glide_src = 255u;
     mon.other_src = mon.other_n = 0u;
     mon.t_other = 0u;
+    for (int i = 0; i <= WC_SRC_AT; i++)
+        run[i] = 0u;
     mon_msb = 0u;
     mon_bsrc = wc_cfg.breath_src;
     mon_gsrc = wc_cfg.glide_src;
@@ -142,19 +147,22 @@ static void seen_breath(uint32_t raw, uint32_t ch)
     mon.t_breath = mon.clock;
 }
 
-/* a CC (or channel pressure) that isn't a chosen source: the one sending most lately wins, so a stream
- * holds against another interleaved with it */
+/* a source's run, as of now: 0 once its last message is more than HINT_GAP old */
+static uint32_t run_now(uint32_t src)
+{
+    return (uint16_t)((uint16_t)mon.clock - run_t[src]) <= HINT_GAP ? run[src] : 0u;
+}
+
+/* a CC (or channel pressure) that isn't a chosen source: each runs on its own, and the longest run is the
+ * one named, so streams interleaved hold (breath on a CC and on pressure, or with CC11 beside it) */
 static void seen_other(uint32_t src)
 {
-    if (mon.other_n && mon.other_src != src && mon.clock - mon.t_other <= HINT_BLOCKS) {
-        mon.other_n--;
-        return;
-    }
-    if (mon.other_src != src || mon.clock - mon.t_other > HINT_BLOCKS)
-        mon.other_n = 0u;
-    mon.other_src = (uint8_t)src;
-    if (mon.other_n < 255u)
-        mon.other_n++;
+    uint32_t n = run_now(src);
+    run[src] = (uint8_t)(n < 255u ? n + 1u : 255u);
+    run_t[src] = (uint16_t)mon.clock;
+    if (src == mon.other_src || run[src] >= run_now(mon.other_src))
+        mon.other_src = (uint8_t)src;
+    mon.other_n = (uint8_t)run_now(mon.other_src);
     mon.t_other = mon.clock;
 }
 
@@ -173,6 +181,9 @@ int wc_breath_hint(const wc_mon_t *m, uint32_t src)
         return -1;                     /* the chosen source is coming: the other is something else */
     return m->other_src;
 }
+
+/* the MIDI ch setting plays what comes on ch (the hint names only what would play once chosen) */
+static int heard(uint32_t ch) { return !wc_cfg.channel || ch == wc_cfg.channel; }
 
 /* the monitor: every channel message, before the channel setting */
 static void monitor(uint32_t st, uint32_t d1, uint32_t d2)
@@ -194,14 +205,14 @@ static void monitor(uint32_t st, uint32_t d1, uint32_t d2)
             mon.glide_src = wc_cfg.glide_src;
             mon.ch[2] = (uint8_t)ch;
             mon.t_glide = mon.clock;
-        } else if (d1 != wc_cfg.breath_src && breathy(d1)) {
+        } else if (d1 != wc_cfg.breath_src && breathy(d1) && heard(ch)) {
             seen_other(d1);
         }
         break;
     case 0xD0u:
         if (wc_cfg.breath_src == WC_SRC_AT)
             seen_breath(d1 << 7 | d1, ch);
-        else
+        else if (heard(ch))
             seen_other(WC_SRC_AT);
         break;
     case 0xE0u:

@@ -11,10 +11,12 @@ From a player's report (a NuRAD sending breath on CC74, with Breath CC still on 
 - **When breath comes on another CC, the Setup page says so.** If your controller is streaming a CC
   that isn't Breath CC, or aftertouch, and Breath CC itself is quiet, the Breath row reads "CC74
   moving" (or "Press moving"). Turn Breath CC (the first knob) to it. The browser page shows the same
-  under its meters.
+  under its meters. It counts only what the MIDI ch setting hears, and a stream (a knob nudged isn't one).
 - **A MIDI note played over a held panel key gets the breath that came with it.** The keys still play at
   full breath, but only their own notes now. A stray note from a controller (the NuRAD's open C#, for one)
-  used to sound at full breath while a key was down.
+  used to sound at full breath while a key was down. It still takes the voice while it lasts (the last
+  note wins), at the breath that came, so a controller's stray notes are quiet but not silent: breath
+  opens the filter; it doesn't gate the sound.
 - Your settings and presets come back as they were.
 
 ## 0.0.31

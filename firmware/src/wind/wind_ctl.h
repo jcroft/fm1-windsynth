@@ -58,8 +58,9 @@ typedef struct {
     uint8_t note, velocity, on;        /* the last note on or off: its number, velocity, 1 on */
     uint8_t ch[4];                     /* the channel each came on (breath, bend, glide, note): 1..16, 0 a panel key */
     uint8_t breath_src, glide_src;     /* the source the breath and glide values came as (wc_cfg's then) */
-    uint8_t other_src, other_n;        /* the last other CC (or channel pressure, WC_SRC_AT) that moved, and how
-                                        * many messages in a row it sent (to 255): breath on a source not chosen */
+    uint8_t other_src, other_n;        /* the other CC (or channel pressure, WC_SRC_AT) the MIDI ch setting hears
+                                        * with the longest run of messages (each within 0.2 s of the last), and
+                                        * that run (to 255) */
     uint32_t t_other;                  /* when it last came (a block of clock; 0: never) */
 } wc_mon_t;
 

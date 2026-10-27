@@ -46,8 +46,10 @@ ex.web_midi(0x80, 72, 0);
 render(200);
 ok(state()[1] === 0, "note off closes the gate");
 // breath on a CC that isn't Breath CC (CC74, Breath CC 2): the page's hint names it
+for (let v = 0; v < 100; v += 10) { ex.web_midi(0xB0, 2, v); ex.web_midi(0xB0, 74, v); render(4); }
 ok(state()[11] === -1 && state()[12] === 2, `no breath hint while CC2 is the breath (${state()[11]})`);
-render(800);                                             // (CC2's breath, above, a second old)
+render(800);                                             // (both, a second old: nothing)
+ok(state()[11] === -1, `no breath hint once it stops (${state()[11]})`);
 for (let v = 0; v < 100; v += 10) { ex.web_midi(0xB0, 74, v); render(4); }
 ok(state()[11] === 74, `breath hint: CC74 (${state()[11]})`);
 ok(ex.web_blits() > 10, `screen frames (${ex.web_blits()})`);
