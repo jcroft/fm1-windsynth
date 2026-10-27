@@ -17,7 +17,7 @@ midi 90 3C 64
 breath 0 100 100
 wait 400
 expect level >5
-expect peak_db_max <-1
+expect peak_db_max -1
 breath 100 0 50
 midi 80 3C 0
 wait 600
@@ -39,7 +39,7 @@ midi 90 3C 64
 breath 0 100 100
 wait 400
 expect level >5
-expect peak_db_max <-1
+expect peak_db_max -1
 breath 100 0 50
 midi 80 3C 0
 wait 600
@@ -61,7 +61,7 @@ midi 90 3C 64
 breath 0 100 100
 wait 400
 expect level >5
-expect peak_db_max <-1
+expect peak_db_max -1
 breath 100 0 50
 midi 80 3C 0
 wait 600
@@ -83,7 +83,7 @@ midi 90 3C 64
 breath 0 100 100
 wait 400
 expect level >5
-expect peak_db_max <-1
+expect peak_db_max -1
 breath 100 0 50
 midi 80 3C 0
 wait 600
@@ -105,7 +105,7 @@ midi 90 3C 64
 breath 0 100 100
 wait 400
 expect level >5
-expect peak_db_max <-1
+expect peak_db_max -1
 breath 100 0 50
 midi 80 3C 0
 wait 600
@@ -127,7 +127,7 @@ midi 90 3C 64
 breath 0 100 100
 wait 400
 expect level >5
-expect peak_db_max <-1
+expect peak_db_max -1
 breath 100 0 50
 midi 80 3C 0
 wait 600
@@ -149,7 +149,7 @@ midi 90 3C 64
 breath 0 100 100
 wait 400
 expect level >5
-expect peak_db_max <-1
+expect peak_db_max -1
 breath 100 0 50
 midi 80 3C 0
 wait 600
@@ -171,7 +171,7 @@ midi 90 3C 64
 breath 0 100 100
 wait 400
 expect level >5
-expect peak_db_max <-1
+expect peak_db_max -1
 breath 100 0 50
 midi 80 3C 0
 wait 600
@@ -193,7 +193,7 @@ midi 90 3C 64
 breath 0 100 100
 wait 400
 expect level >5
-expect peak_db_max <-1
+expect peak_db_max -1
 breath 100 0 50
 midi 80 3C 0
 wait 600
@@ -215,7 +215,7 @@ midi 90 3C 64
 breath 0 100 100
 wait 400
 expect level >5
-expect peak_db_max <-1
+expect peak_db_max -1
 breath 100 0 50
 midi 80 3C 0
 wait 600
@@ -237,7 +237,7 @@ midi 90 3C 64
 breath 0 100 100
 wait 400
 expect level >5
-expect peak_db_max <-1
+expect peak_db_max -1
 breath 100 0 50
 midi 80 3C 0
 wait 600
@@ -259,7 +259,7 @@ midi 90 3C 64
 breath 0 100 100
 wait 400
 expect level >5
-expect peak_db_max <-1
+expect peak_db_max -1
 breath 100 0 50
 midi 80 3C 0
 wait 600
@@ -281,7 +281,7 @@ midi 90 3C 64
 breath 0 100 100
 wait 400
 expect level >5
-expect peak_db_max <-1
+expect peak_db_max -1
 breath 100 0 50
 midi 80 3C 0
 wait 600
@@ -303,7 +303,7 @@ midi 90 3C 64
 breath 0 100 100
 wait 400
 expect level >5
-expect peak_db_max <-1
+expect peak_db_max -1
 breath 100 0 50
 midi 80 3C 0
 wait 600
@@ -325,7 +325,7 @@ midi 90 3C 64
 breath 0 100 100
 wait 400
 expect level >5
-expect peak_db_max <-1
+expect peak_db_max -1
 breath 100 0 50
 midi 80 3C 0
 wait 600
@@ -347,7 +347,7 @@ midi 90 3C 64
 breath 0 100 100
 wait 400
 expect level >5
-expect peak_db_max <-1
+expect peak_db_max -1
 breath 100 0 50
 midi 80 3C 0
 wait 600
@@ -369,7 +369,7 @@ midi 90 3C 64
 breath 0 100 100
 wait 400
 expect level >5
-expect peak_db_max <-1
+expect peak_db_max -1
 breath 100 0 50
 midi 80 3C 0
 wait 600
@@ -391,7 +391,7 @@ midi 90 3C 64
 breath 0 100 100
 wait 400
 expect level >5
-expect peak_db_max <-1
+expect peak_db_max -1
 breath 100 0 50
 midi 80 3C 0
 wait 600

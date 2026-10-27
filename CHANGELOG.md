@@ -4,6 +4,20 @@ A release is a push to `main` that changes `VERSION` to a version with no tag ye
 release build, tags the commit `vX.Y.Z` and publishes the GitHub Release with that version's notes,
 taken from its section below. Add the section in the same pull request as the `VERSION` change.
 
+## 0.0.33
+
+- **No breath, no sound.** A phrase with no breath behind it is now silent, the way a wind patch whose
+  level follows the breath is. A controller can send stray notes at its breath threshold with the breath
+  near zero (a NuRAD's open C#, for one); those used to sound quietly, at full level through the closed
+  filter. The level opens over the first sliver of breath (breath CC 0 to 10, whatever the Curve), and
+  holds what it reached until the next phrase, so releases and a breath tapering off sound as before.
+  Above that sliver nothing changes: breath still only opens the filter, and the panel keys play at
+  full breath.
+- The gate waits until the breath source has been heard. A keyboard with no breath, or a controller
+  sending its breath on a CC that isn't Breath CC (the Setup page names the CC that's moving), plays as
+  before.
+- A setup that sounds at zero breath on purpose (breath to Amp at a negative amount) now starts silent.
+
 ## 0.0.32
 
 From a player's report (a NuRAD sending breath on CC74, with Breath CC still on CC2):
