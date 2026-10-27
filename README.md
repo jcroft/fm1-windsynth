@@ -43,7 +43,7 @@ step through every page.
 | SEL | Mod 1–4 (press again for the next) | Source (breath, bite, mod wheel, pressure, velocity), Destination (cutoff, resonance, amp, morph, timbre: the Engine page's third knob, FM's Index; noise: the noise layer's level; harmonics: the Engine page's second knob, on Formant, Waveshape, VA and Harmonic only, "Harm off" elsewhere; aux: the Aux mix), Amount (−100 to +100) |
 | SEQ | Pitch | Bend range, Glide (the glide time with the glide CC at 0: 4 ms by default, up to 2 s), Glide mode (always or legato) |
 | SEQ again | Pitch 2 | CC depth: how much the glide CC adds to Glide at full (400 ms by default, up to 2 s), Transpose, Tune |
-| GLO | Setup | Breath CC (CC2 by default, another CC, or aftertouch), Glide CC (CC5 by default, another CC, or off), MIDI channel (Omni by default), Theme (Light or Dark); the version |
+| GLO | Setup | Breath CC (CC2 by default, another CC, or aftertouch), Glide CC (CC5 by default, another CC, or off), MIDI channel (Omni by default), Theme (Light or Dark); the version. When your controller's breath arrives on another CC, the Breath row says which ("CC74 moving") |
 | GLO again | Setup 2 | Speaker: Auto (the default) silences the FM-1's speaker while a computer records it over USB audio; On keeps it on. The headphone jack goes quiet with it: one output feeds both, and the FM-1 has no switch for the speaker alone. The page shows whether a computer is recording and whether the speaker is on |
 | FX | Distortion | Type (Overdrive, Distort, Fuzz, Fold, Crush), Mix, Drive, Tone |
 | FX again | Modulation | Type (Chorus, Ensemble, Flanger, Phaser), Mix, Rate (0.05 Hz to 10 Hz), Depth |

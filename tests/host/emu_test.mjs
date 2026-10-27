@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // The browser build in Node: boot it, play the panel's keys (key breath), expect sound and screen frames;
 // then a MIDI note with breath: silent-ish with none, brighter and louder as breath (CC2) comes in, and
-// the monitor's state (web_state) following.
+// the monitor's state (web_state) following, and the hint when breath comes on a CC that isn't Breath CC.
 import fs from "fs";
 const wasm = fs.readFileSync(process.argv[2]);
 let mem;
@@ -11,7 +11,7 @@ const { instance } = await WebAssembly.instantiate(wasm, { wasi_snapshot_preview
 const ex = instance.exports; mem = ex.memory;
 if (ex._initialize) ex._initialize();
 ex.web_master(2800); ex.web_boot();
-const state = () => new Float32Array(mem.buffer, ex.web_state(), 11);
+const state = () => new Float32Array(mem.buffer, ex.web_state(), 13);
 const render = (blocks) => {
   let peak = 0;
   for (let i = 0; i < blocks; i++) {
@@ -45,5 +45,12 @@ ok(state()[10] >= 4, `MIDI counted (${state()[10]})`);
 ex.web_midi(0x80, 72, 0);
 render(200);
 ok(state()[1] === 0, "note off closes the gate");
+// breath on a CC that isn't Breath CC (CC74, Breath CC 2): the page's hint names it
+for (let v = 0; v < 100; v += 10) { ex.web_midi(0xB0, 2, v); ex.web_midi(0xB0, 74, v); render(4); }
+ok(state()[11] === -1 && state()[12] === 2, `no breath hint while CC2 is the breath (${state()[11]})`);
+render(800);                                             // (both, a second old: nothing)
+ok(state()[11] === -1, `no breath hint once it stops (${state()[11]})`);
+for (let v = 0; v < 100; v += 10) { ex.web_midi(0xB0, 74, v); render(4); }
+ok(state()[11] === 74, `breath hint: CC74 (${state()[11]})`);
 ok(ex.web_blits() > 10, `screen frames (${ex.web_blits()})`);
 process.exit(failed ? 1 : 0);

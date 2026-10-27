@@ -4,12 +4,15 @@
 #include "../dsp/fastmath.h"
 
 #define BREATH_MS 3.0f                 /* smoothing: 7-bit breath steps, ironed out */
+#define HINT_BLOCKS 690u               /* the breath hint: gone a second (of 1.451 ms blocks) after the last */
+#define HINT_GAP 138u                  /* ...a source's run of messages: each within 0.2 s of the one before */
+#define HINT_N 8u                      /* ...and a run of 8 is a stream (breath: tens a second; a knob's nudge: not) */
 
 wc_cfg_t wc_cfg;
 
 static struct {
     uint8_t note[WC_NSTACK], key[WC_NSTACK];   /* held, oldest first; key: a panel key's */
-    uint8_t n, keys;
+    uint8_t n;
     int16_t top;                       /* the note sounding, or the last one (-1: none yet) */
     float cur, target, rate;           /* pitch in semitones; glide per second */
     uint16_t breath_msb, breath_raw;   /* 14-bit */
@@ -21,10 +24,12 @@ static struct {
 static wc_mon_t mon;                   /* the controller monitor */
 static uint8_t mon_msb;                /* the breath CC's MSB, as the monitor saw it */
 static uint8_t mon_bsrc, mon_gsrc;     /* the breath and glide sources the monitor last saw set */
+static uint8_t run[WC_SRC_AT + 1];     /* the other sources (CCs, channel pressure): each one's run of messages */
+static uint16_t run_t[WC_SRC_AT + 1];  /* ...and when its last came (the clock's low 16 bits) */
 
 void wc_reset(void)
 {
-    w.n = w.keys = 0;
+    w.n = 0;
     w.bend = w.mod = w.pressure = 0.0f;
     w.glide_cc = 0;
     w.breath_msb = w.breath_raw = 0;
@@ -55,6 +60,10 @@ void wc_init(void)
     mon.glide = mon.note = mon.velocity = mon.on = 0u;
     mon.ch[0] = mon.ch[1] = mon.ch[2] = mon.ch[3] = 0u;
     mon.breath_src = mon.glide_src = 255u;
+    mon.other_src = mon.other_n = 0u;
+    mon.t_other = 0u;
+    for (int i = 0; i <= WC_SRC_AT; i++)
+        run[i] = 0u;
     mon_msb = 0u;
     mon_bsrc = wc_cfg.breath_src;
     mon_gsrc = wc_cfg.glide_src;
@@ -111,7 +120,6 @@ static void drop(int note)
     int i, j;
     for (i = 0; i < w.n; i++)
         if (w.note[i] == note) {
-            w.keys -= w.key[i];
             for (j = i; j + 1 < w.n; j++) {
                 w.note[j] = w.note[j + 1];
                 w.key[j] = w.key[j + 1];
@@ -139,6 +147,44 @@ static void seen_breath(uint32_t raw, uint32_t ch)
     mon.t_breath = mon.clock;
 }
 
+/* a source's run, as of now: 0 once its last message is more than HINT_GAP old */
+static uint32_t run_now(uint32_t src)
+{
+    return (uint16_t)((uint16_t)mon.clock - run_t[src]) <= HINT_GAP ? run[src] : 0u;
+}
+
+/* a CC (or channel pressure) that isn't a chosen source: each runs on its own, and the longest run is the
+ * one named, so streams interleaved hold (breath on a CC and on pressure, or with CC11 beside it) */
+static void seen_other(uint32_t src)
+{
+    uint32_t n = run_now(src);
+    run[src] = (uint8_t)(n < 255u ? n + 1u : 255u);
+    run_t[src] = (uint16_t)mon.clock;
+    if (src == mon.other_src || run[src] >= run_now(mon.other_src))
+        mon.other_src = (uint8_t)src;
+    mon.other_n = (uint8_t)run_now(mon.other_src);
+    mon.t_other = mon.clock;
+}
+
+/* a CC a controller might send breath on: not bank select, data entry, the pedals' switches, (N)RPN, the
+ * channel mode messages, or any LSB (32..63) */
+static int breathy(uint32_t n)
+{
+    return n != 0u && n != 6u && !(n >= 32u && n <= 69u) && !(n >= 96u && n <= 101u) && n < 120u;
+}
+
+int wc_breath_hint(const wc_mon_t *m, uint32_t src)
+{
+    if (!m->t_other || m->clock - m->t_other > HINT_BLOCKS || m->other_n < HINT_N || m->other_src == src)
+        return -1;
+    if (m->t_breath && m->breath_src == src && m->clock - m->t_breath <= HINT_BLOCKS)
+        return -1;                     /* the chosen source is coming: the other is something else */
+    return m->other_src;
+}
+
+/* the MIDI ch setting plays what comes on ch (the hint names only what would play once chosen) */
+static int heard(uint32_t ch) { return !wc_cfg.channel || ch == wc_cfg.channel; }
+
 /* the monitor: every channel message, before the channel setting */
 static void monitor(uint32_t st, uint32_t d1, uint32_t d2)
 {
@@ -159,11 +205,15 @@ static void monitor(uint32_t st, uint32_t d1, uint32_t d2)
             mon.glide_src = wc_cfg.glide_src;
             mon.ch[2] = (uint8_t)ch;
             mon.t_glide = mon.clock;
+        } else if (d1 != wc_cfg.breath_src && breathy(d1) && heard(ch)) {
+            seen_other(d1);
         }
         break;
     case 0xD0u:
         if (wc_cfg.breath_src == WC_SRC_AT)
             seen_breath(d1 << 7 | d1, ch);
+        else if (heard(ch))
+            seen_other(WC_SRC_AT);
         break;
     case 0xE0u:
         mon.bend = (int16_t)((int)(d2 << 7 | d1) - 8192);
@@ -182,7 +232,6 @@ static void note_on(int note, int key)
         drop(w.note[0]);               /* full: the oldest goes */
     w.note[w.n] = (uint8_t)note;
     w.key[w.n] = (uint8_t)key;
-    w.keys += (uint8_t)key;
     w.n++;
     go_to(note, legato);
 }
@@ -216,7 +265,7 @@ static void cc(uint32_t n, uint32_t v)
     if (n == 1u)
         w.mod = (float)v * (1.0f / 127.0f);
     if (n == 120u || n == 123u) {      /* all sound off, all notes off */
-        w.n = w.keys = 0;
+        w.n = 0;
     }
 }
 
@@ -289,8 +338,8 @@ void wc_block(uint32_t frames, float sr, wc_out_t *o)
         mon.clock = 1u;
     mon_sync();
     o->breath_in = w.breath_cc;
-    if (w.keys && wc_cfg.key_breath > b)
-        o->breath_in = b = wc_cfg.key_breath;      /* (a panel key: as if blown that hard, curve and all) */
+    if (w.n && w.key[w.n - 1] && wc_cfg.key_breath > b)   /* a panel key's note: as if blown that hard, */
+        o->breath_in = b = wc_cfg.key_breath;      /* curve and all (a MIDI note over it: the breath that came) */
     a = 1.0f - fm_expf(-t * (1000.0f / BREATH_MS));
     w.breath += (b - w.breath) * a;
     w.breath = fm_flush(w.breath);

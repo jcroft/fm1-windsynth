@@ -1,0 +1,130 @@
+# A controller that sends its breath on a CC that isn't Breath CC (a NuRAD on CC74, Breath CC still 2):
+# the Setup page says which CC is moving, and choosing it there makes it the breath
+wait 200
+tap GLO
+wait 50
+expect rthint -
+# a knob nudged (7 messages) isn't a stream; 8 are
+midi B0 07 10
+midi B0 07 11
+midi B0 07 12
+midi B0 07 13
+midi B0 07 14
+midi B0 07 15
+midi B0 07 16
+wait 20
+expect rthint -
+wait 1500
+midi B0 07 10
+midi B0 07 11
+midi B0 07 12
+midi B0 07 13
+midi B0 07 14
+midi B0 07 15
+midi B0 07 16
+midi B0 07 17
+wait 20
+expect rthint CC7_moving
+wait 1500
+expect rthint -
+breath 0 100 100 4A
+wait 30
+expect rthint CC74_moving
+expect rthintfit ok
+expect rtmon0 CC2|Breath||-
+expect breath 0
+shot hint.png
+# a second and more with nothing: the hint goes
+wait 1500
+expect rthint -
+# breath on a CC and on aftertouch at once, interleaved evenly: still named
+midi B0 4A 10
+midi D0 10 00
+midi B0 4A 20
+midi D0 20 00
+midi B0 4A 30
+midi D0 30 00
+midi B0 4A 40
+midi D0 40 00
+midi B0 4A 50
+midi D0 50 00
+midi B0 4A 60
+midi D0 60 00
+midi B0 4A 70
+midi D0 70 00
+midi B0 4A 78
+midi D0 78 00
+midi B0 4A 7F
+wait 30
+expect rthint CC74_moving
+# another CC's one message over the stream doesn't take the name
+midi B0 0B 10
+wait 20
+expect rthint CC74_moving
+wait 1500
+# aftertouch alone, with Breath CC a CC: "Press"
+breath 0 100 100 4A
+wait 1500
+midi D0 10 00
+midi D0 18 00
+midi D0 20 00
+midi D0 28 00
+midi D0 30 00
+midi D0 38 00
+midi D0 40 00
+midi D0 48 00
+midi D0 50 00
+midi D0 58 00
+midi D0 60 00
+midi D0 68 00
+midi D0 70 00
+midi D0 78 00
+wait 30
+expect rthint Press_moving
+expect rthintfit ok
+wait 1500
+# the chosen CC coming as well: no hint (the other is something else)
+breath 0 100 100 4A
+breath 0 100 100
+wait 30
+expect rthint -
+wait 1500
+# a channel the MIDI ch setting doesn't hear: choosing it wouldn't play, so no hint
+spin K3 1
+breath 0 100 100 4A
+wait 30
+expect rthint CC74_moving
+wait 1500
+midi B1 4A 10
+midi B1 4A 18
+midi B1 4A 20
+midi B1 4A 28
+midi B1 4A 30
+midi B1 4A 38
+midi B1 4A 40
+midi B1 4A 48
+midi B1 4A 50
+midi B1 4A 58
+midi B1 4A 60
+midi B1 4A 68
+wait 30
+expect rthint -
+wait 1500
+spin K3 -1
+# Breath CC to 74 straight after its stream: the hint goes at once, and CC74 is the breath
+breath 0 100 100 4A
+wait 30
+expect rthint CC74_moving
+spin K1 72
+wait 30
+expect rthint -
+breath 0 100 100 4A
+wait 30
+expect rthint -
+expect rtmon0 CC74|Breath|ch1|100
+midi 90 3D 40
+wait 30
+expect breath >70
+midi 80 3D 00
+wait 50
+expect stale 0

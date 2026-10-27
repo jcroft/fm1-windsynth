@@ -11,6 +11,21 @@ shot key_held.png
 key 4 up
 wait 300
 expect gate 0
+# a MIDI note over a held key plays at the breath that came (none here), not the key's full breath: a
+# controller's stray note doesn't sound at full; letting it go, the key's note is back at full breath
+key 4 down
+wait 30
+expect breath >98
+midi 90 3D 40
+wait 30
+expect top 61
+expect breath <2
+midi 80 3D 00
+wait 30
+expect top 57
+expect breath >98
+key 4 up
+wait 300
 tap OCT+
 expect par25 1
 key 0 down
