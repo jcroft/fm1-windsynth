@@ -27,6 +27,8 @@ issue first.
   the same compiled to WebAssembly, with the page.
 - Inherited from the FiMba-1 fork, and through it from Felucca, X0X and FoMni: the platform
   (`firmware/hal/`, `usb.c`, `ota.c` and so on). `LICENSING.md` says where each part comes from.
+  The FiMba history at the bottom of `CHANGELOG.md` and the conventions in that code are reference,
+  not rules.
 
 ## Code
 
@@ -41,13 +43,16 @@ issue first.
 
 - Device: `python3 tools/build.py` (`JIELI_TOOLCHAIN`, `AC79_SDK`; see `BUILDING.md`).
 - Browser: `web/emu/build.sh` (Emscripten). Host simulator: `host/build_host.sh`.
-- Everything: `tests/run_tests.sh`. It has to pass before a push. Add tests with each feature,
-  and break each new check once to see it fail.
+- Everything: `tests/run_tests.sh`. It has to pass before a push. Parts that need the JieLi
+  toolchain and SDK, Emscripten or Chrome are skipped, with a note, when those are missing; CI runs
+  them all. Add tests with each feature, and break each new check once to see it fail.
 
 ## Pull requests
 
 - Work on a branch and open a PR against `main`; CI has to be green before it merges.
 - Commit subjects: `Area: what changed`.
+- Describe a change players will notice in the PR, and leave `VERSION` and `CHANGELOG.md` to the
+  maintainer, who adds them when the change is released.
 - `VERSION` stays at `0.0.x` during development. CI builds and tests those versions but releases
   nothing. A version past 0.0.x, merged to main, releases automatically: tag, GitHub Release with
   its `CHANGELOG.md` section, and the site at https://jcroft.github.io/fm1-windsynth/. Never tag or

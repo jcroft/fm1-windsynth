@@ -34,6 +34,9 @@ Or play it online: <https://jcroft.github.io/fm1-windsynth/>
 The [README](https://github.com/jcroft/fm1-windsynth#readme) explains every key, button and knob.
 
 FM-1 Windsynth is GPL-3.0-only, and its source is in this repository; see
-[LICENSING.md](https://github.com/jcroft/fm1-windsynth/blob/main/LICENSING.md). The `.fwsc` also
-contains three unmodified files from JieLi's AC79 SDK (`uboot.boot`, `cfg_tool.bin`, `eq_cfg_hw.bin`),
-under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0).
+[LICENSING.md](https://github.com/jcroft/fm1-windsynth/blob/main/LICENSING.md). The `.fwsc` and
+`Windsynth.html` contain Mutable Instruments' Plaits and stmlib, Copyright Emilie Gillet, under the
+[MIT licence](https://github.com/jcroft/fm1-windsynth/blob/main/firmware/third_party/mutable/LICENSE).
+The `.fwsc` also contains three files from JieLi's AC79 SDK (`uboot.boot`, `cfg_tool.bin`,
+`eq_cfg_hw.bin`; contents unmodified), under the
+[Apache License 2.0](https://github.com/jcroft/fm1-windsynth/blob/main/LICENSES/Apache-2.0.txt).
