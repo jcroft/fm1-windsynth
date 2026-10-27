@@ -4,6 +4,22 @@ A release is a push to `main` that changes `VERSION` to a version past 0.0.x wit
 release build, tags the commit `vX.Y.Z` and publishes the GitHub Release with that version's notes,
 taken from its section below. Add the section in the same pull request as the `VERSION` change.
 
+## 0.1.0
+
+The first release. Windsynth turns the M-VAVE FM-1 into a synth for any MIDI wind controller, with
+Plaits voices, and it's tested on real FM-1 hardware for playability, performance and stability.
+
+- **Install it** from the page, https://jcroft.github.io/fm1-windsynth/, in Chrome or Edge over USB.
+  Keep M-VAVE's stock firmware (FM-1 V15) to hand: the page puts it back too.
+- **What it plays:** eight Plaits engines (Classic, FM, 6-op, Formant, Waveshape, VA, PD, Harmonic),
+  a noise layer, the filter, four Mod slots and an LFO, and distortion, modulation (chorus, ensemble,
+  flanger, phaser), delay and reverb, with 18 factory presets in 64 preset slots.
+- **Your windsynth:** breath on CC2 by default (any CC or aftertouch on the Setup page, which names
+  the CC your controller is sending if it's another), bite as pitch bend (±2 semitones), glide on CC5.
+  A phrase with no breath behind it is silent.
+- **Still to come:** better presets, more testing of each synth engine, and improvements to the
+  effects.
+
 ## 0.0.33
 
 - **No breath, no sound.** A phrase with no breath behind it is now silent, the way a wind patch whose

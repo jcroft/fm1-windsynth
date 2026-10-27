@@ -90,8 +90,11 @@ kbd { font: 600 .85em ui-monospace, Menlo, monospace; background: var(--card); b
 <header>
   <h1>Windsynth</h1>
   <p>a synth for MIDI wind controllers on the M-VAVE FM-1, with Plaits voices, running in the browser from the same code</p>
-  <p class="state" id="unreleased"><b>In development, and not released yet.</b> This page is for trying it in the browser. The
-    firmware for the FM-1 itself comes out once it has been tested on the real thing.</p>
+  <p class="state" id="tested"><b>Tested on real FM-1 hardware</b> for playability, performance and stability. Still to
+    come: better presets, more testing of each synth engine, and improvements to the effects.</p>
+  <p class="state" id="unreleased">The firmware for the FM-1 itself installs from
+    <a href="https://jcroft.github.io/fm1-windsynth/#install">the online page</a>, or from a package file (below).</p>
+  <p class="state">Free software (GPL-3.0-only): <a href="https://github.com/jcroft/fm1-windsynth">the source on GitHub</a>.</p>
 </header>
 
 <p class="turn">Turn your phone sideways for bigger controls.</p>
@@ -124,7 +127,8 @@ kbd { font: 600 .85em ui-monospace, Menlo, monospace; background: var(--card); b
 
 <section class="install" id="install" aria-labelledby="install-h">
   <h2 id="install-h">Install on your FM-1</h2>
-  <p id="instNone">Not yet: the firmware isn't released. It will be, here, once it has been tested on a real FM-1.</p>
+  <p id="instNone">No release package beside this page: install from
+    <a href="https://jcroft.github.io/fm1-windsynth/#install">the online page</a>, or choose a package file below.</p>
   <details id="instBody">
   <summary id="instTest">Have a test build? Install it</summary>
   <p class="warn"><b>Beta.</b> Custom firmware is installed at your own risk. Before you start, download M-VAVE's
@@ -151,7 +155,7 @@ kbd { font: 600 .85em ui-monospace, Menlo, monospace; background: var(--card); b
     <p>This writes M-VAVE's own FM-1 V15 back, from Windsynth (or its safe mode, or any Felucca-family firmware) over the
       same USB cable. Choose the file you downloaded from M-VAVE: it is checked (SHA-256) before anything is written.
       If the FM-1 doesn't start at all, it comes up in safe mode after two tries, where this still works; past that,
-      the rescue tool in Windsynth's source (<code>tools/fm1_rescue.py</code>) restores it from a Mac.</p>
+      the rescue tool in Windsynth's source (<a href="https://github.com/jcroft/fm1-windsynth/blob/main/tools/fm1_rescue.py"><code>tools/fm1_rescue.py</code></a>) restores it from a Mac.</p>
     <div class="row">
       <input type="file" id="stockFile" accept=".fwsc" aria-label="M-VAVE's FM-1 V15 file">
       <button id="stockGo" type="button" class="quiet" disabled>Install the stock firmware</button>
