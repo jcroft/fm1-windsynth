@@ -1,6 +1,6 @@
 # Changelog
 
-A release is a push to `main` that changes `VERSION` to a version with no tag yet. CI then makes the
+A release is a push to `main` that changes `VERSION` to a version past 0.0.x with no tag yet. CI then makes the
 release build, tags the commit `vX.Y.Z` and publishes the GitHub Release with that version's notes,
 taken from its section below. Add the section in the same pull request as the `VERSION` change.
 
@@ -373,12 +373,12 @@ Fixes from a full code review (eight reviewers, each finding checked by two skep
 - **Plaits is inside.** The wind voice is built: Plaits' "Classic" engine (VA-VCF) with its filter,
   a gate envelope, VCA and soft clip, in tune at the FM-1's sample rate. It renders exactly as
   upstream Plaits does, in the browser too, and the device build links it. You can't play it yet:
-  the next step (M2) connects it to your windsynth's breath, bite and keys.
+  the next step connects it to your windsynth's breath, bite and keys.
 
 ## 0.0.1
 
 - **FM-1 Windsynth starts here**, as a fork of FiMba-1 0.6.0. It still plays FiMba's kalimba while
-  the wind voice is built; see `docs/PLAN.md`. The USB name is now "Windsynth FM-1".
+  the wind voice is built. The USB name is now "Windsynth FM-1".
 - Versions `0.0.x` are development builds: nothing is released until `VERSION` moves past them.
 
 The history below is FiMba-1's.
