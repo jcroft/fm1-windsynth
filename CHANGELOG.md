@@ -4,6 +4,19 @@ A release is a push to `main` that changes `VERSION` to a version with no tag ye
 release build, tags the commit `vX.Y.Z` and publishes the GitHub Release with that version's notes,
 taken from its section below. Add the section in the same pull request as the `VERSION` change.
 
+## 0.0.32
+
+From a player's report (a NuRAD sending breath on CC74, with Breath CC still on CC2):
+
+- **When breath comes on another CC, the Setup page says so.** If your controller is streaming a CC
+  that isn't Breath CC, or aftertouch, and Breath CC itself is quiet, the Breath row reads "CC74
+  moving" (or "Press moving"). Turn Breath CC (the first knob) to it. The browser page shows the same
+  under its meters.
+- **A MIDI note played over a held panel key gets the breath that came with it.** The keys still play at
+  full breath, but only their own notes now. A stray note from a controller (the NuRAD's open C#, for one)
+  used to sound at full breath while a key was down.
+- Your settings and presets come back as they were.
+
 ## 0.0.31
 
 - **The speaker goes quiet while a computer records the FM-1 over USB.** A new page, Setup 2 (GLO

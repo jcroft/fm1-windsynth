@@ -91,7 +91,7 @@ __attribute__((used, visibility("default"))) uint32_t web_store_max(void) { retu
 
 /* the instrument's state for the page's monitor: note, gate, breath, bend, cutoff, res, amp, morph,
  * level, the sounding note (-1 none) and the MIDI packets received */
-static float state[11];
+static float state[13];
 __attribute__((used, visibility("default"))) float *web_state(void)
 {
     state[0] = wa_state.note;
@@ -105,5 +105,7 @@ __attribute__((used, visibility("default"))) float *web_state(void)
     state[8] = wa_state.level;
     state[9] = (float)wa_state.top;
     state[10] = (float)wa_state.midi_seen;
+    state[11] = (float)wc_breath_hint(&wa_state.mon, wc_cfg.breath_src);   /* breath on another source, -1 */
+    state[12] = (float)wc_cfg.breath_src;
     return state;
 }

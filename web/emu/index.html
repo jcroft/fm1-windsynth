@@ -63,6 +63,7 @@ kbd { font: 600 .85em ui-monospace, Menlo, monospace; background: var(--card); b
 .mon .v { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
 .mon .dot { display: inline-block; width: .6rem; height: .6rem; border-radius: 50%; background: var(--rule); vertical-align: middle; }
 .mon .dot.on { background: var(--teal); }
+.hint { margin: .6rem 0 0; color: var(--accent); }
 .bar select { font: inherit; color: var(--ink); background: var(--card); border: 1px solid var(--rule); border-radius: 8px; }
 /* the installer */
 .install { margin: 1.8rem 0 0; padding: 1.1rem 1.2rem 1.2rem; background: var(--card); border: 1px solid var(--rule); border-radius: 14px; }
@@ -119,6 +120,7 @@ kbd { font: 600 .85em ui-monospace, Menlo, monospace; background: var(--card); b
   <div>Amp <span class="m"><i id="mAmp"></i></span></div>
   <div>Output <span class="m"><i id="mLevel"></i></span></div>
 </div>
+<p class="hint" id="mHint" hidden></p>
 
 <section class="install" id="install" aria-labelledby="install-h">
   <h2 id="install-h">Install on your FM-1</h2>
@@ -182,7 +184,7 @@ kbd { font: 600 .85em ui-monospace, Menlo, monospace; background: var(--card); b
       <li><b>SEQ</b> Pitch: bend range, Glide (the glide time, 4 ms by default), glide always or legato only. The glide CC adds to Glide, never takes away: at 0 the glide is Glide itself. Again for Pitch 2: CC depth, how much the CC adds at full (400 ms by default, up to 2 s), transpose and tune.</li>
       <li><b>SEL</b> Mod 1&ndash;4 (press again for the next): source (breath, bite, mod wheel, pressure, velocity), destination (cutoff, resonance, amp, morph, timbre: FM's index, noise: the noise layer's level, harmonics: on Formant, Waveshape, VA and Harmonic, aux: the Aux mix), amount. All four start off: breath to cutoff is the Filter page's Breath.</li>
       <li><b>FX</b> Distortion: type (Overdrive, Distort, Fuzz, Fold, Crush), mix, drive, tone. Again for Modulation: type (Chorus, Ensemble, Flanger, Phaser), mix, rate, depth. Again for Delay: mode (Digital, Tape, Analog, Ping-pong), mix, time, feedback. Again for Reverb: type (Cloud, Hall, Plate, Room, Shimmer), mix, decay, tone. Again for Reverb 2: pre-delay, size, mod (on Shimmer: the shimmer's amount), low end. The sound goes through them in that order, and all start at mix 0 but the reverb, a touch of Cloud at 3.</li>
-      <li><b>GLO</b> Setup: the breath CC (CC2 by default, or aftertouch), the glide CC (CC5 by default, or off), MIDI channel (Omni by default) and the <b>Theme</b>; the header shows the version. Again: Setup 2, the <b>Speaker</b> (on the FM-1, Auto silences the speaker while a computer records it over USB; nothing to hear here).</li>
+      <li><b>GLO</b> Setup: the breath CC (CC2 by default, or aftertouch; if your controller sends its breath on another CC, the Breath row and this page name it), the glide CC (CC5 by default, or off), MIDI channel (Omni by default) and the <b>Theme</b>; the header shows the version. Again: Setup 2, the <b>Speaker</b> (on the FM-1, Auto silences the speaker while a computer records it over USB; nothing to hear here).</li>
       <li><b>PLAY</b> Stage: the note, breath, bite, glide and output over twelve knobs in three rows (Filter, the engine, the effects' mixes). K1&ndash;K4 turn the lit row, the <b>SELECT</b> knob moves the row, and PLAY again goes back.</li>
       <li><b>EDIT</b> and the <b>SELECT</b> knob step through every page; the four knobs set its four values. What you play is kept by itself. Hold <b>SAVE</b> for 1.5 s for the init sound (SAVE again to confirm).</li>
     </ul>
@@ -470,8 +472,8 @@ function drawLights(b, k, d) {
 
 // ---------------------------------------------------------------- the monitor
 const NOTE = ["C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"];
-const mon = Object.fromEntries(["Note", "Midi", "MidiN", "Breath", "Bend", "Cutoff", "Res", "Amp", "Level"].map((k) => [k, document.getElementById("m" + k)]));
-let midiSeen = 0, midiLit = 0;
+const mon = Object.fromEntries(["Note", "Midi", "MidiN", "Breath", "Bend", "Cutoff", "Res", "Amp", "Level", "Hint"].map((k) => [k, document.getElementById("m" + k)]));
+let midiSeen = 0, midiLit = 0, shownHint = -1;
 function drawMonitor(st) {
   const [note, gate, breath, bend, cutoff, res, amp, , level, top, seen] = st;
   const pct = (v) => `${Math.round(100 * Math.min(1, Math.max(0, v)))}%`;
@@ -487,6 +489,13 @@ function drawMonitor(st) {
   mon.Res.style.width = pct(res);
   mon.Amp.style.width = pct(amp);
   mon.Level.style.width = pct(level);
+  const hint = st[11], src = (s) => (s >= 128 ? "aftertouch" : `CC${s}`);
+  if (hint !== shownHint) {
+    shownHint = hint;
+    mon.Hint.hidden = hint < 0;
+    if (hint >= 0) mon.Hint.textContent = `Your controller is sending ${src(hint)}, but Breath CC is set to ${src(st[12])}, so the breath meter stays empty. ` +
+      `If ${src(hint)} is your breath, choose it with the first knob on the Setup page (GLO).`;
+  }
   if (seen !== midiSeen) { midiSeen = seen; midiLit = 4; mon.MidiN.textContent = seen; }
   mon.Midi.classList.toggle("on", midiLit > 0 && midiLit--);
 }

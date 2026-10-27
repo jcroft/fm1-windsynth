@@ -1,0 +1,47 @@
+# A controller that sends its breath on a CC that isn't Breath CC (a NuRAD on CC74, Breath CC still 2):
+# the Setup page says which CC is moving, and choosing it there makes it the breath
+wait 200
+tap GLO
+wait 50
+expect rthint -
+# one stray CC isn't a stream
+midi B0 4A 10
+wait 30
+expect rthint -
+breath 0 100 100 4A
+wait 30
+expect rthint CC74_moving
+expect rthintfit ok
+expect rtmon0 CC2|Breath||-
+expect breath 0
+shot hint.png
+# a second second with nothing: the hint goes
+wait 1100
+expect rthint -
+# aftertouch, with Breath CC a CC: "Press"
+midi D0 10 00
+midi D0 20 00
+midi D0 30 00
+midi D0 40 00
+wait 30
+expect rthint Press_moving
+expect rthintfit ok
+wait 1100
+# the chosen CC coming as well: no hint (the other is something else)
+breath 0 100 100 4A
+breath 0 100 100
+wait 30
+expect rthint -
+wait 1100
+# Breath CC to 74: the hint goes, and CC74 is the breath
+spin K1 72
+breath 0 100 100 4A
+wait 30
+expect rthint -
+expect rtmon0 CC74|Breath|ch1|100
+midi 90 3D 40
+wait 30
+expect breath >70
+midi 80 3D 00
+wait 50
+expect stale 0

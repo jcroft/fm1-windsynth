@@ -67,7 +67,7 @@ class Windsynth extends AudioWorkletProcessor {
     const ex = this.ex;
     const blits = ex.web_blits();
     const msg = { type: "frame", buttons: ex.web_lit_buttons() >>> 0, keys: ex.web_lit_keys() >>> 0, dim: ex.web_dim_keys() >>> 0,
-                  state: new Float32Array(this.mem.buffer, ex.web_state(), 11).slice() };
+                  state: new Float32Array(this.mem.buffer, ex.web_state(), 13).slice() };
     if (this.frames >= 44100) {                       // the share of real time spent running the device
       msg.load = Math.round(100 * this.busy / (this.frames / 44.1));
       this.busy = this.frames = 0;

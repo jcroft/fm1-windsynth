@@ -478,12 +478,22 @@ typedef struct {
     int16_t note, cents;               /* the note (-1000: none yet) and the cents off it */
     uint8_t gate, fresh[4], ok[4], heard[4];   /* fresh: 4 just in .. 1, 0 older than RT_FRESH_MS */
     int16_t bar[4];
+    int16_t hint;                      /* the source the breath seems to come on instead (wc_breath_hint), -1 */
     char lab[4][8], nm[4][12], ch[4][8], val[4][8];
 } rt_setq_t;
 #define RT_FRESH_MS 300u
 #define RT_CH_R 114                    /* the channel ends here, before the bars */
 #define RT_BAR_X 118                   /* the bars: from here, RT_BAR_W long */
 #define RT_BAR_W 68
+
+/* the breath row's hint, "CC74 moving": breath seems to come on that source, not the chosen one */
+static void rt_hint_text(int src, char *b)
+{
+    int k;
+    wa_param_text(P_BSRC, src, b);
+    k = s_len(b);
+    rt_copy(b + k, " moving", 16 - k);
+}
 
 static void rt_setup(void)
 {
@@ -511,6 +521,9 @@ static void rt_setup(void)
         q.fresh[i] = (uint8_t)(q.ok[i] && age < RT_FRESH_MS ? 1u + (RT_FRESH_MS - 1u - age) * 4u / RT_FRESH_MS : 0u);
         rt_fit(q.nm[i], RT_CH_R - text_w(&FONT_XS, q.ch[i]) - 4 - 56);
     }
+    q.hint = (int16_t)wc_breath_hint(&m, (uint32_t)proj.par[P_BSRC]);
+    if (q.hint >= 0)
+        q.val[0][0] = 0;
     q.bar[0] = (int16_t)(q.ok[0] ? m.breath * (uint32_t)RT_BAR_W / 16383u : 0);
     q.bar[1] = (int16_t)(q.ok[1] ? m.bend * (RT_BAR_W / 2 - 1) / 8192 : 0);
     q.bar[2] = (int16_t)(q.ok[2] ? m.glide * RT_BAR_W / 127 : 0);
@@ -568,14 +581,19 @@ static void rt_setup(void)
         cv_text(24, y, &FONT_XS, q.lab[i], K_TEXT);
         cv_text(56, y, &FONT_XS, q.nm[i], K_DIM);
         cv_text(RT_CH_R - text_w(&FONT_XS, q.ch[i]), y, &FONT_XS, q.ch[i], q.heard[i] ? K_DIM : K_ACC);
-        cv_round(RT_BAR_X, y + 4, RT_BAR_W, 6, 3, K_LINE);
-        if (i == 1) {                              /* the bend: from the middle */
-            int32_t mid = RT_BAR_X + RT_BAR_W / 2, e = mid + q.bar[1];
-            cv_rect(mid, y + 1, 1, 12, K_DIM);
-            if (q.ok[1])
-                cv_round(e < mid ? e : mid, y + 4, (e < mid ? mid - e : e - mid) + 3, 6, 3, K_BLUE);
-        } else if (q.bar[i] > 0) {
-            cv_round(RT_BAR_X, y + 4, q.bar[i] < 6 ? 6 : q.bar[i], 6, 3, i == 0 ? K_ACC : K_BLUE);
+        if (i == 0 && q.hint >= 0) {               /* breath on another source: say which, for Breath CC */
+            rt_hint_text(q.hint, t);
+            cv_text(RT_BAR_X, y, &FONT_XS, t, K_ACC);
+        } else {
+            cv_round(RT_BAR_X, y + 4, RT_BAR_W, 6, 3, K_LINE);
+            if (i == 1) {                          /* the bend: from the middle */
+                int32_t mid = RT_BAR_X + RT_BAR_W / 2, e = mid + q.bar[1];
+                cv_rect(mid, y + 1, 1, 12, K_DIM);
+                if (q.ok[1])
+                    cv_round(e < mid ? e : mid, y + 4, (e < mid ? mid - e : e - mid) + 3, 6, 3, K_BLUE);
+            } else if (q.bar[i] > 0) {
+                cv_round(RT_BAR_X, y + 4, q.bar[i] < 6 ? 6 : q.bar[i], 6, 3, i == 0 ? K_ACC : K_BLUE);
+            }
         }
         cv_text(226 - text_w(&FONT_S, q.val[i]), y - 1, &FONT_S, q.val[i],
                 q.fresh[i] ? K_ACC : q.ok[i] ? K_TEXT : K_DIM);
@@ -635,6 +653,20 @@ static const char *rt_text(const char *what, char *b)
         rt_mon_text(i, &m, lab, nm, ch, val);
         rt_fit(nm, RT_CH_R - text_w(&FONT_XS, ch) - 4 - 56);
         snprintf(b, 64, "%s|%s|%s%s|%s", lab, nm, ch, ch[0] && !rt_heard(m.ch[i]) ? "!" : "", val);
+        return b;
+    }
+    if (!strcmp(what, "rthint") || !strcmp(what, "rthintfit")) {   /* the breath row's hint ("-" none); */
+        char t[16];                                                 /* ...fit: "ok" when it clears the edge */
+        int src = wc_breath_hint(&rt_ws.mon, (uint32_t)proj.par[P_BSRC]);
+        if (src < 0) {
+            snprintf(b, 64, "-");
+            return b;
+        }
+        rt_hint_text(src, t);
+        if (what[6])
+            snprintf(b, 64, "%s", RT_BAR_X + text_w(&FONT_XS, t) <= 226 ? "ok" : "over");
+        else
+            snprintf(b, 64, "%s", t);
         return b;
     }
     return 0;

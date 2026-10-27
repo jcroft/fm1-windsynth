@@ -58,7 +58,9 @@ typedef struct {
     uint8_t note, velocity, on;        /* the last note on or off: its number, velocity, 1 on */
     uint8_t ch[4];                     /* the channel each came on (breath, bend, glide, note): 1..16, 0 a panel key */
     uint8_t breath_src, glide_src;     /* the source the breath and glide values came as (wc_cfg's then) */
-    uint8_t pad[2];
+    uint8_t other_src, other_n;        /* the last other CC (or channel pressure, WC_SRC_AT) that moved, and how
+                                        * many messages in a row it sent (to 255): breath on a source not chosen */
+    uint32_t t_other;                  /* when it last came (a block of clock; 0: never) */
 } wc_mon_t;
 
 extern wc_cfg_t wc_cfg;
@@ -68,6 +70,9 @@ void wc_reset(void);                   /* nothing held, nothing bent (wc_cfg kep
 /* one MIDI channel message: status byte and two data bytes (realtime and system: ignored) */
 void wc_midi(uint32_t st, uint32_t d1, uint32_t d2);
 void wc_key(int note, int on);         /* a panel key: its MIDI note, down or up */
+/* the source a controller seems to send its breath on when it isn't the one chosen (src): a CC 0..127,
+ * WC_SRC_AT, or -1 (none: the chosen source is coming, or nothing else is streaming) */
+int wc_breath_hint(const wc_mon_t *m, uint32_t src);
 /* the next block of frames at sr: glide and smoothing move on, the state comes out */
 void wc_block(uint32_t frames, float sr, wc_out_t *o);
 int wc_held(void);                     /* notes held (MIDI and keys) */

@@ -4,12 +4,14 @@
 #include "../dsp/fastmath.h"
 
 #define BREATH_MS 3.0f                 /* smoothing: 7-bit breath steps, ironed out */
+#define HINT_BLOCKS 690u               /* the breath hint's window: a second of blocks (1.451 ms each) */
+#define HINT_N 4u                      /* ...and the messages in a row it takes */
 
 wc_cfg_t wc_cfg;
 
 static struct {
     uint8_t note[WC_NSTACK], key[WC_NSTACK];   /* held, oldest first; key: a panel key's */
-    uint8_t n, keys;
+    uint8_t n;
     int16_t top;                       /* the note sounding, or the last one (-1: none yet) */
     float cur, target, rate;           /* pitch in semitones; glide per second */
     uint16_t breath_msb, breath_raw;   /* 14-bit */
@@ -24,7 +26,7 @@ static uint8_t mon_bsrc, mon_gsrc;     /* the breath and glide sources the monit
 
 void wc_reset(void)
 {
-    w.n = w.keys = 0;
+    w.n = 0;
     w.bend = w.mod = w.pressure = 0.0f;
     w.glide_cc = 0;
     w.breath_msb = w.breath_raw = 0;
@@ -55,6 +57,8 @@ void wc_init(void)
     mon.glide = mon.note = mon.velocity = mon.on = 0u;
     mon.ch[0] = mon.ch[1] = mon.ch[2] = mon.ch[3] = 0u;
     mon.breath_src = mon.glide_src = 255u;
+    mon.other_src = mon.other_n = 0u;
+    mon.t_other = 0u;
     mon_msb = 0u;
     mon_bsrc = wc_cfg.breath_src;
     mon_gsrc = wc_cfg.glide_src;
@@ -111,7 +115,6 @@ static void drop(int note)
     int i, j;
     for (i = 0; i < w.n; i++)
         if (w.note[i] == note) {
-            w.keys -= w.key[i];
             for (j = i; j + 1 < w.n; j++) {
                 w.note[j] = w.note[j + 1];
                 w.key[j] = w.key[j + 1];
@@ -139,6 +142,38 @@ static void seen_breath(uint32_t raw, uint32_t ch)
     mon.t_breath = mon.clock;
 }
 
+/* a CC (or channel pressure) that isn't a chosen source: the one sending most lately wins, so a stream
+ * holds against another interleaved with it */
+static void seen_other(uint32_t src)
+{
+    if (mon.other_n && mon.other_src != src && mon.clock - mon.t_other <= HINT_BLOCKS) {
+        mon.other_n--;
+        return;
+    }
+    if (mon.other_src != src || mon.clock - mon.t_other > HINT_BLOCKS)
+        mon.other_n = 0u;
+    mon.other_src = (uint8_t)src;
+    if (mon.other_n < 255u)
+        mon.other_n++;
+    mon.t_other = mon.clock;
+}
+
+/* a CC a controller might send breath on: not bank select, data entry, the pedals' switches, (N)RPN, the
+ * channel mode messages, or any LSB (32..63) */
+static int breathy(uint32_t n)
+{
+    return n != 0u && n != 6u && !(n >= 32u && n <= 69u) && !(n >= 96u && n <= 101u) && n < 120u;
+}
+
+int wc_breath_hint(const wc_mon_t *m, uint32_t src)
+{
+    if (!m->t_other || m->clock - m->t_other > HINT_BLOCKS || m->other_n < HINT_N || m->other_src == src)
+        return -1;
+    if (m->t_breath && m->breath_src == src && m->clock - m->t_breath <= HINT_BLOCKS)
+        return -1;                     /* the chosen source is coming: the other is something else */
+    return m->other_src;
+}
+
 /* the monitor: every channel message, before the channel setting */
 static void monitor(uint32_t st, uint32_t d1, uint32_t d2)
 {
@@ -159,11 +194,15 @@ static void monitor(uint32_t st, uint32_t d1, uint32_t d2)
             mon.glide_src = wc_cfg.glide_src;
             mon.ch[2] = (uint8_t)ch;
             mon.t_glide = mon.clock;
+        } else if (d1 != wc_cfg.breath_src && breathy(d1)) {
+            seen_other(d1);
         }
         break;
     case 0xD0u:
         if (wc_cfg.breath_src == WC_SRC_AT)
             seen_breath(d1 << 7 | d1, ch);
+        else
+            seen_other(WC_SRC_AT);
         break;
     case 0xE0u:
         mon.bend = (int16_t)((int)(d2 << 7 | d1) - 8192);
@@ -182,7 +221,6 @@ static void note_on(int note, int key)
         drop(w.note[0]);               /* full: the oldest goes */
     w.note[w.n] = (uint8_t)note;
     w.key[w.n] = (uint8_t)key;
-    w.keys += (uint8_t)key;
     w.n++;
     go_to(note, legato);
 }
@@ -216,7 +254,7 @@ static void cc(uint32_t n, uint32_t v)
     if (n == 1u)
         w.mod = (float)v * (1.0f / 127.0f);
     if (n == 120u || n == 123u) {      /* all sound off, all notes off */
-        w.n = w.keys = 0;
+        w.n = 0;
     }
 }
 
@@ -289,8 +327,8 @@ void wc_block(uint32_t frames, float sr, wc_out_t *o)
         mon.clock = 1u;
     mon_sync();
     o->breath_in = w.breath_cc;
-    if (w.keys && wc_cfg.key_breath > b)
-        o->breath_in = b = wc_cfg.key_breath;      /* (a panel key: as if blown that hard, curve and all) */
+    if (w.n && w.key[w.n - 1] && wc_cfg.key_breath > b)   /* a panel key's note: as if blown that hard, */
+        o->breath_in = b = wc_cfg.key_breath;      /* curve and all (a MIDI note over it: the breath that came) */
     a = 1.0f - fm_expf(-t * (1000.0f / BREATH_MS));
     w.breath += (b - w.breath) * a;
     w.breath = fm_flush(w.breath);
