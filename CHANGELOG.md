@@ -6,13 +6,17 @@ taken from its section below. Add the section in the same pull request as the `V
 
 ## 0.0.33
 
-- **No breath, no sound.** A note with no breath behind it is now silent, the way a wind patch whose
+- **No breath, no sound.** A phrase with no breath behind it is now silent, the way a wind patch whose
   level follows the breath is. A controller can send stray notes at its breath threshold with the breath
-  near zero (a NuRAD's open C#, for one). Those used to sound quietly, at full level through the closed
-  filter. The level opens over the first sliver of breath (breath CC 0 to 10). Above that nothing changes:
-  breath still only opens the filter, and the panel keys play at full breath as before.
-- If Breath CC is set to a CC your controller doesn't send, notes are silent now rather than muffled. The
-  Setup page names the CC that's moving.
+  near zero (a NuRAD's open C#, for one); those used to sound quietly, at full level through the closed
+  filter. The level opens over the first sliver of breath (breath CC 0 to 10, whatever the Curve), and
+  holds what it reached until the next phrase, so releases and a breath tapering off sound as before.
+  Above that sliver nothing changes: breath still only opens the filter, and the panel keys play at
+  full breath.
+- The gate waits until the breath source has been heard. A keyboard with no breath, or a controller
+  sending its breath on a CC that isn't Breath CC (the Setup page names the CC that's moving), plays as
+  before.
+- A setup that sounds at zero breath on purpose (breath to Amp at a negative amount) now starts silent.
 
 ## 0.0.32
 

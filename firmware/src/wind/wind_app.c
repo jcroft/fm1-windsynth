@@ -555,14 +555,31 @@ static void drain(int (*midi_in)(uint32_t *pkt))
     }
 }
 
-/* the breath gate: a note with no breath behind it is silent, as on a wind patch whose level follows the
- * breath (a controller's stray notes at its threshold, with the breath CC near 0). It opens over the first
- * BREATH_GATE of breath, squared, and above that leaves the level alone: breath still only opens the filter */
+/* the breath gate: a phrase with no breath behind it is silent, as on a wind patch whose level follows the
+ * breath (a controller's stray notes at its threshold, with the breath near 0). It reads the breath as it
+ * comes (before the curve: the same CCs at any curve), smoothed as the breath is, opens over the first
+ * BREATH_GATE of it, squared, and holds what it reached until the next phrase (a note from silence): a
+ * phrase's release and a breath tapering off keep their level. It waits for the breath source to have been
+ * heard, so a controller with no breath (or one sending it on another CC: Setup names it) still plays. */
 #define BREATH_GATE 0.08f
-static float breath_gate(float b)
+#define GATE_SMOOTH 0.38f              /* the breath's 3 ms one-pole, per 1.451 ms block */
+static float gate_in, gate_held, gate_last;
+static float breath_gate(const wc_out_t *c)
 {
-    float x = b >= BREATH_GATE ? 1.0f : b <= 0.0f ? 0.0f : b * (1.0f / BREATH_GATE);
-    return x * x;
+    const wc_mon_t *mon = wc_monitor();
+    float x;
+    if (c->gate > 0.5f && gate_last <= 0.5f)
+        gate_held = 0.0f;              /* a phrase starts: it opens as far as its breath does */
+    gate_last = c->gate;
+    gate_in += (c->breath_in - gate_in) * GATE_SMOOTH;
+    gate_in = fm_flush(gate_in);
+    x = gate_in >= BREATH_GATE ? 1.0f : gate_in <= 0.0f ? 0.0f : gate_in * (1.0f / BREATH_GATE);
+    x *= x;
+    if (c->gate > 0.5f && x > gate_held)
+        gate_held = x;
+    if (!mon->t_breath || mon->breath_src != wc_cfg.breath_src)
+        return 1.0f;                   /* no breath heard on the source chosen (yet) */
+    return gate_held;
 }
 
 void wa_render(int32_t *out, uint32_t n, uint32_t gain_q12, int (*midi_in)(uint32_t *pkt))
@@ -599,7 +616,7 @@ void wa_render(int32_t *out, uint32_t n, uint32_t gain_q12, int (*midi_in)(uint3
         f.gate = c.gate;
         f.cutoff = m[WM_DST_CUTOFF];
         f.res = m[WM_DST_RES];
-        m[WM_DST_AMP] *= breath_gate(c.breath);
+        m[WM_DST_AMP] *= breath_gate(&c);
         f.amp = m[WM_DST_AMP] * g;
         f.morph = m[WM_DST_MORPH];
         f.timbre = m[WM_DST_TIMBRE];
