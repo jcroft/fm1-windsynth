@@ -7,7 +7,7 @@ FM-1 itself.
 
 > **Status: in development (0.0.x).** It plays: notes, breath, bite and glide from any windsynth
 > drive a Plaits voice (eight engines), with 64 presets, a distortion, a chorus/flanger/phaser, a delay and a reverb, in the browser and on
-> the FM-1. Nothing is released yet. The plan is in [docs/PLAN.md](docs/PLAN.md).
+> the FM-1. Nothing is released yet.
 
 ![Full breath on A3](docs/img/wind_voice.png) ![The Breath page](docs/img/wind_breath.png) ![Mod 1: breath to cutoff](docs/img/wind_mod.png)
 
@@ -114,26 +114,6 @@ depth, Transpose and Tune), the keys' octave and Setup (the breath and glide CCs
 Hold **SAVE** for 1.5 s, then press it again, for the init sound (the preset slot is untouched until
 you save).
 
-## In rough order
-
-- 0.0.1: the fork of FiMba-1, renamed.
-- 0.0.2: Plaits' VA-VCF voice inside, bit-exact with upstream Plaits.
-- 0.0.3: playable: breath, bite, glide and the mod matrix, from any windsynth, with its own pages and
-  screen. The kalimba is gone. The browser version picks a MIDI input and shows what it hears.
-- 0.0.4: the init sound is a single saw with breath on the cutoff only.
-- 0.0.5: 64 presets, picked with PRESETS and saved with SAVE.
-- 0.0.6: a second engine, Plaits' 2-op FM, through the same filter so breath works the same way.
-- 0.0.7: a reverb (Cloud, Hall, Plate, Room, Shimmer) and a delay (Digital, Tape, Analog, Ping-pong).
-- 0.0.8: CC depth, the longest glide the glide CC reaches.
-- 0.0.9: Shimmer rebuilt: the tail climbs in octaves, with a Shimmer amount.
-- 0.0.10: five more Plaits engines: 6-op FM (96 DX7 patches), Formant, Waveshape, VA and Swarm.
-- 0.0.11: a smoother reverb tail that fades to silence.
-- 0.0.12: Glide is a set time that CC5 adds to; 6-op in tune and smooth; Swarm dropped.
-- 0.0.13: two more Plaits engines, PD (phase distortion) and Harmonic (additive).
-- 0.0.14: Distortion and Modulation (chorus, ensemble, flanger, phaser) before the delay and the reverb.
-- 0.0.15: every engine goes through Classic's filter exactly, its drive and saturation included.
-- 0.0.16: a noise layer for any engine, with its own page and a Mod destination.
-
 ## Building and testing
 
 See [BUILDING.md](BUILDING.md). In short: `python3 tools/build.py` builds the FM-1 package,
@@ -145,8 +125,8 @@ FM-1 Windsynth is a fork of [FiMba-1](https://github.com/jadamsowers/fm1-fimba) 
 which grew from [FoMni](https://github.com/charlesvestal/fm1-fomni) and
 [X0X](https://github.com/charlesvestal/fm1-x0x) by Charles Vestal, both built on
 [Felucca](https://github.com/hugelton/Felucca) by Leo Kuroshita (Hügelton Instruments). The voices
-come from [Plaits](https://github.com/pichenettes/eurorack) by Émilie Gillet (MIT). FiMba's
-original README, which documents the kalimba this started from, is in
-[docs/FIMBA-README.md](docs/FIMBA-README.md).
+come from [Plaits](https://github.com/pichenettes/eurorack) by Émilie Gillet (MIT).
 
-Licensing: GPL-3.0-only; see [LICENSING.md](LICENSING.md). Not affiliated with M-VAVE.
+Copyright (C) 2026 Jeff Croft and the authors of the projects above. Licensing: GPL-3.0-only; see
+[LICENSING.md](LICENSING.md). Contributions are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md).
+Not affiliated with M-VAVE.

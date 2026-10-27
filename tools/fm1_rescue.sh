@@ -1,4 +1,7 @@
 #!/bin/bash
+# SPDX-License-Identifier: GPL-3.0-only
+# X0X's rescue script, unchanged (https://github.com/charlesvestal/fm1-x0x): it downloads
+# fm1_rescue.py from X0X's repository, not from this one.
 # FM-1 rescue: one command that puts M-VAVE's stock firmware back on an FM-1 stuck in a crash loop.
 #   bash -c "$(curl -fsSL https://raw.githubusercontent.com/charlesvestal/fm1-x0x/main/tools/fm1_rescue.sh)"
 set -e

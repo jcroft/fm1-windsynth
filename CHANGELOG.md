@@ -364,7 +364,7 @@ Fixes from a full code review (eight reviewers, each finding checked by two skep
 ## 0.0.1
 
 - **FM-1 Windsynth starts here**, as a fork of FiMba-1 0.6.0. It still plays FiMba's kalimba while
-  the wind voice is built; see `docs/PLAN.md`. The USB name is now "Windsynth FM-1".
+  the wind voice is built. The USB name is now "Windsynth FM-1".
 - Versions `0.0.x` are development builds: nothing is released until `VERSION` moves past them.
 
 The history below is FiMba-1's.
