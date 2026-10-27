@@ -141,7 +141,7 @@ kbd { font: 600 .85em ui-monospace, Menlo, monospace; background: var(--card); b
   </ol>
   <div class="row">
     <button id="instLatest" type="button" disabled>Install Windsynth</button>
-    <span class="what" id="instWhat">No release yet: choose a file below.</span>
+    <span class="what" id="instWhat">No package here: choose a file below.</span>
   </div>
   <div class="row">
     <label for="instFile">Or a firmware file (<code>.fwsc</code>), from a release or a test build:</label>
@@ -658,7 +658,7 @@ function readPackage(raw, what) {                      /* a .fwsc: its identity 
     $("instWhat").textContent = `the latest release (${meta.product})`;
   } catch (e) {
     $("instWhat").textContent = $("instNone").hidden ? "The release package didn't load: choose a file below."
-                                                     : "No release yet: choose a file below.";
+                                                     : "No package here: choose a file below.";
     if (!navigator.requestMIDIAccess) { $("instWhat").textContent = ""; status("Installing needs Web MIDI: open this page in Chrome or Edge."); return; }
   }
   sync();

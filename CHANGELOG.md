@@ -16,7 +16,7 @@ Plaits voices, and it's tested on real FM-1 hardware for playability, performanc
   flanger, phaser), delay and reverb, with 18 factory presets in 64 preset slots.
 - **Your windsynth:** breath on CC2 by default (any CC or aftertouch on the Setup page, which names
   the CC your controller is sending if it's another), bite as pitch bend (±2 semitones), glide on CC5.
-  A phrase with no breath behind it is silent.
+  Once breath has been heard, a phrase with no breath behind it is silent.
 - **Still to come:** better presets, more testing of each synth engine, and improvements to the
   effects.
 
