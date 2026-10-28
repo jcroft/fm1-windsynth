@@ -130,6 +130,7 @@ which grew from [FoMni](https://github.com/charlesvestal/fm1-fomni) and
 [Felucca](https://github.com/hugelton/Felucca) by Leo Kuroshita (Hügelton Instruments). The voices
 come from [Plaits](https://github.com/pichenettes/eurorack) by Émilie Gillet (MIT).
 
-Copyright (C) 2026 Jeff Croft and the authors of the projects above. Licensing: GPL-3.0-only; see
+Copyright (C) 2026 Jeff Croft and the authors of the projects above. Licensing: GPL-3.0-only, with the
+instrument code (`firmware/src/wind/`) also under MPL-2.0 so other firmware can reuse it; see
 [LICENSING.md](LICENSING.md). Contributions are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md).
 Not affiliated with M-VAVE.

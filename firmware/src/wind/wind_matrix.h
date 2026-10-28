@@ -1,4 +1,7 @@
-/* SPDX-License-Identifier: GPL-3.0-only */
+/* SPDX-License-Identifier: MPL-2.0 */
+/* Copyright (C) 2026 Jeff Croft. This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at
+ * https://mozilla.org/MPL/2.0/. */
 /* The mod matrix: WM_NSLOT slots, each a source, a destination and an amount (-100..100).
  *
  *   Cutoff, Resonance, Morph, Timbre, Noise, Harmonics, Aux   the knob's value plus each slot's amount x its source,

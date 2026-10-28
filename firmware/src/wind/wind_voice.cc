@@ -1,4 +1,7 @@
-/* SPDX-License-Identifier: GPL-3.0-only */
+/* SPDX-License-Identifier: MPL-2.0 */
+/* Copyright (C) 2026 Jeff Croft. This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at
+ * https://mozilla.org/MPL/2.0/. */
 /* The wind voice: a Plaits engine into a gate envelope and VCA, a DC blocker and a soft clip.
  * Classic (VA-VCF) has its own filter; every other engine goes through ours, which is VA-VCF's, line for
  * line: the same two SVFs, key-tracked and scaled the same way, driven the same way (soft clipping into
@@ -12,10 +15,15 @@
  * rather than its own 47,872 Hz, so the pitch is raised by WV_TUNE to keep it in tune; breath is
  * the envelope of these engines, so the 8.5 % longer internal time constants don't matter.
  *
+ * Our filter (post_targets, post_filter) and the noise layer's loudness are adapted from Plaits
+ * (virtual_analog_vcf_engine.cc, the noise engine), Copyright 2016-2021 Emilie Gillet, MIT licence: see
+ * third_party/mutable/LICENSE, which applies to those portions.
+ *
  * Built freestanding: no exceptions, RTTI, static constructors or libm (shim/). The engines live
  * in static storage and are built there by wv_init with placement new. */
 #include <new>
 #include "wind_voice.h"
+#include "wind_math.h"
 #include "plaits/dsp/engine2/virtual_analog_vcf_engine.h"
 #include "plaits/dsp/engine/fm_engine.h"
 #include "plaits/dsp/engine2/six_op_engine.h"

@@ -1,10 +1,13 @@
-/* SPDX-License-Identifier: GPL-3.0-only */
-/* The instrument: see wind_app.h. Float only, no libm (fastmath.h). */
+/* SPDX-License-Identifier: MPL-2.0 */
+/* Copyright (C) 2026 Jeff Croft. This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at
+ * https://mozilla.org/MPL/2.0/. */
+/* The instrument: see wind_app.h. Float only, no libm (wind_math.h). */
 #include "wind_app.h"
 #include "wind_ctl.h"
 #include "wind_voice.h"
 #include "wind_fx.h"
-#include "../dsp/fastmath.h"
+#include "wind_math.h"
 
 const char *const WA_NOTE_NAME[12] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
 

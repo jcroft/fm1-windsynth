@@ -1,5 +1,8 @@
-/* SPDX-License-Identifier: GPL-3.0-only */
-/* The effects: see wind_fx.h. Float only, no libm (fastmath.h).
+/* SPDX-License-Identifier: MPL-2.0 */
+/* Copyright (C) 2026 Jeff Croft. This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at
+ * https://mozilla.org/MPL/2.0/. */
+/* The effects: see wind_fx.h. Float only, no libm (wind_math.h).
  *
  * Half rate: a 6-point half-band filter (Lagrange's midpoint weights, 3 -25 150 150 -25 3) takes the
  * voice down to 22,059 Hz, and the same weights bring the wet signal back up. The wet path is 11 kHz
@@ -10,7 +13,7 @@
  * line writes. Lengths (Size) and the pre-delay glide, read with linear interpolation. */
 #include "wind_fx.h"
 #include "wind_voice.h"
-#include "../dsp/fastmath.h"
+#include "wind_math.h"
 
 #ifdef FELUCCA_ID                       /* the device: the lines go in the .pool RAM region (app.ld) */
 #define WF_POOL __attribute__((section(".pool")))

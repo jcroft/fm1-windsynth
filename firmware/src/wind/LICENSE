@@ -1,0 +1,21 @@
+Copyright (C) 2026 Jeff Croft
+
+The files in this directory (firmware/src/wind/ and its shim/) are FM-1 Windsynth's instrument: the
+wind voice, wind control, the mod matrix, the effects and the parameters that tie them together.
+
+This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of
+the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
+The full text is in LICENSES/MPL-2.0.txt at the top of this repository.
+
+They are free to use in other firmware, closed or open, on the MPL's terms: these files, and your
+changes to them, stay under the MPL, and if you ship them in an executable you make their source
+available and tell recipients how to get it (MPL-2.0 sections 3.1 and 3.2). In this firmware they are combined with GPL-3.0-only code, and the firmware as a
+whole is distributed under GPL-3.0-only (MPL-2.0 section 3.3).
+
+What these files depend on:
+- wind_math.h includes ../dsp/fastmath.h, which is FoMni's / X0X's, GPL-3.0-only, and not covered by this
+  licence. Build with -DWIND_MATH_LIBM to use the C library's maths instead (it sounds the same,
+  but is not sample-identical to this firmware).
+- wind_voice.cc wraps Plaits and stmlib (Mutable Instruments, Emilie Gillet), MIT, vendored in
+  firmware/third_party/mutable/, and its filter and noise loudness are adapted from Plaits: those
+  portions keep Plaits' MIT copyright and notice (firmware/third_party/mutable/LICENSE).

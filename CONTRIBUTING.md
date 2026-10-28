@@ -33,11 +33,14 @@ issue first.
 ## Code
 
 - C99 for the app and C++11 for the wind voice, float only. There's no libm or C++ runtime on the device,
-  so use `dsp/fastmath.h`. No exceptions, RTTI or static constructors. Build with
+  so use `dsp/fastmath.h` (from `firmware/src/wind/`, through `wind_math.h`). No exceptions, RTTI or static constructors. Build with
   `-ffp-contract=off`, so the host and browser builds compute the same samples as the device.
 - Hardware register access stays in `firmware/hal/`; `tools/build.py` checks this.
 - Saved settings must keep loading, so add new enum values and parameters at the end.
-- New files carry `SPDX-License-Identifier: GPL-3.0-only`.
+- New files carry `SPDX-License-Identifier: GPL-3.0-only`, except in `firmware/src/wind/`, which is
+  MPL-2.0: files there carry `SPDX-License-Identifier: MPL-2.0` and include nothing from outside the
+  directory but `wind_math.h`'s maths, the vendored Mutable code and the C library
+  (`tools/check_wind_license.py` checks).
 
 ## Build and test
 
@@ -59,4 +62,4 @@ issue first.
   release by hand.
 
 By contributing, you agree that your contribution is licensed under GPL-3.0-only, as the rest of the
-project is.
+project is, or under MPL-2.0 for changes to `firmware/src/wind/`.
