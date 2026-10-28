@@ -1,7 +1,8 @@
 # FM-1 Windsynth licensing
 
 FM-1 Windsynth is free software under the GNU General Public License, version 3 only (`GPL-3.0-only`,
-full text in `LICENSE`). Copyright (C) 2026 Jeff Croft, for the wind instrument and the changes
+full text in `LICENSE`). The instrument code in `firmware/src/wind/` is also available on its own
+under the Mozilla Public License 2.0 (see below). Copyright (C) 2026 Jeff Croft, for the wind instrument and the changes
 made here; the parts that came from other projects keep their authors' copyright, as the tables below
 say. It is a fork of [FiMba-1](https://github.com/jadamsowers/fm1-fimba), which is
 built on FoMni (and through it X0X and Felucca), and keeps their licence. If you distribute FM-1
@@ -18,7 +19,23 @@ complete corresponding source under the same licence.
 | Platform tests (`tests/host/{fastmath,encoder,uac,trs}_test.c`, `tests/{storage,ota,ldr}_test.c`, `tests/install_test.py`) | FoMni / Felucca | GPL-3.0-only |
 | The simulated FM-1 for the web installer's tests (`tests/web/fake_fm1.mjs`) and the installer panel's protocol use (`web/fm1ota.js`, `web/fm1pkg.js`, inlined into the page) | Felucca's `web/test_web.mjs` and update modules, by way of FoMni's web installer | GPL-3.0-only |
 | The UI's look (its themes, bars and knob row) and the scenario runner in the simulator | [FiMba-1](https://github.com/jadamsowers/fm1-fimba), Adam Sowers | GPL-3.0-only |
-| The wind instrument: `firmware/src/wind/` (voice, control, matrix, effects, app), the UI's pages, `tools/wind_cxx.sh`, `tools/check_vendor.py`, `tests/host/wind_*`, `tests/scenarios/` | FM-1 Windsynth, Copyright (C) 2026 Jeff Croft | GPL-3.0-only |
+| The wind instrument: `firmware/src/wind/` (voice, control, matrix, effects, app, the maths seam `wind_math.h` and `shim/`) | FM-1 Windsynth, Copyright (C) 2026 Jeff Croft | MPL-2.0 (`firmware/src/wind/LICENSE`, `LICENSES/MPL-2.0.txt`) |
+| The UI's pages, `tools/wind_cxx.sh`, `tools/check_vendor.py`, `tools/check_wind_license.py`, `tests/host/wind_*`, `tests/scenarios/` | FM-1 Windsynth, Copyright (C) 2026 Jeff Croft | GPL-3.0-only |
+
+## The instrument under MPL-2.0
+
+`firmware/src/wind/` is under the Mozilla Public License 2.0, so other firmware can use it, including
+firmware that links closed code such as a Bluetooth stack. The MPL is file-level: changes to these
+files stay under the MPL, and the rest of a program that uses them can be under any licence.
+
+In this firmware those files are combined with the GPL-3.0-only platform above, and the firmware as
+a whole is distributed under GPL-3.0-only, which the MPL allows (its section 3.3). The rest of the
+repository stays GPL-3.0-only; relicensing it would need its authors' consent.
+
+The wind code takes its maths through `wind_math.h`. Here that is `firmware/src/dsp/fastmath.h`
+(X0X, GPL-3.0-only), which is not part of the MPL code. Build with `-DWIND_MATH_LIBM` and the C
+library's maths stands in. `tools/check_wind_license.py` keeps every file in `firmware/src/wind/`
+under MPL-2.0 and checks that nothing else there reaches outside the directory.
 
 ## Third-party material
 

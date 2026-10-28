@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-3.0-only */
+/* SPDX-License-Identifier: MPL-2.0 */
 /* Wind control: MIDI from any wind controller (and the panel's keys) to the voice's control state.
  *
  *   notes    a stack of WC_NSTACK, last note wins: letting go of a note falls back to the one still

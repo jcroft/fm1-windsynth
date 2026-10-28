@@ -1,8 +1,8 @@
-/* SPDX-License-Identifier: GPL-3.0-only */
-/* The vendored Plaits and stmlib code, with no libm: its few maths calls go to dsp/fastmath.h.
+/* SPDX-License-Identifier: MPL-2.0 */
+/* The vendored Plaits and stmlib code, with no libm: its few maths calls go to wind_math.h.
  * Every build of the wind voice (device, host, web) uses this, so they compute the same samples. */
 #pragma once
-#include "../../dsp/fastmath.h"
+#include "../wind_math.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846     /* folded into float constants at compile time */

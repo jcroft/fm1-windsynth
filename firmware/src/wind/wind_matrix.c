@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-3.0-only */
+/* SPDX-License-Identifier: MPL-2.0 */
 /* The mod matrix: see wind_matrix.h. */
 #include "wind_matrix.h"
 

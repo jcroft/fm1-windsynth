@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-3.0-only */
+/* SPDX-License-Identifier: MPL-2.0 */
 /* The instrument: wind control (wind_ctl) into the mod matrix (wind_matrix) into the voice
  * (wind_voice), with the settings that are saved (P_*) and the state the screen shows.
  *

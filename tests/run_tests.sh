@@ -63,6 +63,12 @@ else
     echo "  skip wind-fx-sanitized (no -fsanitize=address,undefined)"
 fi
 run vendor python3 tools/check_vendor.py
+# the wind code is MPL-2.0 and builds on its own with the C library's maths, as other firmware would use it
+run wind-mpl sh -c "python3 tools/check_wind_license.py && mkdir -p $OUT/wind-libm && \
+    for u in wind_ctl wind_matrix wind_app wind_fx; do \
+        $CC -std=c99 -Wall -Wextra -Werror -DWIND_MATH_LIBM -c -o $OUT/wind-libm/\$u.o firmware/src/wind/\$u.c || exit 1; done && \
+    $CXX -std=c++11 -Wall -Werror -DTEST -DWIND_MATH_LIBM -Ifirmware/third_party/mutable -c -o $OUT/wind-libm/wind_voice.o \
+        firmware/src/wind/wind_voice.cc"
 run storage sh -c "$CC -O2 -o $OUT/storage_test tests/storage_test.c && $OUT/storage_test"
 # the update path, against the firmware package (Felucca's tests; needs ./build.sh)
 if [ -f build/windsynth.fwsc ]; then

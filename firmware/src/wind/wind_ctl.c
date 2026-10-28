@@ -1,7 +1,7 @@
-/* SPDX-License-Identifier: GPL-3.0-only */
-/* Wind control: see wind_ctl.h. Float only, no libm (fastmath.h). */
+/* SPDX-License-Identifier: MPL-2.0 */
+/* Wind control: see wind_ctl.h. Float only, no libm (wind_math.h). */
 #include "wind_ctl.h"
-#include "../dsp/fastmath.h"
+#include "wind_math.h"
 
 #define BREATH_MS 3.0f                 /* smoothing: 7-bit breath steps, ironed out */
 #define HINT_BLOCKS 690u               /* the breath hint: gone a second (of 1.451 ms blocks) after the last */

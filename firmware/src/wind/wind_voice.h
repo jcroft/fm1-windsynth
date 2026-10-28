@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-3.0-only */
+/* SPDX-License-Identifier: MPL-2.0 */
 /* The wind voice: one mono Plaits engine, its gate envelope and VCA, behind a C API.
  * All the C++ stays in wind_voice.cc. */
 #pragma once

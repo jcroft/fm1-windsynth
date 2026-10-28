@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-3.0-only */
+/* SPDX-License-Identifier: MPL-2.0 */
 /* <new>: placement new only. The engines are built in static storage by wv_init, so no
  * constructor or destructor needs the C++ runtime (.init_array, __cxa_atexit). */
 #pragma once

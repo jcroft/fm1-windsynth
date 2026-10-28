@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-3.0-only */
+/* SPDX-License-Identifier: MPL-2.0 */
 /* <algorithm> for the vendored code: std::min, std::max, std::copy and std::fill */
 #pragma once
 
