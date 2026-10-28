@@ -1,4 +1,7 @@
 /* SPDX-License-Identifier: MPL-2.0 */
+/* Copyright (C) 2026 Jeff Croft. This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at
+ * https://mozilla.org/MPL/2.0/. */
 /* Wind control: MIDI from any wind controller (and the panel's keys) to the voice's control state.
  *
  *   notes    a stack of WC_NSTACK, last note wins: letting go of a note falls back to the one still

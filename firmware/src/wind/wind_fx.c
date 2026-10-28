@@ -1,4 +1,7 @@
 /* SPDX-License-Identifier: MPL-2.0 */
+/* Copyright (C) 2026 Jeff Croft. This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at
+ * https://mozilla.org/MPL/2.0/. */
 /* The effects: see wind_fx.h. Float only, no libm (wind_math.h).
  *
  * Half rate: a 6-point half-band filter (Lagrange's midpoint weights, 3 -25 150 150 -25 3) takes the

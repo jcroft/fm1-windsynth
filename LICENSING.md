@@ -6,7 +6,7 @@ under the Mozilla Public License 2.0 (see below). Copyright (C) 2026 Jeff Croft,
 made here; the parts that came from other projects keep their authors' copyright, as the tables below
 say. It is a fork of [FiMba-1](https://github.com/jadamsowers/fm1-fimba), which is
 built on FoMni (and through it X0X and Felucca), and keeps their licence. If you distribute FM-1
-Windsynth, or firmware derived from it, you must give your recipients its
+Windsynth, or firmware derived from its GPL parts, you must give your recipients its
 complete corresponding source under the same licence.
 
 ## Where the code comes from
@@ -26,14 +26,16 @@ complete corresponding source under the same licence.
 
 `firmware/src/wind/` is under the Mozilla Public License 2.0, so other firmware can use it, including
 firmware that links closed code such as a Bluetooth stack. The MPL is file-level: changes to these
-files stay under the MPL, and the rest of a program that uses them can be under any licence.
+files stay under the MPL (and whoever ships them makes their source available), and the rest of a
+program that uses them can be under any licence. `wind_voice.cc`'s filter is adapted from Plaits and
+keeps Plaits' MIT notice for that part.
 
 In this firmware those files are combined with the GPL-3.0-only platform above, and the firmware as
 a whole is distributed under GPL-3.0-only, which the MPL allows (its section 3.3). The rest of the
 repository stays GPL-3.0-only; relicensing it would need its authors' consent.
 
 The wind code takes its maths through `wind_math.h`. Here that is `firmware/src/dsp/fastmath.h`
-(X0X, GPL-3.0-only), which is not part of the MPL code. Build with `-DWIND_MATH_LIBM` and the C
+(FoMni / X0X, GPL-3.0-only), which is not part of the MPL code. Build with `-DWIND_MATH_LIBM` and the C
 library's maths stands in. `tools/check_wind_license.py` keeps every file in `firmware/src/wind/`
 under MPL-2.0 and checks that nothing else there reaches outside the directory.
 

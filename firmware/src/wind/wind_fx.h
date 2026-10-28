@@ -1,4 +1,7 @@
 /* SPDX-License-Identifier: MPL-2.0 */
+/* Copyright (C) 2026 Jeff Croft. This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at
+ * https://mozilla.org/MPL/2.0/. */
 /* The effects after the voice, in this order: a distortion and a modulation (chorus, flanger, phaser) at
  * the FM-1's rate, then a delay and a reverb at half of it (22,059 Hz, 16-bit lines in the .pool RAM
  * region: the reverb's half floats, the delay's fixed point), mixed back with the dry signal at full rate.
