@@ -9,9 +9,10 @@ from pathlib import Path
 
 D = Path(__file__).resolve().parents[1] / "firmware" / "src" / "wind"
 bad = []
-# the sources: C, C++ and the shim's extensionless headers (so a stray .DS_Store or .orig is not read)
-files = [p for p in sorted(D.rglob("*")) if p.is_file() and p.name != "LICENSE"
-         and (p.suffix in (".c", ".cc", ".h") or (p.parent.name == "shim" and not p.suffix))]
+# every file but the licence notice and dotfiles (a Mac's .DS_Store)
+files = [p for p in sorted(D.rglob("*")) if p.is_file() and p.name != "LICENSE" and not p.name.startswith(".")]
+if not (D / "LICENSE").is_file():
+    bad.append("missing: LICENSE (the MPL notice)")
 for p in files:
     name = str(p.relative_to(D))
     text = p.read_text(errors="replace")
@@ -20,7 +21,7 @@ for p in files:
     for inc in re.findall(r'^\s*#\s*include\s+"([^"]+)"', text, re.M):
         if name == "wind_math.h" and inc == "../dsp/fastmath.h":
             continue
-        if inc.startswith(("plaits/", "stmlib/")):
+        if inc.startswith(("plaits/", "stmlib/")) and ".." not in inc:
             continue
         if not (p.parent / inc).resolve().is_relative_to(D):
             bad.append(f"includes outside firmware/src/wind/: {name}: {inc}")

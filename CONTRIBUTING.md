@@ -33,7 +33,7 @@ issue first.
 ## Code
 
 - C99 for the app and C++11 for the wind voice, float only. There's no libm or C++ runtime on the device,
-  so use `dsp/fastmath.h` (in `firmware/src/wind/`, through `wind_math.h`). No exceptions, RTTI or static constructors. Build with
+  so use `dsp/fastmath.h` (from `firmware/src/wind/`, through `wind_math.h`). No exceptions, RTTI or static constructors. Build with
   `-ffp-contract=off`, so the host and browser builds compute the same samples as the device.
 - Hardware register access stays in `firmware/hal/`; `tools/build.py` checks this.
 - Saved settings must keep loading, so add new enum values and parameters at the end.
