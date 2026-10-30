@@ -574,7 +574,20 @@ static void tn_sample(void)
     wa_param_text(P_SMLOOP, proj.par[P_SMLOOP], t);   /* the loop and how it's pitched */
     cv_text(18, 120, &FONT_XS, t, K_DIM);
     if (proj.par[P_SMTRACK]) {
-        tn_text_r(226, 120, &FONT_XS, "follows the note", K_DIM);
+        static const char F[] = "follows the note";   /* (and Tune, which adds to it) */
+        char u[sizeof F + 2 + 24];
+        int c = 0, j = 0;
+        while (F[c])
+            u[j++] = F[c++];
+        if (proj.par[P_SMTUNE]) {
+            wa_param_text(P_SMTUNE, proj.par[P_SMTUNE], t);
+            u[j++] = ',';
+            u[j++] = ' ';
+            for (c = 0; t[c]; c++)
+                u[j++] = t[c];
+        }
+        u[j] = 0;
+        tn_text_r(226, 120, &FONT_XS, u, K_DIM);
     } else {
         wa_param_text(P_SMTUNE, proj.par[P_SMTUNE], t);
         tn_text_r(226, 120, &FONT_XS, proj.par[P_SMTUNE] ? t : "its own pitch", K_DIM);

@@ -16,6 +16,7 @@ class Windsynth extends AudioWorkletProcessor {
     this.lastFrame = 0;
     this.busy = 0;
     this.frames = 0;
+    this.pending = null;
     this.port.onmessage = (e) => this.onMessage(e.data);
   }
 
@@ -48,8 +49,10 @@ class Windsynth extends AudioWorkletProcessor {
       this.putSamples(m.samples);
       this.ex.web_master(m.master ?? 2800);
       this.ex.web_boot();
+      if (this.pending) { this.putSamples(this.pending.bank); this.ex.web_samples_attach(); this.pending = null; }
       this.port.postMessage({ type: "ready" });
     } else if (!this.ex) {
+      if (m.type === "samples") this.pending = m;    // (the bank changed while it loads: put in once it has)
       return;
     } else if (m.type === "buttons") {
       this.ex.web_buttons(m.mask >>> 0);

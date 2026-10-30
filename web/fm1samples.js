@@ -116,6 +116,7 @@ export function wavInfo(b) {
     if (id === "smpl" && n >= 36) {
       const unity = dv.getUint32(i + 8 + 12, true), frac = dv.getUint32(i + 8 + 16, true), loops = dv.getUint32(i + 8 + 28, true);
       if (unity < 128) { out.root = unity; out.fine = Math.round(frac / 4294967296 * 100); }
+      if (out.fine >= 100) { out.root = Math.min(127, out.root + 1); out.fine = 0; }   // (a hair under the next note)
       if (loops && n >= 60) {
         const s = dv.getUint32(i + 8 + 44, true), e = dv.getUint32(i + 8 + 48, true);
         if (s < e) out.loop = [s, e + 1];
@@ -250,9 +251,11 @@ export function frames(bank) {
 // the FM-1 over Web MIDI (an access with sysex), one request and its reply at a time
 export class SampleLink {
   constructor(access, timeout = 2000) {
-    const pick = (m) => [...m.values()].find((p) => /fm-1|windsynth/i.test(p.name || ""));
-    this.inp = pick(access.inputs);
-    this.out = pick(access.outputs);
+    // an FM-1 that's connected (a port left over from before a replug isn't), its output paired by name
+    const live = (m) => [...m.values()].filter((p) => p.state !== "disconnected" && /fm-1|windsynth/i.test(p.name || ""));
+    this.inp = live(access.inputs)[0];
+    const outs = live(access.outputs);
+    this.out = this.inp && (outs.find((o) => o.name === this.inp.name) || outs[0]);
     if (!this.inp || !this.out) throw new Error("FM-1 not found. Check the USB cable, and close other apps that use MIDI.");
     this.timeout = timeout;
     this.got = [];
@@ -261,7 +264,9 @@ export class SampleLink {
     this.inp.addEventListener("midimessage", this.on);
   }
   close() { this.inp.removeEventListener("midimessage", this.on); }
-  async ask(pkt, tries = 3) {
+  // the reply's body after rc; off: the offset a READ or WRITE reply must name (a late reply to an earlier
+  // try is skipped)
+  async ask(pkt, tries = 3, off = null) {
     const cmd = pkt[5];
     for (let t = 0; t < tries; t++) {
       this.got = [];
@@ -272,6 +277,7 @@ export class SampleLink {
         if (!p) { await new Promise((r) => { this.wake = r; setTimeout(r, end - Date.now()); }); this.wake = null; continue; }
         const r = parseReply(p, cmd);
         if (!r) continue;
+        if (off !== null && !r[0] && (r[1] | r[2] << 8 | r[3] << 16 | r[4] << 24) >>> 0 !== off) continue;
         if (r[0]) throw new Error(`The FM-1 refused the samples: ${RC[r[0]] || r[0]}.`);
         return r.subarray(1);
       }
@@ -287,7 +293,11 @@ export class SampleLink {
     const { room } = await this.info();
     if (bank.length > room) throw new Error(`The bank is ${bank.length} bytes: the FM-1 has room for ${room}.`);
     const ms = frames(bank);
-    for (let k = 0; k < ms.length; k++) { await this.ask(ms[k]); progress((k + 1) / ms.length); }
+    for (let k = 0; k < ms.length; k++) {
+      const write = k > 0 && k < ms.length - 1;
+      await this.ask(ms[k], 3, write ? SMP.HDR + (k - 1) * SMP.PIECE : null);
+      progress((k + 1) / ms.length);
+    }
   }
   async read(progress = () => {}) {               // the FM-1's bank, or null if it has none
     const { size } = await this.info();
@@ -295,7 +305,7 @@ export class SampleLink {
     const b = new Uint8Array(size);
     for (let off = 0; off < size; off += SMP.PIECE) {
       const n = Math.min(SMP.PIECE, size - off);
-      const r = await this.ask(message(READ, [...u32(off), n & 0xFF, n >> 8]));
+      const r = await this.ask(message(READ, [...u32(off), n & 0xFF, n >> 8]), 3, off);
       b.set(r.subarray(4, 4 + n), off);
       progress((off + n) / size);
     }

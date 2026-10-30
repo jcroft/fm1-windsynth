@@ -146,8 +146,8 @@ kbd { font: 600 .85em ui-monospace, Menlo, monospace; background: var(--card); b
     away, and <b>Send to FM-1</b> puts them on yours (Chrome or Edge, over the USB cable). A sustained sound gets
     its pitch and a loop found for it; check them by ear, and change them below.</p>
   <div class="row">
-    <label for="smpFile">Add sounds (WAV, AIFF, MP3 and others):</label>
-    <input type="file" id="smpFile" accept="audio/*,.wav,.aif,.aiff,.flac,.mp3,.ogg,.m4a" multiple>
+    <label for="smpFile">Add sounds (WAV, MP3, FLAC, Ogg, M4A: what your browser plays):</label>
+    <input type="file" id="smpFile" accept="audio/*,.wav,.flac,.mp3,.ogg,.m4a" multiple>
     <label>Rate <select id="smpRate">
       <option value="44100">44.1 kHz</option><option value="32000">32 kHz</option><option value="22050" selected>22.05 kHz</option>
       <option value="16000">16 kHz</option><option value="11025">11 kHz</option></select></label>
@@ -849,7 +849,7 @@ function rows() {
       const e = document.createElement("input");
       e.className = cls;
       e.value = value;
-      e.addEventListener("change", () => { change(e); rows(); apply(); });
+      e.addEventListener("change", () => { say(""); change(e); rows(); apply(); });
       return e;
     };
     const len = s.data.length / s.rate, secs = (f) => (f / s.rate).toFixed(3);
@@ -940,11 +940,17 @@ function pick(at) {
 q("smpFile").addEventListener("change", (e) => { add([...e.target.files]); e.target.value = ""; });
 
 async function withFM1(what, job) {
+  if (busy) return;
+  busy = true;                                        // (before the permission prompt: one transfer at a time)
+  apply(true);
   let midi;
   try { midi = await navigator.requestMIDIAccess({ sysex: true }); }
-  catch { say("MIDI (SysEx) access was not allowed. Allow MIDI in the site settings (the address bar) and try again."); return; }
-  busy = true;
-  apply(true);
+  catch {
+    say("MIDI (SysEx) access was not allowed. Allow MIDI in the site settings (the address bar) and try again.");
+    busy = false;
+    apply(true);
+    return;
+  }
   q("smpBar").value = 0;
   let link = null;
   try {
@@ -962,14 +968,17 @@ q("smpSend").addEventListener("click", () => bank && withFM1("Sending to the FM-
   await link.send(bank, p);
   say(`Done: the FM-1 has ${slots.filter(Boolean).length} samples. Pick one with Slot, on its Sample page.`);
 }));
-q("smpRead").addEventListener("click", () => withFM1("Reading the FM-1's samples", async (link, p) => {
+q("smpRead").addEventListener("click", () => {
+  if (slots.some(Boolean) && !confirm("Reading the FM-1's samples replaces the ones here. Save a bank file first if you want to keep them. Go on?")) return;
+  withFM1("Reading the FM-1's samples", async (link, p) => {
   const b = await link.read(p);
   if (!b) { say("The FM-1 has no samples yet."); return; }
   slots = parseBank(b);
   rows();
   apply(true);
   say(`Read ${slots.filter(Boolean).length} samples from the FM-1.`);
-}));
+  });
+});
 q("smpSave").addEventListener("click", () => {
   if (!bank) return;
   const a = document.createElement("a");
@@ -986,10 +995,16 @@ q("smpOpen").addEventListener("change", async (e) => {
   catch (err) { say(`${f.name}: ${err.message}`); }
 });
 q("smpClear").addEventListener("click", () => {
-  if (!q("smpClear").dataset.armed) { q("smpClear").dataset.armed = "1"; q("smpClear").textContent = "Click again to remove them all"; return; }
+  if (!q("smpClear").dataset.armed) {
+    q("smpClear").dataset.armed = "1";
+    q("smpClear").textContent = "Click again to remove them all";
+    setTimeout(() => { delete q("smpClear").dataset.armed; q("smpClear").textContent = "Clear all"; }, 4000);
+    return;
+  }
   delete q("smpClear").dataset.armed;
   q("smpClear").textContent = "Clear all";
   slots = Array(SMP.NSLOT).fill(null);
+  say("");
   rows();
   apply();
 });

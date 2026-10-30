@@ -23,6 +23,9 @@ wait 300
 # the bank: two samples, slots 1 and 3
 sysex build/samples/load.txt
 expect slots 2
+# (END again, its reply lost: still OK, the bank is the one there)
+sysex build/samples/end_again.txt
+expect slots 2
 expect msg1 LOADED
 wait 1500
 expect val1 1_A440
@@ -113,12 +116,15 @@ expect dirty 0
 reboot
 wait 300
 expect slots 2
-samples none
-expect slots 0
 tap HOME
 tap HOME
 tap HOME
 expect view 3
+expect val1 3_LO_TONE
+samples none
+expect slots 0
+wait 50
+expect stale 0
 expect val1 3_empty
 midi 90 45 64
 breath 0 100 30

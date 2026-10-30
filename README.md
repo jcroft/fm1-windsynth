@@ -88,8 +88,8 @@ the Engine knob turns the engine down, to 0 for the sample on its own (a sax, sa
 32 samples, about 244 KB in all: 5.6 s of 16-bit sound at 22 kHz, or twice that as 8-bit mu-law.
 One sample, with loops; no key zones.
 
-To get them there, use the **Samples** section of the web page: add sound files (WAV, AIFF, MP3 and
-more), and it finds each one's pitch and a loop for it (a WAV's own root and loop, if it has them),
+To get them there, use the **Samples** section of the web page: add sound files (WAV, MP3, FLAC and
+what else your browser plays), and it finds each one's pitch and a loop for it (a WAV's own root and loop, if it has them),
 which you can change. They play in the browser version at once; **Send to FM-1** loads them over the
 USB cable (Chrome or Edge), and **Read from FM-1** gets them back. From a computer's command line,
 `tools/fm1_samples.py` does the same (`build`, `send`, `backup`, `info`). A preset keeps its slot

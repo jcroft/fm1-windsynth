@@ -74,7 +74,7 @@ def read_wav(path):
     tag, ch, rate, _, align, bits = struct.unpack_from("<HHIIHH", fmt)
     if tag == 0xFFFE and len(fmt) >= 26:
         tag = struct.unpack_from("<H", fmt, 24)[0]
-    if ch < 1 or align < 1 or (tag, bits) not in ((1, 8), (1, 16), (1, 24), (1, 32), (3, 32)):
+    if ch < 1 or align < ch * (bits // 8) or (tag, bits) not in ((1, 8), (1, 16), (1, 24), (1, 32), (3, 32)):
         raise SampleError(f"{path}: {bits}-bit format {tag} isn't one this reads (PCM or 32-bit float)")
     width = bits // 8
     frames = len(data) // align
@@ -97,6 +97,8 @@ def read_wav(path):
         nloops = struct.unpack_from("<I", smpl, 28)[0]
         root = unity if unity < 128 else None
         fine = round(frac / 4294967296.0 * 100)
+        if root is not None and fine >= 100:   # (a hair under the next note: that note)
+            root, fine = min(root + 1, 127), 0
         if nloops and len(smpl) >= 60:
             s, e = struct.unpack_from("<II", smpl, 44)
             if s < e < frames:
@@ -160,21 +162,30 @@ def make_slot(o):
     rate, x, root, fine, loop = read_wav(o["path"])
     if not x:
         raise SampleError(f"{o['path']}: no audio")
-    root = int(o.get("root", root if root is not None else 60))
-    fine = int(o.get("fine", fine if fine is not None else 0))
-    if "loop" in o:
-        s, _, e = o["loop"].partition(":")
-        loop = (int(s), int(e))
-    to = int(o.get("rate", min(rate, 48000)))
+    try:
+        root = int(o.get("root", root if root is not None else 60))
+        fine = int(o.get("fine", fine if fine is not None else 0))
+        if "loop" in o:
+            s, _, e = o["loop"].partition(":")
+            loop = (int(s), int(e))
+        to = int(o.get("rate", min(rate, 48000)))
+    except ValueError:
+        raise SampleError(f"{o['path']}: root, fine and rate are numbers, and loop is START:END in frames")
     fmt = FMT_NAMES.get(o.get("fmt", "s16"))
     if not 0 <= root <= 127 or not -99 <= fine <= 99 or not 4000 <= to <= 48000 or fmt is None:
         raise SampleError(f"{o['path']}: root 0..127, fine -99..99, rate 4000..48000, fmt s16 or ulaw")
     if loop and not (0 <= loop[0] and loop[0] + 2 <= loop[1] <= len(x)):
         raise SampleError(f"{o['path']}: the loop {loop[0]}:{loop[1]} isn't inside its {len(x)} frames")
+    if len(x) * to // rate * (2 if fmt == FMT_S16 else 1) > CAP - DATA:   # (before the slow part)
+        raise SampleError(f"{o['path']}: {len(x) / rate:.1f} s is more than the FM-1 has room for: "
+                          "shorten it, or try fmt=ulaw or a lower rate")
     if to != rate:
         x = resample(x, rate, to)
         if loop:
             loop = (round(loop[0] * to / rate), min(len(x), round(loop[1] * to / rate)))
+            if loop[0] + 2 > loop[1]:
+                raise SampleError(f"{o['path']}: its loop is too short to keep at {to} Hz: "
+                                  "give one with loop=START:END, or a higher rate")
     if len(x) < 4:
         raise SampleError(f"{o['path']}: too short")
     if fmt == FMT_S16:
@@ -197,6 +208,8 @@ def build(slots):
             ents += bytes(ENT)
             continue
         e, audio = s
+        if e["len"] < 4 or (e["le"] and not (2 <= e["le"] <= e["len"] and e["ls"] <= e["le"] - 2)):
+            raise SampleError(f"{e['name']}: its loop {e['ls']}:{e['le']} isn't inside its {e['len']} frames")
         if len(data) & 1:
             data.append(0)             # (16-bit samples start on an even byte)
         off = DATA + len(data)
@@ -222,6 +235,11 @@ def entries(bank):
     out = []
     for i in range(NSLOT):
         off, ln, ls, le, rate, fmt, root, fine, name = struct.unpack_from("<IIIIHBBb3x8s", bank, HDR + i * ENT)
+        w = 2 if fmt == FMT_S16 else 1          # (what the FM-1 checks: wind_sample.c's entry_ok)
+        if fmt and (fmt > FMT_ULAW or ln < 4 or not 4000 <= rate <= 48000 or root > 127 or off < DATA or
+                    off > size or (size - off) // w < ln or (w == 2 and off & 1) or
+                    (le and not (2 <= le <= ln and ls <= le - 2))):
+            raise SampleError(f"slot {i + 1} isn't one the FM-1 would take")
         if fmt:
             out.append((i + 1, dict(off=off, len=ln, ls=ls, le=le, rate=rate, fmt=fmt, root=root, fine=fine,
                                     name=name.rstrip(b"\0").decode("ascii", "replace"))))
@@ -313,7 +331,9 @@ class Link:
         self.out = mido.open_output(o)
         time.sleep(0.3)                # (CoreMIDI may drop what's sent just after opening)
 
-    def ask(self, pkt, tries=3):
+    def ask(self, pkt, tries=3, off=None):
+        """the reply's body after rc; off: the offset a READ or WRITE reply must name (a late reply
+        to an earlier try is skipped)"""
         cmd = pkt[5]
         for _ in range(tries):
             while not self.q.empty():
@@ -325,6 +345,8 @@ class Link:
                     r = parse_reply(self.q.get(timeout=left), cmd)
                 except Exception:
                     break
+                if r is not None and off is not None and not r[0] and r[1:5] != struct.pack("<I", off):
+                    continue
                 if r is not None:
                     if r[0]:
                         raise SampleError(f"the FM-1 said: {RC[r[0]] if r[0] < len(RC) else r[0]}")
@@ -346,7 +368,7 @@ def read_bank(link, size, progress=lambda f: None):
     b = bytearray()
     while len(b) < size:
         n = min(PIECE, size - len(b))
-        r = link.ask(message(READ, struct.pack("<IH", len(b), n)))
+        r = link.ask(message(READ, struct.pack("<IH", len(b), n)), off=len(b))
         b += r[4:4 + n]
         progress(len(b) / size)
     return bytes(b)
@@ -358,7 +380,7 @@ def send(link, bank, progress=lambda f: None):
         raise SampleError(f"the bank is {len(bank)} bytes: the FM-1 has room for {room}")
     msgs = frames(bank)
     for k, m in enumerate(msgs):
-        link.ask(m)
+        link.ask(m, off=struct.unpack_from("<I", unpack7(m[6:-1]))[0] if m[5] == WRITE else None)
         progress((k + 1) / len(msgs))
 
 

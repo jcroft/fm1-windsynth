@@ -10,6 +10,10 @@
  *              until a phrase starts; Ping-pong: forward, back, forward, inside the loop
  *   start      Start 50% begins half way; Trigger Note restarts on a new note, Phrase doesn't
  *   mu-law     an 8-bit sample's level is its 16-bit twin's, within 4% (its step near the top)
+ *   declick    a restart mid-sound (Trigger Note), Slot Off and a slot change crossfade: no step bigger than
+ *              the wave's own; a one-shot's end fades
+ *   long       far into a long sample, ping-pong goes back as fast as it goes forward; a loop start that
+ *              would wrap a sum is refused
  */
 #include <stdio.h>
 #include <string.h>
@@ -245,6 +249,101 @@ int main(void)
         float plo[8], phi[8];
         check(ws_peaks(3, 8, plo, phi) && phi[0] > 0.45f && plo[7] < -0.45f && !ws_peaks(2, 8, plo, phi),
               "peaks: the view's columns");
+    }
+
+    /* declick: the biggest step between frames, across a restart, Slot Off, a slot change, a one-shot's end */
+    {
+        float wave, worst;
+        make(0, LEN);
+        ws_bank(bank, sizeof bank);
+        ws_settings(1, 0.0f, 0.0f, WS_LOOP_ON, WS_TRIG_NOTE, 0);
+        ws_render(69.0f, WS_START_PHRASE, out, 1025);
+        wave = 0.0f;
+        for (i = 1; i < 1025; i++)
+            wave = fm_maxf(wave, fm_fabsf(out[i] - out[i - 1]));
+        worst = 0.0f;
+        for (k = 0; k < 4; k++) {               /* (a new note, a quarter period in: the read jumps) */
+            float last = out[1024];
+            ws_render(69.0f, WS_START_NOTE, out, 1025);
+            worst = fm_maxf(worst, fm_fabsf(out[0] - last));
+            for (i = 1; i < 1025; i++)
+                worst = fm_maxf(worst, fm_fabsf(out[i] - out[i - 1]));
+        }
+        snprintf(m, sizeof m, "declick: a restart steps at most %.4f (the wave %.4f)", (double)worst, (double)wave);
+        check(worst <= wave * 1.05f, m);
+        {
+            float last = out[1024];
+            ws_settings(3, 0.0f, 0.0f, WS_LOOP_ON, WS_TRIG_NOTE, 0);   /* another slot */
+            ws_render(69.0f, 0, out, 256);
+            worst = fm_fabsf(out[0] - last);
+            for (i = 1; i < 256; i++)
+                worst = fm_maxf(worst, fm_fabsf(out[i] - out[i - 1]));
+            snprintf(m, sizeof m, "declick: another slot steps at most %.4f", (double)worst);
+            check(worst <= wave * 1.1f, m);
+            last = out[255];
+            ws_settings(0, 0.0f, 0.0f, WS_LOOP_ON, WS_TRIG_NOTE, 0);   /* Off */
+            check(ws_render(69.0f, 0, out, 256), "declick: Slot Off plays its fade");
+            worst = fm_fabsf(out[0] - last);
+            for (i = 1; i < 256; i++)
+                worst = fm_maxf(worst, fm_fabsf(out[i] - out[i - 1]));
+            snprintf(m, sizeof m, "declick: Slot Off fades (steps at most %.4f, ends at %.4f)", (double)worst, (double)out[255]);
+            check(worst <= wave * 1.1f && out[255] == 0.0f && !ws_render(69.0f, 0, out, 64), m);
+        }
+        ws_settings(1, 0.0f, 0.0f, WS_LOOP_OFF, WS_TRIG_PHRASE, 0);
+        render(69.0f, WS_START_PHRASE, 8192);
+        lo = 1.0f;
+        for (i = 4300; i < 4400; i++)
+            if (out[i] != 0.0f)
+                lo = fm_fabsf(out[i]);
+        snprintf(m, sizeof m, "declick: a one-shot's last frame %.4f", (double)lo);
+        check(lo < 0.01f, m);
+    }
+
+    /* long: a 200000-frame mu-law sample at 8 kHz, ping-pong over its last 100000, an octave down */
+    {
+        static uint8_t big[WS_DATA + 200000];
+        uint8_t *e = big + WS_HDR;
+        float fwd = 0.0f, back = 0.0f, prev;
+        int nf = 0, nb = 0;
+        memset(big, 0, WS_DATA);
+        for (i = 0; i < 200000u; i++)
+            big[WS_DATA + i] = ulaw_of(sine(i));
+        wr32(big, WS_MAGIC);
+        wr16(big + 4, WS_VERSION);
+        wr16(big + 6, WS_NSLOT);
+        wr32(e, WS_DATA);
+        wr32(e + 4, 200000u);
+        wr32(e + 8, 100000u);
+        wr32(e + 12, 199000u);
+        wr16(e + 16, 8000);
+        e[18] = WS_FMT_ULAW;
+        e[19] = 69;
+        wr32(big + 8, sizeof big);
+        wr32(big + 12, ws_crc32(big + WS_HDR, sizeof big - WS_HDR, 0));
+        check(ws_bank(big, sizeof big) > 0, "long: the bank");
+        ws_settings(1, 0.0f, 0.6f, WS_LOOP_PINGPONG, WS_TRIG_PHRASE, 1);
+        ws_render(57.0f, WS_START_PHRASE, out, BLK);
+        prev = ws_where();
+        for (k = 0; k < 40000; k++) {
+            float w;
+            ws_render(57.0f, 0, out, BLK);
+            w = ws_where();
+            if (w > prev && w - prev < 0.001f)
+                fwd += w - prev, nf++;
+            else if (w < prev && prev - w < 0.001f)
+                back += prev - w, nb++;
+            prev = w;
+        }
+        fwd /= (float)(nf ? nf : 1);
+        back /= (float)(nb ? nb : 1);
+        snprintf(m, sizeof m, "long: ping-pong back %.3f cents from forward (%d, %d blocks)",
+                 (double)cents(back, fwd), nf, nb);
+        check(nf > 100 && nb > 100 && fm_fabsf(cents(back, fwd)) < 1.0f, m);
+        make(0, LEN);
+        wr32(bank + WS_HDR + 8, 0xFFFFFFFFu);
+        wr32(bank + WS_HDR + 12, 8u);
+        wr32(bank + 12, ws_crc32(bank + WS_HDR, size - WS_HDR, 0));
+        check(ws_bank(bank, sizeof bank) < 0, "long: a loop start that would wrap is refused");
     }
 
     printf(fails ? "%d FAILED\n" : "wind_sample ok\n", fails);

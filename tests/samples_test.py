@@ -126,7 +126,18 @@ def main(out):
         check(False, "a bank too big for the FM-1 is refused")
     except fs.SampleError:
         pass
-    for spec in (a + ",loop=5:6", a + ",root=200", a + ",bogus=1", a + ",fmt=mp3"):
+    p = os.path.join(out, "short_loop.wav")     # a loop too short to survive 44.1 to 8 kHz: refused, not kept
+    wav(p, x, 44100, smpl=(60, 0, 500, 502))
+    try:
+        fs.make_slot(fs.parse_spec(p + ",rate=8000"))
+        check(False, "a loop that collapses when resampled is refused")
+    except fs.SampleError:
+        pass
+    p = os.path.join(out, "sharp.wav")          # 99.6 cents above 61: 62
+    wav(p, x, 44100, smpl=(61, 99.6, 0, 900))
+    _, _, root, fine, _ = fs.read_wav(p)
+    check(root == 62 and fine == 0, f"a hair under 62 is 62 (got {root} {fine})")
+    for spec in (a + ",loop=5:6", a + ",root=200", a + ",bogus=1", a + ",fmt=mp3", a + ",root=x", a + ",loop=a:b"):
         try:
             fs.make_slot(fs.parse_spec(spec))
             check(False, f"{spec} refused")
@@ -141,6 +152,8 @@ def main(out):
     with open(os.path.join(out, "load.txt"), "w") as f:
         for m in ms:
             f.write(" ".join(f"{v:02X}" for v in m) + "\n")
+    with open(os.path.join(out, "end_again.txt"), "w") as f:    # END sent again, as after a lost reply
+        f.write(" ".join(f"{v:02X}" for v in ms[-1]) + "\n")
     if FAILS:
         print(f"{FAILS} failed")
         return 1

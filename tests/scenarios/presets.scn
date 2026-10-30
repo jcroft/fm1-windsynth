@@ -162,6 +162,37 @@ wait 200
 expect par67 60
 expect par15 0
 expect par17 0
+# an LFO on Pitch saved before the sample layer (format 15, and a bank of 70 values a preset): the
+# Sample destination took Pitch's number, so it moves up to Pitch, in the project and in a preset
+tap LFO
+spin K3 -1
+expect val3 Sample
+expect par63 8
+oldproject 15
+reboot
+wait 200
+expect par63 9
+tap LFO
+spin K3 -1
+expect par63 8
+tap SAVE
+tap SAVE
+wait 50
+expect par63 8
+oldnpar 0 70
+spin PRESET 1
+spin PRESET -1
+wait 50
+expect par63 9
+# (one saved with the sample layer keeps Sample)
+spin K3 -1
+tap SAVE
+tap SAVE
+wait 50
+spin PRESET 1
+spin PRESET -1
+wait 50
+expect par63 8
 # nothing on the screen is stale
 wait 50
 expect stale 0

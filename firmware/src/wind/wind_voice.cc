@@ -210,9 +210,12 @@ static int sample_block(const wind_frame_t *f, uint32_t start, float lvl, float 
         sm_lvl = lvl;
         return 0;
     }
-    stmlib::ParameterInterpolator li(&sm_lvl, lvl, (size_t)n);
-    for (i = 0; i < n; i++)
-        x[i] *= li.Next();
+    {
+        stmlib::ParameterInterpolator li(&sm_lvl, lvl, (size_t)n);
+        for (i = 0; i < n; i++)
+            x[i] *= li.Next();
+    }
+    sm_lvl = lvl;                       /* (exactly where it was going) */
     return 1;
 }
 
@@ -372,9 +375,12 @@ extern "C" void wv_render(const wind_frame_t *f, int32_t *out_lr, uint32_t frame
                 }
         }
         if (elvl < 1.0f || en_lvl < 1.0f) {     /* (at 1, the engine bit for bit) */
-            stmlib::ParameterInterpolator ei(&en_lvl, elvl, (size_t)k);
-            for (i = 0; i < k; i++)
-                out[i] *= ei.Next();
+            {
+                stmlib::ParameterInterpolator ei(&en_lvl, elvl, (size_t)k);
+                for (i = 0; i < k; i++)
+                    out[i] *= ei.Next();
+            }
+            en_lvl = elvl;              /* (the ramp's sum lands near it, not on it: at 1, exactly 1) */
         }
         layers = noise_block(f, nlvl, nzb, k);
         if (sample_block(f, start, slvl, smb, k)) {

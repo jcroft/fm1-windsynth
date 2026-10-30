@@ -744,7 +744,7 @@ static void draw_knobs(void)
         int k = knob_of((int)i);
         h = hash(h, k == K_NONE ? 0xFFFFu : (uint32_t)(uint16_t)proj.par[k] | (uint32_t)k << 16);
     }
-    h = hash(h, (uint32_t)now_touch);
+    h = hash(hash(h, (uint32_t)now_touch), ws_gen());   /* (Slot's text names the bank's sample) */
     {   /* the ghosts: a change that moves only them draws at most every GHOST_MS */
         uint32_t hg = h, now = plat_ms();
         int16_t g[4];

@@ -64,6 +64,7 @@
  *   oldproject F                 rewrite the saved project as format F saved it (its values, then its preset)
  *   oldbank B                    rewrite saved bank B (0..3) as 0.0.20 saved it: the init sound in each slot
  *                                holding its factory preset, and no marks
+ *   oldnpar B N                  saved bank B as a version whose presets held N values wrote it
  */
 #define OM_HOST 1
 #ifndef _POSIX_C_SOURCE
@@ -899,6 +900,14 @@ int main(int argc, char **argv)
             }
             o.format = 2;
             memcpy(store[OBJ_BANK0 + (uint32_t)b], &o, sizeof o);
+            bank_at = -1;
+        } else if (!strcmp(cmd, "oldnpar")) {      /* saved bank B as a version that held N values a preset wrote it */
+            int k = atoi(a);
+            if (k < 0 || k >= NPRESETS / BANK_N || !store_have[OBJ_BANK0 + (uint32_t)k]) {
+                printf("line %d: oldnpar %s: no such bank saved\n", lineno, a);
+                return 2;
+            }
+            ((bank_t *)store[OBJ_BANK0 + (uint32_t)k])->npar = (uint16_t)atoi(b);
             bank_at = -1;
         } else if (!strcmp(cmd, "echo"))
             printf("%s", line + 5);

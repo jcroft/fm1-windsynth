@@ -15,7 +15,8 @@
  *                         where the last ended (one already written, sent again, is taken if it matches);
  *                         a piece reaching a new sector erases it first
  *   05 END   header       rc. All of it written: the header's CRC is checked against the flash, and the
- *                         header written last, so a bank cut off part-way reads as none
+ *                         header written last, so a bank cut off part-way reads as none. Sent again after
+ *                         that (its reply lost), it's OK if that bank is the one there
  *
  * The audio stops for each sector's erase, so loading while playing clicks. */
 #define SMP_PIECE 256u
@@ -177,6 +178,7 @@ int smp_sysex(const uint8_t *in, uint32_t n)
         smp.erased = 0;
         if (smp_erase_to(0x1000u)) {
             smp.on = 0;
+            smp_attach();                          /* (the old bank, if its header survived) */
             smp_rc(cmd, SMP_EFLASH);
             return 1;
         }
@@ -211,18 +213,26 @@ int smp_sysex(const uint8_t *in, uint32_t n)
     case SMP_END: {
         uint32_t rc = SMP_OK;
         const uint8_t *h = smp_buf;
-        if (d != WS_HDR)
-            rc = SMP_EARG;
-        else if (!smp.on || smp.next != smp.size || smp_rd32(h + 8) != smp.size)
+        if (d != WS_HDR) {                         /* (a damaged END: the load goes on, send it again) */
+            smp_rc(cmd, SMP_EARG);
+            return 1;
+        }
+        if (!smp.on) {                             /* sent again (its reply lost): OK if it's the bank there */
+            for (i = 0; bank && i < WS_HDR && bank[i] == h[i]; i++)
+                ;
+            smp_rc(cmd, i == WS_HDR && ws_check(bank, cap) > 0 ? SMP_OK : SMP_ESTATE);
+            return 1;
+        }
+        if (smp.next != smp.size || smp_rd32(h + 8) != smp.size)
             rc = SMP_ESTATE;
         else if (smp_rd32(h) != WS_MAGIC || ws_crc32(bank + WS_HDR, smp.size - WS_HDR, 0) != smp_rd32(h + 12))
             rc = SMP_ECHECK;                       /* (what's in the flash isn't what was meant) */
         else if (plat_samples_write(0, h, WS_HDR))
             rc = SMP_EFLASH;
-        else if (ws_check(bank, cap) != (int32_t)smp.size)
-            rc = SMP_ECHECK;
         smp.on = 0;
         smp_attach();
+        if (rc == SMP_OK && ws_check(bank, cap) != (int32_t)smp.size)
+            rc = SMP_ECHECK;
         ui_say("SAMPLES", rc == SMP_OK ? "LOADED" : "NOT LOADED");
         smp_rc(cmd, rc);
         return 1;
