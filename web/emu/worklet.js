@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Windsynth in an AudioWorklet: windsynth.wasm is the whole FM-1 app (web/emu/windsynth_web.c). Each render
 // quantum asks it for 128 frames, which runs the device's clock forward; between quanta the page's
-// input goes in and, about 30 times a second, the screen, the lights, the instrument's state (for the
+// input goes in (and a sample bank, when the page has one) and, about 30 times a second, the screen, the lights, the instrument's state (for the
 // page's monitor) and any saved objects go out.
 
 const clock = globalThis.performance ? () => globalThis.performance.now() : () => Date.now();
@@ -45,6 +45,7 @@ class Windsynth extends AudioWorkletProcessor {
         this.ex.web_store_set_len(o, b.length);
       }
       this.sentWrites = this.ex.web_store_writes();
+      this.putSamples(m.samples);
       this.ex.web_master(m.master ?? 2800);
       this.ex.web_boot();
       this.port.postMessage({ type: "ready" });
@@ -60,7 +61,20 @@ class Windsynth extends AudioWorkletProcessor {
       this.ex.web_midi(m.st, m.d1 | 0, m.d2 | 0);
     } else if (m.type === "master") {
       this.ex.web_master(m.value | 0);
+    } else if (m.type === "samples") {
+      this.putSamples(m.bank);
+      this.ex.web_samples_attach();
     }
+  }
+
+  // the bank into the sample flash, the rest of it erased (none: all erased); boot, or
+  // web_samples_attach, reads it
+  putSamples(bank) {
+    const cap = this.ex.web_samples_cap();
+    const f = new Uint8Array(this.mem.buffer, this.ex.web_samples(), cap);
+    const b = bank ? new Uint8Array(bank).subarray(0, cap) : new Uint8Array(0);
+    f.fill(0xFF);
+    f.set(b);
   }
 
   publish() {

@@ -116,6 +116,12 @@ else
 fi
 # the sample bank tool (tools/fm1_samples.py), and the bank and its SysEx that sample.scn loads
 run samples-tool python3 tests/samples_test.py build/samples
+# the page's banks and SysEx: the same as the tool's
+if command -v node >/dev/null 2>&1; then
+    run samples-page node tests/web/samples_test.mjs build/samples
+else
+    echo "  skip samples-page (no node)"
+fi
 for s in tests/scenarios/*.scn; do
     n=$(basename "$s" .scn)
     mkdir -p "build/scenarios/$n"
