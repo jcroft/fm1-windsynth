@@ -4,6 +4,7 @@
  *   Filter    the response, log frequency by dB, at the knobs' Cutoff, Reso and Slope (tracking the
  *             note); and, in the accent, where the mod matrix has it now when something moves it
  *   Noise     the noise filter's response for its Type at Freq and Reso, with the Level as bars
+ *   Sample    (and Sample 2) the sample chosen: its wave, its loop, Start, and where it plays now
  *   Breath    the curve, with the breath on it now; the last 1.3 s of breath, in and out (the gate
  *             envelope's Attack and Release)
  *   Pitch     the phrase: the last 2.8 s of pitch, each note's start named, breath under it; the note,
@@ -72,6 +73,7 @@ static float tn_dest_now(void)
     case WM_DST_NOISE: return wa_state.noise * 100.0f;
     case WM_DST_HARM: return wa_state.harmonics * 100.0f;
     case WM_DST_AUX: return wa_state.aux * 100.0f;
+    case WM_DST_SAMPLE: return wa_state.sample * 100.0f;
     default: return (wa_state.pitch - wa_state.note) * 100.0f;
     }
 }
@@ -480,6 +482,106 @@ static void tn_noise(void)
     cv_blit(0, MAIN_Y);
 }
 
+/* ------------------------------------------------------------ Sample --- */
+#define TN_SX0 16                      /* the wave: from here, a column a pixel, */
+#define TN_SW 208
+static int32_t tn_round(float x);
+static void tn_sample_note(const char *a, const char *b)   /* no sample to show: why, and what to do */
+{
+    text_c(120, 44, &FONT_B, a, K_TEXT);
+    text_c(120, 70, &FONT_XS, b, K_DIM);
+    cv_blit(0, MAIN_Y);
+}
+
+static void tn_sample(void)
+{
+    static float lo[TN_SW], hi[TN_SW];
+    static uint32_t got_gen = 0xFFFFFFFFu;
+    static int got_slot = -1;
+    const int32_t mid = 74, a = 34;
+    int slot = proj.par[P_SMSLOT], i, has;
+    ws_info_t in;
+    float at = wa_state.sample_at;
+    int32_t px = at >= 0.0f ? TN_SX0 + tn_round(at * (float)(TN_SW - 1)) : -1, sx, lx0, lx1;
+    char t[24];
+    uint32_t h;
+    has = slot > 0 && ws_slot_info(slot, &in);
+    h = hash(hash(hash(tn_hash0(V_SAMPLE), (uint32_t)slot | (uint32_t)has << 6 | (uint32_t)proj.par[P_SMSTART] << 8 |
+                                               (uint32_t)proj.par[P_SMLOOP] << 16 | (uint32_t)(proj.par[P_SMTUNE] + 24) << 20),
+                  ws_gen() ^ (uint32_t)(px + 1) << 16),
+             (uint32_t)proj.par[P_SMTRACK] | (uint32_t)ws_used() << 8);
+    if (!tn_begin(h))
+        return;
+    if (!slot) {
+        tn_sample_note(ws_used() ? "Off" : "No samples yet", ws_used() ? "Knob 1 picks a sample" : "Load them from the web page");
+        return;
+    }
+    if (!has) {
+        tn_sample_note("Empty slot", "Load a sample into it from the web page");
+        return;
+    }
+    if (got_gen != ws_gen() || got_slot != slot) {   /* (read from flash once a sample) */
+        got_gen = ws_gen();
+        got_slot = slot;
+        if (!ws_peaks(slot, TN_SW, lo, hi))
+            for (i = 0; i < TN_SW; i++)
+                lo[i] = hi[i] = 0.0f;
+    }
+    wa_param_text(P_SMSLOT, slot, t);                /* "3 SAX", and its root, rate and length */
+    cv_text(18, 8, &FONT_B, t, K_TEXT);
+    {
+        char r[24], n[8];
+        int k = 0, j;
+        uint32_t ds = (in.len * 10u + in.rate / 2u) / in.rate;   /* tenths of a second */
+        note_text(in.root, n);
+        for (j = 0; n[j]; j++)
+            r[k++] = n[j];
+        r[k++] = ' ';
+        r[k++] = ' ';
+        itoa_u((in.rate + 500u) / 1000u, r + k);
+        while (r[k])
+            k++;
+        r[k++] = 'k';
+        r[k++] = ' ';
+        r[k++] = ' ';
+        itoa_u(ds / 10u, r + k);
+        while (r[k])
+            k++;
+        r[k++] = '.';
+        r[k++] = (char)('0' + ds % 10u);
+        r[k++] = 's';
+        r[k] = 0;
+        tn_text_r(226, 11, &FONT_XS, r, K_DIM);
+    }
+    lx0 = TN_SX0 + (int32_t)((float)(in.loop_end ? in.loop_start : 0u) * (float)TN_SW / (float)in.len);
+    lx1 = TN_SX0 + (int32_t)((float)(in.loop_end ? in.loop_end : in.len) * (float)TN_SW / (float)in.len) - 1;
+    if (proj.par[P_SMLOOP] != WS_LOOP_OFF) {         /* the loop, shaded, with its ends */
+        cv_rect(lx0, mid - a - 4, lx1 - lx0 + 1, 2 * a + 9, blend565(K_BLUE_T, K_PANEL, 96u));
+        cv_rect(lx0, mid - a - 4, 1, 2 * a + 9, K_BLUE);
+        cv_rect(lx1, mid - a - 4, 1, 2 * a + 9, K_BLUE);
+    }
+    tn_hdash(TN_SX0, TN_SX0 + TN_SW, mid, K_LINE);
+    for (i = 0; i < TN_SW; i++) {
+        int32_t y0 = mid - tn_round(hi[i] * (float)a), y1 = mid - tn_round(lo[i] * (float)a);
+        cv_rect(TN_SX0 + i, y0, 1, y1 - y0 + 1, K_BLUE);
+    }
+    sx = TN_SX0 + tn_round((float)proj.par[P_SMSTART] * 0.01f * (float)(TN_SW - 1));
+    tn_vdash(sx, mid - a - 4, mid + a + 5, K_TEXT);   /* Start */
+    if (px >= 0) {                                    /* where it plays */
+        cv_rect(px, mid - a - 4, 1, 2 * a + 9, K_ACC);
+        tn_dot(px, mid + a + 9, 3, K_ACC);
+    }
+    wa_param_text(P_SMLOOP, proj.par[P_SMLOOP], t);   /* the loop and how it's pitched */
+    cv_text(18, 120, &FONT_XS, t, K_DIM);
+    if (proj.par[P_SMTRACK]) {
+        tn_text_r(226, 120, &FONT_XS, "follows the note", K_DIM);
+    } else {
+        wa_param_text(P_SMTUNE, proj.par[P_SMTUNE], t);
+        tn_text_r(226, 120, &FONT_XS, proj.par[P_SMTUNE] ? t : "its own pitch", K_DIM);
+    }
+    cv_blit(0, MAIN_Y);
+}
+
 /* ------------------------------------------------------------ Breath --- */
 static void tn_breath(void)
 {
@@ -836,6 +938,7 @@ static int vw_tone(int v)
     switch (v) {
     case V_FILTER: tn_filter(); break;
     case V_NOISE: tn_noise(); break;
+    case V_SAMPLE: case V_SAMPLE2: tn_sample(); break;
     case V_BREATH: tn_breath(); break;
     case V_PITCH: tn_pitch(); break;
     case V_PITCH2: tn_pitch2(); break;

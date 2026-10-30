@@ -1,0 +1,129 @@
+# The sample layer: HOME's Sample and Sample 2 pages. A bank is loaded over SysEx (the messages
+# tools/fm1_samples.py sends; tests/samples_test.py writes them), kept in flash across a restart; Slot
+# picks a sample, Level and Engine set the mix (Engine 0: the sample alone), Level is a Mod destination,
+# and Loop Off plays it once.
+wait 200
+expect slots 0
+tap HOME
+tap HOME
+tap HOME
+expect view 3
+expect val1 Off
+spin K1 1
+expect par70 1
+expect val1 1_empty
+midi 90 45 64
+breath 0 100 30
+wait 50
+expect sample_at -100
+shot sample_none.png
+midi 80 45 00
+breath 100 0 20
+wait 300
+# the bank: two samples, slots 1 and 3
+sysex build/samples/load.txt
+expect slots 2
+expect msg1 LOADED
+wait 1500
+expect val1 1_A440
+midi 90 45 64
+breath 0 100 30
+wait 80
+expect sample 100
+expect sample_at >0
+expect level >5
+shot sample_view.png
+# the sample alone
+spin K3 -100
+expect par72 0
+expect val3 0
+wait 50
+expect level >5
+peakreset
+wait 50
+expect peak_db_max >-30
+# an empty slot, with the engine off: silence
+spin K1 1
+expect val1 2_empty
+wait 50
+expect sample_at -100
+peakreset
+wait 100
+expect peak_db_max <-35
+# (only the reverb's tail)
+spin K1 1
+expect val1 3_LO_TONE
+wait 50
+expect sample_at >0
+midi 80 45 00
+breath 100 0 20
+wait 300
+expect gate 0
+# Sample 2: once through (Loop Off): it ends, and starts again with the next phrase
+tap HOME
+expect view 4
+spin K2 -1
+expect val2 Off
+expect par75 0
+midi 90 45 64
+breath 0 100 30
+wait 40
+expect sample_at >0
+wait 400
+expect sample_at -100
+midi 80 45 00
+breath 100 0 20
+wait 300
+midi 90 45 64
+breath 0 100 30
+wait 40
+expect sample_at >0
+midi 80 45 00
+breath 100 0 20
+wait 300
+# breath into the sample's level (Mod 1: Breath to Sample), with Level at 0
+tap HOME
+tap HOME
+tap HOME
+tap HOME
+expect view 3
+spin K2 -100
+expect par71 0
+tap SEL
+expect view 8
+spin K1 1
+spin K2 8
+expect val2 Sample
+spin K3 100
+midi 90 45 64
+breath 0 0 10
+wait 50
+expect sample 0
+breath 0 127 50
+wait 30
+expect sample 100
+shot sample_breath.png
+midi 80 45 00
+breath 127 0 20
+wait 300
+# the bank stays through a restart (once the project has saved itself); with it gone, the slot
+# shows empty and nothing plays
+wait 4500
+expect dirty 0
+reboot
+wait 300
+expect slots 2
+samples none
+expect slots 0
+tap HOME
+tap HOME
+tap HOME
+expect view 3
+expect val1 3_empty
+midi 90 45 64
+breath 0 100 30
+wait 50
+expect sample_at -100
+# nothing on the screen is stale
+wait 50
+expect stale 0

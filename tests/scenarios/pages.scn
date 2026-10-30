@@ -1,4 +1,4 @@
-# The pages: one button each (HOME: Filter, Engine (named for the engine) and Noise, LFO: LFO and LFO 2, SEL: Mod 1-4, SEQ: Pitch and Pitch 2, GLO: Setup and Setup 2,
+# The pages: one button each (HOME: Filter, Engine (named for the engine), Noise, Sample and Sample 2, LFO: LFO and LFO 2, SEL: Mod 1-4, SEQ: Pitch and Pitch 2, GLO: Setup and Setup 2,
 # FX: Distortion, Modulation, Delay, Reverb and Reverb 2,
 # pressed again), EDIT and SELECT step through all
 wait 200
@@ -19,12 +19,36 @@ expect val2 BP
 expect val3 +24_st
 shot noise_page.png
 tap HOME
+expect view 3
+expect title Sample
+expect knob1 Slot
+expect knob2 Level
+expect knob3 Engine
+expect knob4 Tune
+expect val1 Off
+expect val2 100
+expect val3 100
+expect val4 0_st
+shot sample_page.png
+tap HOME
+expect view 4
+expect title Sample_2
+expect knob1 Start
+expect knob2 Loop
+expect knob3 Trigger
+expect knob4 Track
+expect val1 0%
+expect val2 Loop
+expect val3 Phrase
+expect val4 On
+shot sample2_page.png
+tap HOME
 expect view 0
 tap ENV
-expect view 3
+expect view 5
 shot breath_page.png
 tap LFO
-expect view 4
+expect view 6
 expect knob1 Shape
 expect knob2 Rate
 expect knob3 Dest
@@ -35,7 +59,7 @@ expect val3 Pitch
 expect val4 0c
 shot lfo_page.png
 tap LFO
-expect view 5
+expect view 7
 expect knob1 Fade
 expect knob2 Sync
 expect val1 Off
@@ -43,48 +67,48 @@ expect val2 Free
 wait 50
 shot lfo2_page.png
 tap SEL
-expect view 6
+expect view 8
 shot mod1_page.png
-tap SEL
-expect view 7
-tap SEL
 tap SEL
 expect view 9
 tap SEL
-expect view 6
+tap SEL
+expect view 11
+tap SEL
+expect view 8
 tap SEQ
-expect view 10
+expect view 12
 expect knob1 Bend
 shot pitch_page.png
 tap SEQ
-expect view 11
+expect view 13
 expect knob1 CC_depth
 wait 50
 shot pitch2_page.png
 tap GLO
-expect view 12
+expect view 14
 shot setup_page.png
 tap GLO
-expect view 13
+expect view 15
 expect knob1 Speaker
 expect val1 Auto
 expect knob2 -
 shot setup2_page.png
 tap GLO
-expect view 12
+expect view 14
 tap GLO
 tap EDIT
-expect view 14
-tap FX
-expect view 15
-tap FX
 expect view 16
 tap FX
 expect view 17
 tap FX
 expect view 18
 tap FX
-expect view 14
+expect view 19
+tap FX
+expect view 20
+tap FX
+expect view 16
 tap FX
 tap FX
 tap FX
@@ -94,7 +118,7 @@ expect view 0
 turn SELECT 3
 expect view 3
 turn SELECT -4
-expect view 18
+expect view 20
 tap HOME
 expect view 0
 # nothing on the screen is stale

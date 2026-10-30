@@ -50,8 +50,13 @@
  *                                 countC_X0_Y0_X1_Y1 (pixels of theme colour C in the box, inclusive)
  *                                 aboveA_B_X0_Y0_X1_Y1 (columns of the box with both colours where colour A's
  *                                 top pixel is higher than colour B's)
+ *                                 sample (the sample layer's level x 100) sample_at (where the sample plays, x 100
+ *                                 of it; -100 not playing) slots (the bank's slots holding a sample)
  *                                 peak_db_max peak_db_min; text, "_" a space: msg0 msg1 (the message's
  *                                 lines) knob1..knob4 (a knob's name on this page, "-" none) val1..val4 (its value as shown))
+ *   samples FILE|none            put a sample bank (tools/fm1_samples.py build) in the flash, as if loaded
+ *   sysex FILE                   send each line of FILE (a SysEx message in hex, F0 .. F7) to the sample
+ *                                loader, as the web page or fm1_samples.py would: each reply must be OK
  *   scopemark                    keep the Engine page's newest scope trace (expect scope_since)
  *   reboot                       re-run boot from the simulated flash (persistence test)
  *   storefail 0|1                every save fails (1) or works (0); store_tries counts from here
@@ -172,6 +177,42 @@ int plat_store_save(uint32_t obj, const void *src, uint32_t len)
     return 0;
 }
 
+/* the sample bank's flash: erased is 0xFF, and a write can only clear bits, as NOR's */
+static uint8_t smp_flash[PLAT_SAMPLES_CAP];
+static int smp_blank = 1;                 /* (erased, before anything reads it) */
+static uint8_t sx_reply[512];             /* the last SysEx sent to the computer */
+static uint32_t sx_reply_n;
+const uint8_t *plat_samples(uint32_t *cap)
+{
+    if (smp_blank) {
+        memset(smp_flash, 0xFF, sizeof smp_flash);
+        smp_blank = 0;
+    }
+    *cap = PLAT_SAMPLES_CAP;
+    return smp_flash;
+}
+int plat_samples_erase(uint32_t off)
+{
+    if (off >= PLAT_SAMPLES_CAP || (off & 0xFFFu))
+        return -8;
+    memset(smp_flash + off, 0xFF, 0x1000u);
+    return 0;
+}
+int plat_samples_write(uint32_t off, const void *src, uint32_t n)
+{
+    uint32_t i;
+    if (off > PLAT_SAMPLES_CAP || n > PLAT_SAMPLES_CAP - off)
+        return -8;
+    for (i = 0; i < n; i++)
+        smp_flash[off + i] &= ((const uint8_t *)src)[i];
+    return 0;
+}
+void plat_sysex_out(const uint8_t *p, uint32_t n)
+{
+    sx_reply_n = n < sizeof sx_reply ? n : (uint32_t)sizeof sx_reply;
+    memcpy(sx_reply, p, sx_reply_n);
+}
+
 static uint32_t cpu_pct;
 uint32_t plat_cpu_pct(void) { return cpu_pct; }
 uint32_t plat_xruns(void) { return 0; }
@@ -182,6 +223,7 @@ int plat_usb_recording(void) { return usb_rec; }
 #include "../firmware/src/app/app.h"
 #include "../firmware/src/app/project.c"
 #include "../firmware/src/app/ui.c"
+#include "../firmware/src/app/samples.c"
 #include "../firmware/src/wind/wind_voice.h"
 
 /* ---------------------------------------------------------- outputs --- */
@@ -320,6 +362,7 @@ static void boot(void)
     wa_init();
     project_load();
     project_apply();
+    smp_attach();
     lcd_fill(0, 0, 240, 240, 0);
     ui_init();
 }
@@ -481,6 +524,12 @@ static int expect(const char *what, const char *val)
         got = (int)(wa_state.noise * 100.0f + 0.5f);
     else if (!strcmp(what, "harm"))
         got = (int)(wa_state.harmonics * 100.0f + 0.5f);
+    else if (!strcmp(what, "sample"))             /* the sample layer's level, x 100 */
+        got = (int)lrintf(wa_state.sample * 100.0f);
+    else if (!strcmp(what, "sample_at"))          /* where the sample plays, x 100 of it; -100 not playing */
+        got = (int)lrintf(wa_state.sample_at * 100.0f);
+    else if (!strcmp(what, "slots"))              /* the bank's slots holding a sample */
+        got = ws_used();
     else if (!strcmp(what, "aux"))
         got = (int)(wa_state.aux * 100.0f + 0.5f);
     else if (!strcmp(what, "lfo"))                /* -100..100 */
@@ -769,7 +818,54 @@ int main(int argc, char **argv)
             usb_rec = atoi(a);
         else if (!strcmp(cmd, "expect"))
             fails += expect(a, b);
-        else if (!strcmp(cmd, "scopemark"))
+        else if (!strcmp(cmd, "samples")) {      /* a bank file into the flash, as if loaded ("none": erased) */
+            uint32_t cap;
+            uint8_t *f = (uint8_t *)plat_samples(&cap);
+            memset(f, 0xFF, cap);
+            if (strcmp(a, "none")) {
+                FILE *bf = fopen(a, "rb");
+                size_t got = bf ? fread(f, 1, cap, bf) : 0;
+                if (bf)
+                    fclose(bf);
+                printf("  samples %s: %zu bytes\n", a, got);
+            }
+            smp_attach();
+        } else if (!strcmp(cmd, "sysex")) {      /* each line of FILE a SysEx message (hex, F0 .. F7) to the
+                                                  * sample loader, one at a time; each reply's rc must be 0 */
+            FILE *xf = fopen(a, "r");
+            char xl[4096];
+            int k = 0, bad = 0;
+            while (xf && fgets(xl, sizeof xl, xf)) {
+                uint8_t m[1400];
+                uint32_t mn = 0, rc = 99;
+                char *q = xl;
+                unsigned v;
+                int used;
+                while (mn < sizeof m && sscanf(q, "%x%n", &v, &used) == 1) {
+                    m[mn++] = (uint8_t)v;
+                    q += used;
+                }
+                if (mn < 2)
+                    continue;
+                sx_reply_n = 0;
+                if (!smp_sysex(m + 1, mn - 2))
+                    rc = 98;                         /* (not taken as ours) */
+                else if (sx_reply_n >= 8)
+                    rc = sx_reply[6] | (sx_reply[7] & 1u) << 7;   /* (the first packed byte: rc) */
+                k++;
+                if (rc) {
+                    printf("FAIL sysex %s message %d: rc %u\n", a, k, rc);
+                    bad++;
+                }
+                run_ms(1);
+            }
+            if (!xf)
+                printf("FAIL sysex: no %s\n", a), bad++;
+            else
+                fclose(xf);
+            printf("  sysex %s: %d messages\n", a, k);
+            fails += bad;
+        } else if (!strcmp(cmd, "scopemark"))
             memcpy(scope_mark, vs.y[0], sizeof scope_mark);
         else if (!strcmp(cmd, "reboot")) {
             memset(&proj, 0, sizeof proj);

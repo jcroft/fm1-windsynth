@@ -33,7 +33,7 @@ expect store_writes 1
 # P02 is still its factory preset (Simple Square: the init cutoff); the rig (Pitch 2: transpose) stays as it is across presets
 tap SEQ
 tap SEQ
-expect view 11
+expect view 13
 spin K2 5
 expect par26 5
 spin PRESET -1
@@ -71,7 +71,7 @@ tap FX
 tap FX
 tap FX
 tap FX
-expect view 17
+expect view 19
 spin K2 37
 expect par34 40
 oldproject 1
@@ -95,7 +95,7 @@ expect par45 500
 # to 0.0.11, Glide was where the glide CC last left it; now it's the least glide time, so it comes back
 # as 4 ms, the default
 tap SEQ
-expect view 10
+expect view 12
 spin K2 196
 expect par10 200
 oldproject 6
@@ -116,11 +116,11 @@ wait 200
 expect par30 0
 # 0.0.13 (format 7) had no Distortion or Modulation: they come back at their defaults, the rest as saved
 tap SEQ
-expect view 10
+expect view 12
 spin K2 196
 expect par10 200
 tap FX
-expect view 14
+expect view 16
 spin K2 50
 expect par49 50
 oldproject 7
@@ -131,7 +131,7 @@ expect par49 0
 expect par50 40
 # 0.0.14 and 0.0.15 (format 8) had no noise layer: it comes back at its defaults, the effects as saved
 tap FX
-expect view 14
+expect view 16
 spin K2 50
 expect par49 50
 tap HOME
@@ -150,7 +150,7 @@ expect par58 24
 # there gives the Filter page's Breath its amount and goes off, so the sound plays as it did
 tap SEL
 tap SEL
-expect view 7
+expect view 9
 spin K1 1
 spin K3 60
 expect par15 1

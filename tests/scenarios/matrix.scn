@@ -2,7 +2,7 @@
 wait 200
 tap SEL
 tap SEL
-expect view 7
+expect view 9
 spin K1 1
 spin K2 2
 expect par15 1
@@ -28,7 +28,7 @@ wait 200
 wait 50
 expect stale 0
 # Mod 2: velocity to Amp. A panel key has a fixed velocity (100), not the last MIDI note's
-expect view 7
+expect view 9
 spin K1 4
 expect par15 5
 midi 90 39 10
@@ -48,7 +48,7 @@ expect par15 2
 tap SEL
 tap SEL
 tap SEL
-expect view 6
+expect view 8
 spin K1 2
 spin K2 2
 spin K3 100

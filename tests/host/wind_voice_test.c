@@ -145,6 +145,7 @@ static void test_voice(const char *dir)
 
     wv_init();
     memset(&f, 0, sizeof f);
+    f.engine = 1.0f;                    /* (the engine at full; the layers off) */
     f.note = 57.0f;
     f.cutoff = 0.7f;
     f.amp = 1.0f;
@@ -202,6 +203,7 @@ static void test_voice(const char *dir)
         static const float notes[] = {62, 65, 69, 72, 74, 72, 69, 65, 62};
         uint32_t at = 0, n;
         memset(&f, 0, sizeof f);
+        f.engine = 1.0f;                    /* (the engine at full; the layers off) */
         f.amp = 1.0f;
         f.morph = 0.35f;
         for (n = 0; n < sizeof notes / sizeof notes[0]; n++) {
@@ -276,6 +278,7 @@ static void test_filter(void)
                 for (c = 0; c < 2; c++) {
                     wind_frame_t f;
                     memset(&f, 0, sizeof f);
+                    f.engine = 1.0f;                    /* (the engine at full; the layers off) */
                     f.note = notes[c];
                     f.gate = 1.0f;
                     f.amp = 1.0f;
@@ -306,6 +309,7 @@ static float noise_part(uint32_t engine, float type, float cutoff, float gate, f
     uint32_t i, n = SR / 2, same = 1;
     double e = 0.0;
     memset(&f, 0, sizeof f);
+    f.engine = 1.0f;                    /* (the engine at full; the layers off) */
     f.note = 57.0f;
     f.gate = gate;
     f.amp = 0.5f;
@@ -371,6 +375,7 @@ static void test_fm(void)
     wv_init();
     wv_engine(WV_FM);
     memset(&f, 0, sizeof f);
+    f.engine = 1.0f;                    /* (the engine at full; the layers off) */
     f.note = 57.0f;
     f.gate = 1.0f;
     f.amp = 1.0f;
@@ -417,6 +422,7 @@ static void test_sixop(void)
     wv_engine(WV_SIXOP);
     wv_dx_patch(94);
     memset(&f, 0, sizeof f);
+    f.engine = 1.0f;                    /* (the engine at full; the layers off) */
     f.note = 57.0f;                                 /* A3, 220 Hz */
     f.gate = 1.0f;
     f.amp = 1.0f;
@@ -448,6 +454,7 @@ static float aux_part(uint32_t engine, float aux, float *rms)
     uint32_t i, n = SR / 2;
     double e = 0.0;
     memset(&f, 0, sizeof f);
+    f.engine = 1.0f;                    /* (the engine at full; the layers off) */
     f.note = 57.0f;
     f.gate = 1.0f;
     f.amp = 0.5f;

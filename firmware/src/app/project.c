@@ -33,6 +33,11 @@ static void breath_knob(int16_t *par)
     }
 }
 
+/* A sound saved before the sample layer (P_SMSLOT) had the LFO's Pitch where the Sample destination is now:
+ * it moves up with it */
+#define DST_SAMPLE_WAS_PITCH(npar, par) ((npar) > P_LFODST && (npar) <= P_SMSLOT && (par)[P_LFODST] == WM_DST_SAMPLE)
+static void lfo_pitch(int16_t *par) { par[P_LFODST] = WM_DST_PITCH; }
+
 /* A project of this format loads. Each value out of its range (a setting this version added, that an older
  * project has no room for, or one whose range has changed) takes its default; the rest are kept. */
 static int project_valid(int bytes)
@@ -51,6 +56,8 @@ static int project_valid(int bytes)
         if (have > P_ENGINE && proj.par[P_ENGINE] == 6)    /* (and 6 was Swarm, now gone: Classic) */
             proj.par[P_ENGINE] = WV_CLASSIC;
     }
+    if (DST_SAMPLE_WAS_PITCH(have, proj.par))
+        lfo_pitch(proj.par);
     proj_old = proj.format < 14u;
     proj.format = PROJ_FORMAT;
     if (proj.preset >= NPRESETS)
@@ -170,6 +177,9 @@ static void bank_read(int b)
     if (bank.npar > P_M4AMT && bank.npar <= P_BRCUT)
         for (i = 0; i < BANK_N; i++)
             breath_knob(bank.p[i].par);
+    for (i = 0; i < BANK_N; i++)
+        if (DST_SAMPLE_WAS_PITCH(bank.npar, bank.p[i].par))
+            lfo_pitch(bank.p[i].par);
     init_sound(init, 1);
     init_sound(init0, 0);
     for (i = 0; i < BANK_N; i++) {

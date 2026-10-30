@@ -3,7 +3,7 @@
 wait 200
 tap GLO
 tap GLO
-expect view 13
+expect view 15
 expect knob1 Speaker
 expect val1 Auto
 expect par69 0

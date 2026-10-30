@@ -17,7 +17,7 @@ expect val3 +12_st
 # Mod 2: breath to Noise at +60
 tap SEL
 tap SEL
-expect view 7
+expect view 9
 spin K1 1
 spin K2 5
 expect val2 Noise
