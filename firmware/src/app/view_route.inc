@@ -112,15 +112,16 @@ static const char *rt_dst_name(int d)
 }
 
 /* a destination that does nothing on this engine: Harmonics where it's stepped, Classic's Timbre (it has
- * none), 6-op's Aux (its main output) */
+ * none), 6-op's Aux (its main output); or here: Sample with no sample chosen */
 static int rt_dst_inert(int d)
 {
     int e = proj.par[P_ENGINE];
+    ws_info_t in;
     return (d == WM_DST_HARM && !wa_harm_smooth(e)) || (d == WM_DST_TIMBRE && e == WV_CLASSIC) ||
-           (d == WM_DST_AUX && e == WV_SIXOP);
+           (d == WM_DST_AUX && e == WV_SIXOP) || (d == WM_DST_SAMPLE && !ws_slot_info(proj.par[P_SMSLOT], &in));
 }
 
-static const uint8_t RT_KNOB[WM_NDST] = {P_CUTOFF, P_RESO, 255, P_MORPH, P_INDEX, P_NZLEVEL, P_RATIO, P_AUX};
+static const uint8_t RT_KNOB[WM_NDST] = {P_CUTOFF, P_RESO, 255, P_MORPH, P_INDEX, P_NZLEVEL, P_RATIO, P_AUX, P_SMLEVEL};
 
 /* the knobs' values, 0..1, as the matrix takes them (wa_set) */
 static void rt_bases(float base[WM_NDST])

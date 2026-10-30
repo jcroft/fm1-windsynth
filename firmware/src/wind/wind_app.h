@@ -42,6 +42,8 @@ enum {
     P_BRCUT,                                         /* Filter page: breath to cutoff, always there (0.0.19) */
     P_STAGEROW,                                      /* Stage: the row K1-K4 turn (0.0.24) */
     P_SPEAKER,                                       /* Setup 2 page: the speaker while USB records (0.0.31) */
+    P_SMSLOT, P_SMLEVEL, P_ENGLEVEL, P_SMTUNE,       /* Sample page: the sample layer, and the engine's level */
+    P_SMSTART, P_SMLOOP, P_SMTRIG, P_SMTRACK,        /* Sample 2 page */
     P_NPARAMS
 };
 typedef struct {
@@ -88,6 +90,8 @@ typedef struct {
     uint32_t lfo_starts;               /* notes from silence: each starts the fade again (Sync Note: the LFO) */
     float lfo_ph;                      /* the LFO's phase, 0..1 */
     float gliding;                     /* 1 while a glide moves (wind_ctl's) */
+    float sample;                      /* the sample layer's level after the matrix, 0..1 */
+    float sample_at;                   /* where the sample plays, 0..1 of it; -1 not playing */
 } wa_state_t;
 extern volatile wa_state_t wa_state;
 

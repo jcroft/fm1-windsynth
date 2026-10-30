@@ -3,7 +3,7 @@
 # Windsynth host tests: the maths, the platform pieces kept from Felucca / X0X / FoMni, the instrument
 # (the wind voice against upstream Plaits, wind control and the matrix, built without libm as on the
 # device), and the whole firmware app in the simulator (tests/scenarios/*.scn: breath, bite, glide,
-# pages, keys, persistence, effects, noise), with screenshots and audio in build/scenarios/.
+# pages, keys, persistence, effects, noise, samples), with screenshots and audio in build/scenarios/.
 #   tests/run_tests.sh
 set -u
 cd "$(dirname "$0")/.."
@@ -40,12 +40,15 @@ run wind sh -c "mkdir -p $OUT/wind && $CXX -O2 -ffp-contract=off -DTEST -Ifirmwa
     firmware/third_party/mutable/stmlib/dsp/units.cc && \
     for e in 0 1 2 3 4 5 6 7; do $OUT/wind/wind_ref $OUT/wind/ref_\$e.f32 \$e || exit 1; done && \
     $CC -O2 -ffp-contract=off -std=c99 -Wall -Wextra -Wdouble-promotion -Werror -Ifirmware/src -Itests/host \
-    -o $OUT/wind/wind_voice_test tests/host/wind_voice_test.c \$(sh tools/wind_cxx.sh $CXX $OUT/wind -Werror) && \
+    -o $OUT/wind/wind_voice_test tests/host/wind_voice_test.c firmware/src/wind/wind_sample.c \$(sh tools/wind_cxx.sh $CXX $OUT/wind -Werror) && \
     $OUT/wind/wind_voice_test $OUT/wind $OUT/wind"
 # wind control (MIDI, the note stack, breath, bite, glide), the matrix and the instrument; no libm
 run wind-ctl sh -c "$CC -O2 -ffp-contract=off -std=c99 -Wall -Wextra -Wdouble-promotion -Werror -Ifirmware/src \
     -o $OUT/wind/wind_ctl_test tests/host/wind_ctl_test.c firmware/src/wind/wind_ctl.c firmware/src/wind/wind_matrix.c \
-    firmware/src/wind/wind_app.c firmware/src/wind/wind_fx.c \$(sh tools/wind_cxx.sh $CXX $OUT/wind -Werror) && $OUT/wind/wind_ctl_test"
+    firmware/src/wind/wind_app.c firmware/src/wind/wind_fx.c firmware/src/wind/wind_sample.c \$(sh tools/wind_cxx.sh $CXX $OUT/wind -Werror) && $OUT/wind/wind_ctl_test"
+# the sample layer's player: the bank's checks, pitch, loops, start and trigger, mu-law; no libm
+run wind-sample sh -c "$CC -O2 -ffp-contract=off -std=c99 -Wall -Wextra -Wdouble-promotion -Werror -Ifirmware/src \
+    -o $OUT/wind/wind_sample_test tests/host/wind_sample_test.c firmware/src/wind/wind_sample.c && $OUT/wind/wind_sample_test"
 # the effects: off is bit-exact, decay times, stereo, shimmer, echo times, Ping-pong, distortion level,
 # latency and aliasing, modulation; no libm
 run wind-fx sh -c "$CC -O2 -ffp-contract=off -std=c99 -Wall -Wextra -Wdouble-promotion -Werror -Ifirmware/src \
@@ -66,7 +69,7 @@ run vendor python3 tools/check_vendor.py
 # the wind code is MPL-2.0 and builds on its own with the C library's maths, as other firmware would use it
 # (the voice both with the system's headers and freestanding, through the shim)
 run wind-mpl sh -c "python3 tools/check_wind_license.py && mkdir -p $OUT/wind-libm && \
-    for u in wind_ctl wind_matrix wind_app wind_fx; do \
+    for u in wind_ctl wind_matrix wind_app wind_fx wind_sample; do \
         $CC -std=c99 -Wall -Wextra -Werror -DWIND_MATH_LIBM -c -o $OUT/wind-libm/\$u.o firmware/src/wind/\$u.c || exit 1; done && \
     $CXX -std=c++11 -Wall -Werror -DTEST -DWIND_MATH_LIBM -Ifirmware/third_party/mutable -c -o $OUT/wind-libm/wind_voice.o \
         firmware/src/wind/wind_voice.cc && sh tools/wind_cxx.sh $CXX $OUT/wind-libm -DWIND_MATH_LIBM -Werror >/dev/null"
@@ -110,6 +113,14 @@ if command -v emcc >/dev/null 2>&1; then
     fi
 else
     echo "  skip emu, wind-wasm, updater, standalone (no emcc)"
+fi
+# the sample bank tool (tools/fm1_samples.py), and the bank and its SysEx that sample.scn loads
+run samples-tool python3 tests/samples_test.py build/samples
+# the page's banks and SysEx: the same as the tool's
+if command -v node >/dev/null 2>&1; then
+    run samples-page node tests/web/samples_test.mjs build/samples
+else
+    echo "  skip samples-page (no node)"
 fi
 for s in tests/scenarios/*.scn; do
     n=$(basename "$s" .scn)

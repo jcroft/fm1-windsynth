@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // The browser build in Node: boot it, play the panel's keys (key breath), expect sound and screen frames;
 // then a MIDI note with breath: silent-ish with none, brighter and louder as breath (CC2) comes in, and
-// the monitor's state (web_state) following, and the hint when breath comes on a CC that isn't Breath CC.
+// the monitor's state (web_state) following, and the hint when breath comes on a CC that isn't Breath CC;
+// and a sample bank put in as the page puts it (web_samples): on the Sample page, Slot 1 with the
+// Engine at 0, the sample alone sounds, and with Slot Off nothing does.
 import fs from "fs";
+import { buildBank, makeSlot } from "../../web/fm1samples.js";
 const wasm = fs.readFileSync(process.argv[2]);
 let mem;
 const wasi = new Proxy({ clock_time_get: (id, p, out) => { new DataView(mem.buffer).setBigUint64(out, 0n, true); return 0; },
@@ -53,4 +56,23 @@ ok(state()[11] === -1, `no breath hint once it stops (${state()[11]})`);
 for (let v = 0; v < 100; v += 10) { ex.web_midi(0xB0, 74, v); render(4); }
 ok(state()[11] === 74, `breath hint: CC74 (${state()[11]})`);
 ok(ex.web_blits() > 10, `screen frames (${ex.web_blits()})`);
+
+const tone = Float32Array.from({ length: 22050 }, (_, k) => 0.8 * Math.sin(2 * Math.PI * 220 * k / 22050));
+const bank = buildBank([makeSlot(tone, 22050, { name: "tone" })]);
+new Uint8Array(mem.buffer, ex.web_samples(), ex.web_samples_cap()).fill(0xFF).set(bank);
+ex.web_samples_attach();
+const press = (b) => { ex.web_buttons(1 << b); render(20); ex.web_buttons(0); render(20); };
+for (let i = 0; i < 3; i++) press(6);                    // HOME three times: the Sample page
+ex.web_enc(3, 1);                                        // Slot 1
+ex.web_enc(5, -100);                                     // Engine 0
+render(20);
+ex.web_midi(0x90, 69, 100);
+ex.web_midi(0xB0, 2, 127);
+const alone = render(100);
+ok(alone > 0.02, `the sample alone, Engine at 0 (peak ${alone.toFixed(3)})`);
+ex.web_enc(3, -1);                                       // Slot Off
+render(300);                                             // (the reverb's tail)
+const off = render(40);
+ok(off < 0.01, `Slot Off, Engine 0: quiet (peak ${off.toFixed(3)})`);
+ex.web_midi(0x80, 69, 0);
 process.exit(failed ? 1 : 0);

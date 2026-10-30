@@ -261,8 +261,10 @@ static void fm1_main(void)
         uint32_t f = irq_save();
         flash_ok = FL_FAR(fl_jedec_ram)() == 0x856014u;   /* the expected 1 MiB part, else RAM only */
         irq_restore(f);
-        if (flash_ok)
+        if (flash_ok) {
             ota_boot_cleanup();
+            fl_plain_window_init();                 /* the data area reads as plaintext through XIP: the samples */
+        }
     }
     lcd_init();
     palette_set(1);
@@ -295,6 +297,7 @@ static void fm1_main(void)
     wa_init();
     project_load();                                 /* defaults when nothing (or another format) is saved */
     project_apply();
+    smp_attach();                                   /* the sample bank, from flash */
     audio_init();
     usb_start();
 #if OM_TRS
@@ -346,7 +349,18 @@ static void fm1_main(void)
                 enter_uboot("UBOOT");
             }
         }
-        ota_service();                              /* M-UPGRADE handshake (other SysEx is dropped) */
+        {   /* a SysEx message for the sample bank (samples.c); any other is the update's: M-UPGRADE
+             * handshake (other SysEx is dropped). (Only a message there now: ota_service takes whatever
+             * is there, and one arriving between the two would be lost.) */
+            const uint8_t *p;
+            uint32_t n;
+            if (ota_frame_get(&p, &n)) {
+                if (smp_sysex(p, n))
+                    ota_frame_done();
+                else
+                    ota_service();
+            }
+        }
         if (usb.ota_req) {
             int unsaved;
             usb.ota_req = 0;

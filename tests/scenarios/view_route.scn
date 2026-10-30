@@ -12,7 +12,7 @@ wait 1400
 # Mod 1: Breath to the engine's Timbre (VA: Square), +40; the LFO on Morph (a square at its slowest: it
 # holds still, so the screen does)
 tap SEL
-expect view 6
+expect view 8
 spin K1 1
 spin K2 4
 spin K3 40
@@ -22,11 +22,11 @@ expect par14 40
 tap LFO
 spin K1 3
 spin K2 -100
-spin K3 -5
+spin K3 -6
 expect par63 3
 spin K4 40
 tap SEL
-expect view 6
+expect view 8
 midi 90 41 64
 breath 0 85 60
 wait 40
@@ -68,7 +68,7 @@ tap GLO
 spin K4 1
 expect par29 1
 tap SEL
-expect view 6
+expect view 8
 wait 50
 shot mod1_dark.png
 expect stale 0
@@ -78,7 +78,7 @@ expect col12_115 0
 expect offbg168_171 0
 # Mod 2: off, a grey cable and pill; the list still shows slot 1, the LFO and the Filter, and "2-4 Off"
 tap SEL
-expect view 7
+expect view 9
 wait 30
 shot mod2_off_dark.png
 expect stale 0
@@ -102,7 +102,7 @@ spin K2 77
 expect par61 0
 tap SEL
 tap SEL
-expect view 7
+expect view 9
 wait 100
 expect stale 0
 expect blits >-1
@@ -124,7 +124,7 @@ expect par61 3
 expect par62 0
 # Setup: the tuner and the monitor
 tap GLO
-expect view 12
+expect view 14
 midi 90 41 64
 breath 0 74 40
 midi E0 00 38
@@ -168,7 +168,7 @@ expect rtmon3 NOTE|F4_off|ch1|0
 midi B0 05 50
 wait 20
 expect rtmon2 CC5|Glide|ch1|80
-expect view 12
+expect view 14
 spin K2 -5
 expect par9 0
 spin K1 126
@@ -202,7 +202,7 @@ spin K3 -3
 # Mod 2 with all four slots on, the LFO and the Filter's Breath: six rows. The slot's panel gives up
 # 20 px (x 12, y 88 is the gap between the panels), slot 2's row lit, and nothing under the list's panel
 tap SEL
-expect view 6
+expect view 8
 tap SEL
 spin K1 2
 spin K2 6
@@ -217,7 +217,7 @@ spin K2 7
 spin K3 100
 tap SEL
 tap SEL
-expect view 7
+expect view 9
 midi 90 41 64
 breath 0 100 40
 midi E0 00 20
@@ -265,7 +265,7 @@ expect par22 3
 tap SEL
 tap SEL
 tap SEL
-expect view 8
+expect view 10
 wait 1400
 shot mod3_inert_light.png
 expect stale 0
@@ -283,7 +283,7 @@ expect par63 6
 tap SEL
 tap SEL
 tap SEL
-expect view 8
+expect view 10
 wait 1400
 shot mod3_cut_light.png
 expect rtrow4 |LFO_Square>Harm_off|-100

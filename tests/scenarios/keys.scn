@@ -39,7 +39,7 @@ tapkey 0
 expect top 41
 # no Key breath any more: the keys always play at full breath (they sense no pressure); SEQ is the Pitch pages
 tap SEQ
-expect view 10
+expect view 12
 expect knob1 Bend
 # nothing on the screen is stale
 wait 50

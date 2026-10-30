@@ -17,7 +17,7 @@ emcc -O2 -ffp-contract=off -std=gnu99 -Wall -Wno-unused-function -Wno-unused-par
     --no-entry -sSTANDALONE_WASM -sSTACK_SIZE=1048576 -sINITIAL_MEMORY=33554432 -sFILESYSTEM=0 \
     -Wl,--export=wv_init -Wl,--export=wv_render_raw \
     -o build/emu/windsynth.wasm web/emu/windsynth_web.c \
-    firmware/src/wind/wind_ctl.c firmware/src/wind/wind_matrix.c firmware/src/wind/wind_app.c firmware/src/wind/wind_fx.c $WIND
+    firmware/src/wind/wind_ctl.c firmware/src/wind/wind_matrix.c firmware/src/wind/wind_app.c firmware/src/wind/wind_fx.c firmware/src/wind/wind_sample.c $WIND
 cp web/emu/worklet.js build/emu/
 "$PY" web/emu/inline_lib.py web/emu/index.html build/emu/index.html   # the installer's modules, inlined
 echo "emu: build/emu ($(wc -c < build/emu/windsynth.wasm) B wasm)"

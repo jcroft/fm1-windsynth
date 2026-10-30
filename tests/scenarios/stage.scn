@@ -3,7 +3,7 @@
 # for that page. On Stage the keys light dim from the left as a breath meter.
 wait 200
 tap ENV
-expect view 3
+expect view 5
 tap PLAY
 wait 100
 expect stage 1
@@ -95,28 +95,28 @@ expect stale 0
 tap PLAY
 wait 100
 expect stage 0
-expect view 3
+expect view 5
 expect dimkeys 0
 expect stale 0
 # a page with a second page comes back to the one it was on; EDIT leaves too
 tap LFO
-expect view 4
+expect view 6
 tap PLAY
 tap LFO
 wait 100
 expect stage 0
-expect view 4
+expect view 6
 tap PLAY
 tap EDIT
 wait 100
 expect stage 0
-expect view 4
+expect view 6
 # a page button leaves Stage for that page
 tap PLAY
 tap SEQ
 wait 100
 expect stage 0
-expect view 10
+expect view 12
 expect stale 0
 # Dark, and a long engine's name in the header
 tap GLO

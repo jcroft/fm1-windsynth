@@ -23,6 +23,7 @@
  * in static storage and are built there by wv_init with placement new. */
 #include <new>
 #include "wind_voice.h"
+#include "wind_sample.h"
 #include "wind_math.h"
 #include "plaits/dsp/engine2/virtual_analog_vcf_engine.h"
 #include "plaits/dsp/engine/fm_engine.h"
@@ -87,7 +88,7 @@ typedef struct {
     stmlib::Svf *svf;                   /* LP, then LP for 24 dB */
     post_k_t at;
 } filt_t;
-static filt_t post, nz_post;            /* our filter; the noise's own copy of it, on Classic */
+static filt_t post, nz_post;            /* our filter; the layers' own copy of it, on Classic */
 /* The noise layer: Plaits' clocked noise (white, here) through a filter that morphs from low-pass through
  * band-pass to high-pass at a pitch that tracks the note, as Plaits' filtered noise engine does; mixed in
  * before our filter (on Classic, through its own copy of it), so breath opens it with the tone, and
@@ -96,6 +97,10 @@ static ClockedNoise *nz;
 static stmlib::Svf *nz_svf;
 static float nz_type = 0.5f, nz_semis = 24.0f, nz_reso;   /* the Noise page: LP..HP, the pitch, resonance */
 static float nz_f, nz_q, nz_mode, nz_lvl;                 /* ...at the end of the last block */
+/* The sample layer (wind_sample.c) joins the noise there, through the same filter, gate and VCA; its level
+ * is a Mod destination too. The engine has a level of its own, so the layers can play alone (at 0 the
+ * engine isn't run). */
+static float sm_lvl, en_lvl;            /* the sample's and the engine's levels at the end of the last block */
 static uint32_t slope;
 static float env, env_up, env_down;     /* the gate envelope: 5 ms up, 60 ms down by default */
 static float dc_x, dc_y;                /* DC blocker state */
@@ -196,6 +201,24 @@ static int noise_block(const wind_frame_t *f, float lvl, float *x, uint32_t n)
     return 1;
 }
 
+/* the sample layer for n frames, level ramping from the last block's to lvl, into x (0: silent). It plays
+ * on at level 0 (breath may bring it in mid-note), so it's always run while a slot is chosen. */
+static int sample_block(const wind_frame_t *f, uint32_t start, float lvl, float *x, uint32_t n)
+{
+    uint32_t i;
+    if (!ws_render(f->note, start, x, n) || (lvl <= 0.0f && sm_lvl <= 0.0f)) {
+        sm_lvl = lvl;
+        return 0;
+    }
+    {
+        stmlib::ParameterInterpolator li(&sm_lvl, lvl, (size_t)n);
+        for (i = 0; i < n; i++)
+            x[i] *= li.Next();
+    }
+    sm_lvl = lvl;                       /* (exactly where it was going) */
+    return 1;
+}
+
 extern "C" void wv_noise(float type, float semis, float reso)
 {
     nz_type = clamp01(type);
@@ -238,6 +261,8 @@ extern "C" void wv_init(void)
     nz_svf->Init();
     nz->Init();
     nz_f = nz_q = nz_mode = nz_lvl = 0.0f;
+    sm_lvl = 0.0f;
+    en_lvl = 1.0f;
     slope = WV_SLOPE_12;
     env = vca = aux_at = dc_x = dc_y = 0.0f;
     wv_env(0.005f, 0.060f);
@@ -305,9 +330,10 @@ extern "C" void wv_tap(float *to) { tap = to; }
 extern "C" void wv_render(const wind_frame_t *f, int32_t *out_lr, uint32_t frames)
 {
     EngineParameters p;
-    float out[WV_BLK], aux[WV_BLK], nzb[WV_BLK];
+    float out[WV_BLK], aux[WV_BLK], nzb[WV_BLK], smb[WV_BLK];
     post_k_t pk;
-    float nlvl = clamp01(f->noise);
+    float nlvl = clamp01(f->noise), slvl = clamp01(f->sample), elvl = clamp01(f->engine);
+    uint32_t start = f->start;
     float amp = f->amp < 0.0f ? 0.0f : f->amp > 1.0f ? 1.0f : f->amp;
     float dvca = (amp - vca) / (float)(frames ? frames : 1);   /* the VCA ramps across the block */
     float ax = engine == WV_SIXOP ? 0.0f : clamp01(f->aux);    /* (6-op's AUX is its main output) */
@@ -320,9 +346,15 @@ extern "C" void wv_render(const wind_frame_t *f, int32_t *out_lr, uint32_t frame
     last_gate = f->gate;
     post_targets(f, &pk);
     nlvl = nlvl * nlvl * 2.0f;          /* (Level: a curve, and room on top) */
+    slvl *= slvl;                       /* (the sample's and the engine's levels: the same curve, 1 at the top) */
+    elvl *= elvl;
     while (frames) {
         uint32_t k = frames > WV_BLK ? WV_BLK : frames, i;
-        if (engine == WV_SIXOP) {       /* always Plaits' 12 (see six_q), handed out k at a time */
+        int layers = 0;
+        if (elvl <= 0.0f && en_lvl <= 0.0f) {   /* the engine at 0: not run (the layers alone) */
+            for (i = 0; i < k; i++)
+                out[i] = 0.0f;
+        } else if (engine == WV_SIXOP) {       /* always Plaits' 12 (see six_q), handed out k at a time */
             for (i = 0; i < k; i++) {
                 if (six_at >= WV_BLK) {
                     eng->Render(p, six_q, aux, WV_BLK, &enveloped);
@@ -342,8 +374,23 @@ extern "C" void wv_render(const wind_frame_t *f, int32_t *out_lr, uint32_t frame
                     out[i] += (aux[i] - out[i]) * aux_at;
                 }
         }
-        if (noise_block(f, nlvl, nzb, k)) {
-            if (engine == WV_CLASSIC)   /* (Classic's filter is inside it: the noise gets a copy) */
+        if (elvl < 1.0f || en_lvl < 1.0f) {     /* (at 1, the engine bit for bit) */
+            {
+                stmlib::ParameterInterpolator ei(&en_lvl, elvl, (size_t)k);
+                for (i = 0; i < k; i++)
+                    out[i] *= ei.Next();
+            }
+            en_lvl = elvl;              /* (the ramp's sum lands near it, not on it: at 1, exactly 1) */
+        }
+        layers = noise_block(f, nlvl, nzb, k);
+        if (sample_block(f, start, slvl, smb, k)) {
+            for (i = 0; i < k; i++)
+                nzb[i] = layers ? nzb[i] + smb[i] : smb[i];
+            layers = 1;
+        }
+        start = 0;                      /* (the block's first frames: a start, once) */
+        if (layers) {
+            if (engine == WV_CLASSIC)   /* (Classic's filter is inside it: the layers get a copy) */
                 post_filter(&nz_post, nzb, k, &pk);
             for (i = 0; i < k; i++)
                 out[i] += nzb[i];

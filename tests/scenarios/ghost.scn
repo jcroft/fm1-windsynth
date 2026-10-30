@@ -71,7 +71,7 @@ wait 100
 expect par9 128
 expect glide 4
 tap SEQ
-expect view 10
+expect view 12
 expect ghost2 -1
 tap SEQ
 expect ghost1 -1

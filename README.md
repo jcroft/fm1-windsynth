@@ -40,10 +40,12 @@ step through every page.
 | HOME | Filter | Cutoff, Resonance, Slope (12 or 24 dB), Breath (how far breath opens the cutoff, −100 to +100, +75 to start) |
 | HOME again | Engine (the header names it) | The engine's own three knobs, named for what they do on it: Harmonics and Timbre (Classic has neither), Morph (Classic: the waveform, a saw up to 25, a square at 50, then a pulse that narrows and widens again, with a sub-octave below 20 and above 80; FM: the feedback, none at 50); then Aux: from the engine's main output (0) to its second output alone (100; not on 6-op, whose second output is the same). The ALGORITHM knob picks the engine. See the engines below. |
 | HOME again | Noise | Level (0 is off), Type (low-pass through band-pass to high-pass), Freq (the noise filter's pitch, in semitones from the note), Reso |
+| HOME again | Sample | Slot (Off, or one of the 32 samples; see Samples below), Level, Engine (the engine's own level: 0 plays the sample alone), Tune (±24 semitones). The page draws the sample, its loop, Start and where it plays |
+| HOME again | Sample 2 | Start (where in the sample it starts), Loop (Off: once through; Loop; Ping-pong), Trigger (Phrase: it starts again with each phrase from silence; Note: with each new note too), Track (On: at the note you play; Off: at its own pitch) |
 | ENV | Breath | Curve, Attack, Release |
 | LFO | LFO | Shape (Sine, Triangle, Saw, Square, S&H), Rate (0.05 to 20 Hz, 5 Hz by default), Dest (the Mod slots' destinations, plus Pitch), Amount (−100 to +100; on Pitch, in cents; 0 by default, so it's off) |
 | LFO again | LFO 2 | Fade (how long it takes to come in after a note starts from silence), Sync (Free, or Note: each new phrase restarts it) |
-| SEL | Mod 1–4 (press again for the next) | Source (breath, bite, mod wheel, pressure, velocity), Destination (cutoff, resonance, amp, morph, timbre: the Engine page's third knob, FM's Index; noise: the noise layer's level; harmonics: the Engine page's second knob, on Formant, Waveshape, VA and Harmonic only, "Harm off" elsewhere; aux: the Aux mix), Amount (−100 to +100) |
+| SEL | Mod 1–4 (press again for the next) | Source (breath, bite, mod wheel, pressure, velocity), Destination (cutoff, resonance, amp, morph, timbre: the Engine page's third knob, FM's Index; noise: the noise layer's level; harmonics: the Engine page's second knob, on Formant, Waveshape, VA and Harmonic only, "Harm off" elsewhere; aux: the Aux mix; sample: the sample layer's level), Amount (−100 to +100) |
 | SEQ | Pitch | Bend range, Glide (the glide time with the glide CC at 0: 4 ms by default, up to 2 s), Glide mode (always or legato) |
 | SEQ again | Pitch 2 | CC depth: how much the glide CC adds to Glide at full (400 ms by default, up to 2 s), Transpose, Tune |
 | GLO | Setup | Breath CC (CC2 by default, another CC, or aftertouch), Glide CC (CC5 by default, another CC, or off), MIDI channel (Omni by default), Theme (Light or Dark); the version. When your controller's breath arrives on another CC, the Breath row says which ("CC74 moving") |
@@ -78,6 +80,22 @@ gesture.
 
 **OCT−** / **OCT+** move the panel's keys by octaves.
 
+## Samples
+
+A sample layer can go with any engine, as the noise does: one sample at a time, at the note you play,
+looped, mixed in ahead of the filter. Its Level is a Mod destination, so breath can blow it in, and
+the Engine knob turns the engine down, to 0 for the sample on its own (a sax, say). The FM-1 holds
+32 samples, about 244 KB in all: 5.6 s of 16-bit sound at 22 kHz, or twice that as 8-bit mu-law.
+One sample, with loops; no key zones.
+
+To get them there, use the **Samples** section of the web page: add sound files (WAV, MP3, FLAC and
+what else your browser plays), and it finds each one's pitch and a loop for it (a WAV's own root and loop, if it has them),
+which you can change. They play in the browser version at once; **Send to FM-1** loads them over the
+USB cable (Chrome or Edge), and **Read from FM-1** gets them back. From a computer's command line,
+`tools/fm1_samples.py` does the same (`build`, `send`, `backup`, `info`). A preset keeps its slot
+number, not the sample, so a preset whose slot is empty plays without it. Loading stops the sound
+for a moment while the flash is written.
+
 ## Effects
 
 The voice goes through four effects in order: Distortion, Modulation, Delay, Reverb. Modulation turns
@@ -111,7 +129,7 @@ to them, and the rest start as the init sound. Turn **PRESETS** to play another;
 press **SAVE** again (any other button leaves the presets alone). What you're playing, edits
 included, is also kept by itself a few seconds after you stop, so it comes back after a restart.
 
-A preset holds the sound: the Filter, Engine, Noise, LFO, Pitch and Mod pages, the effects, and Attack and
+A preset holds the sound: the Filter, Engine, Noise, Sample, LFO, Pitch and Mod pages, the effects, and Attack and
 Release. Your rig's settings stay put when you change presets: the breath curve, Pitch 2 (the glide CC's
 depth, Transpose and Tune), the keys' octave and Setup (the breath and glide CCs, MIDI ch and Theme; the Speaker).
 Hold **SAVE** for 1.5 s, then press it again, for the init sound (the preset slot is untouched until
