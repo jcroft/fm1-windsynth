@@ -15,8 +15,8 @@ Or play it online: <https://jcroft.github.io/fm1-windsynth/>
 
 ### Installing
 
-1. **Get the way back ready.** Download M-VAVE's stock firmware (FM-1 V15, "PC Firmware" at
-   m-vave.com/download) and keep it. If Windsynth fails to start twice, the FM-1 comes up in safe mode
+1. **Get the way back ready.** Download M-VAVE's stock firmware (FM-1 V15, and V16 if offered,
+   "PC Firmware" at m-vave.com/download) and keep it. If Windsynth fails to start twice, the FM-1 comes up in safe mode
    (no sound, USB on), where you can reinstall. After four failed starts it enters the chip's own
    update mode, which the package can't overwrite, and `tools/fm1_rescue.py` puts stock firmware
    back. The install page's "Install the stock firmware" (and FoMni's web installer) can also restore it.
