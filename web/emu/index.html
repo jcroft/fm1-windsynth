@@ -132,8 +132,8 @@ kbd { font: 600 .85em ui-monospace, Menlo, monospace; background: var(--card); b
   <details id="instBody">
   <summary id="instTest">Have a test build? Install it</summary>
   <p class="warn"><b>Beta.</b> Custom firmware is installed at your own risk. Before you start, download M-VAVE's
-    stock firmware (FM-1 V15, "PC Firmware" at <a href="https://www.m-vave.com/download" target="_blank" rel="noopener">m-vave.com/download</a>)
-    so you can always go back (below).</p>
+    stock firmware so you can always go back (below): FM-1 V15 from <a href="https://web.archive.org/web/20261009203224id_/https://yms-file-store.oss-cn-hongkong.aliyuncs.com/software/firmware/FM-1.fwsc" target="_blank" rel="noopener">the Internet Archive</a>
+    (M-VAVE no longer offers it), and V16 ("PC Firmware" at <a href="https://www.m-vave.com/download" target="_blank" rel="noopener">m-vave.com/download</a>).</p>
   <ol>
     <li>Connect the FM-1 to this computer with a USB data cable, directly (no hub, probe or Transporter). Close other apps that use MIDI.</li>
     <li>Use Chrome or Edge, and allow MIDI (with SysEx) when the browser asks.</li>
@@ -153,9 +153,11 @@ kbd { font: 600 .85em ui-monospace, Menlo, monospace; background: var(--card); b
   <details>
     <summary><h3>Back to the stock firmware</h3></summary>
     <p>This writes M-VAVE's own FM-1 V15 back, from Windsynth (or its safe mode, or any Felucca-family firmware) over the
-      same USB cable. Choose the file you downloaded from M-VAVE: it is checked (SHA-256) before anything is written.
+      same USB cable. Choose the V15 file (<a href="https://web.archive.org/web/20261009203224id_/https://yms-file-store.oss-cn-hongkong.aliyuncs.com/software/firmware/FM-1.fwsc" target="_blank" rel="noopener">from the Internet Archive</a>): it is checked (SHA-256) before anything is written.
+      It is for FM-1s that came with V15. One that came with V16 (most newer units, with the UC25HQ80 flash) needs the
+      rescue tool below with the V16 file, because each version brings its own bootloader and this page writes only V15.
       If the FM-1 doesn't start at all, it comes up in safe mode after two tries, where this still works; past that,
-      the rescue tool in Windsynth's source (<a href="https://github.com/jcroft/fm1-windsynth/blob/main/tools/fm1_rescue.py"><code>tools/fm1_rescue.py</code></a>) restores it from a Mac.</p>
+      the rescue tool in Windsynth's source (<a href="https://github.com/jcroft/fm1-windsynth/blob/main/tools/fm1_rescue.py"><code>tools/fm1_rescue.py</code></a>) restores V15 or V16 from a Mac or Linux.</p>
     <div class="row">
       <input type="file" id="stockFile" accept=".fwsc" aria-label="M-VAVE's FM-1 V15 file">
       <button id="stockGo" type="button" class="quiet" disabled>Install the stock firmware</button>
@@ -683,7 +685,7 @@ $("stockFile").addEventListener("change", async (e) => {
     try {
       const raw = new Uint8Array(await f.arrayBuffer());
       const hex = [...new Uint8Array(await crypto.subtle.digest("SHA-256", raw))].map((b) => b.toString(16).padStart(2, "0")).join("");
-      if (hex !== STOCK_SHA256) status("That is not M-VAVE's FM-1 V15 file. Choose the file from M-VAVE's download page.");
+      if (hex !== STOCK_SHA256) status("That is not M-VAVE's FM-1 V15 file. This page installs V15 only (from the Internet Archive); for V16 use tools/fm1_rescue.py.");
       else { stock = readPackage(raw, f.name); status("That is M-VAVE's FM-1 V15. Press Install the stock firmware."); }
     } catch (err) { status(err.message); }
   }
