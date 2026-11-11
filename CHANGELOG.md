@@ -4,6 +4,20 @@ A release is a push to `main` that changes `VERSION` to a version past 0.0.x wit
 release build, tags the commit `vX.Y.Z` and publishes the GitHub Release with that version's notes,
 taken from its section below. Add the section in the same pull request as the `VERSION` change.
 
+## 0.1.1
+
+- **Newer FM-1s now save and update.** FM-1s sold since autumn 2026 (mostly from AliExpress) have a
+  different flash chip, the UC25HQ80. Windsynth didn't recognise it, so on those units presets and
+  settings were lost at power-off, and the installer couldn't update Windsynth or put stock firmware
+  back. Both chips work now. Earlier FM-1s behave exactly as before.
+- **The way back covers M-VAVE's V16.** M-VAVE now offers stock firmware V16 only. V15 is on the
+  Internet Archive. The rescue tool (`tools/fm1_rescue.sh`, now for Mac and Linux) gets both and writes
+  the one that matches your FM-1's bootloader. The install page's "Install the stock firmware" writes
+  V15 only, so it's for FM-1s that came with V15. Newer units usually came with V16; use the rescue
+  tool for those.
+- The wind instrument code (`firmware/src/wind/`) is now MPL-2.0, so other FM-1 firmware can reuse it.
+  The firmware as a whole is still GPL-3.0.
+
 ## 0.1.0
 
 The first release. Windsynth turns the M-VAVE FM-1 into a synth for any MIDI wind controller, with
