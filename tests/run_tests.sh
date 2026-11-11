@@ -64,6 +64,8 @@ else
     echo "  skip wind-fx-sanitized (no -fsanitize=address,undefined)"
 fi
 run vendor python3 tools/check_vendor.py
+# the card on The Firmware Hub (fmhub.json and its picture), against the hub's rules
+run fmhub python3 tools/check_fmhub.py
 # the wind code is MPL-2.0 and builds on its own with the C library's maths, as other firmware would use it
 # (the voice both with the system's headers and freestanding, through the shim)
 run wind-mpl sh -c "python3 tools/check_wind_license.py && mkdir -p $OUT/wind-libm && \

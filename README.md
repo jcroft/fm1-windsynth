@@ -117,6 +117,26 @@ depth, Transpose and Tune), the keys' octave and Setup (the breath and glide CCs
 Hold **SAVE** for 1.5 s, then press it again, for the init sound (the preset slot is untouched until
 you save).
 
+## Installing, and other firmwares
+
+Install it from <https://jcroft.github.io/fm1-windsynth/#install>, in Chrome or Edge, or with
+`tools/fm1_install.py` (see [BUILDING.md](BUILDING.md)). Leaving it works the same way: from Windsynth
+you can install any firmware built on Felucca (SLOOP, X0X, FoMni, FiMba-1 and the rest), or the M-VAVE
+stock version that matches your FM-1 (V15 or V16, whichever it came with), without holding a key at
+power-on. The device shows up over USB-MIDI as "Windsynth FM-1", and its identity is `FM-1_5` plus
+the version, two digits each (0.2.0 would be `FM-1_5000200`). Up to 0.1.0 it was `FM-1_8000100`, inside the
+numbers FoMni and FiMba-1 use.
+
+**Back up first if another firmware's work matters to you.** All FM-1 firmwares share one flash chip.
+Windsynth can't read projects, patterns, presets or samples saved by any other firmware: it ignores
+them and starts with the init sound and its own factory presets. Installing it and starting it leave
+other firmwares' saves alone (it only clears the update loader's own scratch area, from 0xE0000). But
+once it saves (your sound, a few seconds after you change it or pick a preset; a preset, when you press
+**SAVE**), it writes over flash where Felucca and the firmwares built on it keep their saves: 0xFC000
+(their project) and the main store from 0x97000. The knob setup (OCT− and OCT+ held at power-on)
+writes 0xDC000, where Felucca keeps its user presets. Going back to another firmware works the same
+way round: what Windsynth saved is unknown to it.
+
 ## Building and testing
 
 See [BUILDING.md](BUILDING.md). In short: `python3 tools/build.py` builds the FM-1 package,

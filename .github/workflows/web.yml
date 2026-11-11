@@ -7,7 +7,7 @@
 #                     https://jcroft.github.io/fm1-windsynth/, with the latest release's firmware
 #                     beside it for the page's installer (firmware/latest.json)
 #   a new VERSION     a push to main whose VERSION has no tag yet is a release (0.0.x never is): a release build
-#                     (identity FM-1_8XXYYZZ, version on the splash and the Setup page), the commit
+#                     (identity FM-1_5XXYYZZ, version on the splash and the Setup page), the commit
 #                     tagged vX.Y.Z and published as a GitHub Release with the .fwsc, the one-file web
 #                     app and its CHANGELOG.md section, and the site published with that firmware in its
 #                     installer, all in this one run. (A tag pushed by a run starts no other run, and

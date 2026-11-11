@@ -1,0 +1,8 @@
+{
+  "what": "Turns the FM-1 into a synth for any MIDI wind controller: EWI, NuRAD, Aerophone, Sylphyo and the rest. Breath opens the filter, bite bends the pitch, and eight Plaits engines play through a noise layer, a mod matrix, an LFO and four effects. Try it in the browser first.",
+  "author": "Jeff Croft",
+  "kinds": ["synth"],
+  "play": "https://jcroft.github.io/fm1-windsynth/",
+  "image": "docs/card.png",
+  "color": "#D55D31"
+}
