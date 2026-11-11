@@ -83,7 +83,7 @@ const doc = await call("DOM.getDocument");
 const q = await call("DOM.querySelector", { nodeId: doc.root.nodeId, selector: "#instFile" });
 await call("DOM.setFileInputFiles", { nodeId: q.nodeId, files: [resolve("build/windsynth.fwsc")] });
 const ready = await until(`!document.getElementById("instFileGo").disabled && document.getElementById("instStatus").textContent`, 5000);
-ok(/windsynth\.fwsc: FM-1_8/.test(ready || ""), `a chosen file read: "${ready}"`);
+ok(/windsynth\.fwsc: FM-1_5/.test(ready || ""), `a chosen file read: "${ready}"`);
 await js(`window.__fm1 = null; document.getElementById("instFileGo").click()`);
 st = await until(`(s => /^Done|Error|not |lost|stopped/.test(s) && s)(document.getElementById("instStatus").textContent)`, 60000);
 ok(/^Done/.test(st || "") && await js(`window.__fm1.bad === 0`), `install a chosen file: "${st}"`);

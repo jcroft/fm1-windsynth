@@ -7,7 +7,7 @@ that is known to install and boot, so that the only bytes that differ are the ap
   check_fwsc.py PACKAGE.fwsc [--app APP.bin] [--ref REF.fwsc]
 
 What it checks:
-  container   the identity (FM-1_8...), the UFW header and file list CRCs, each file's CRC
+  container   the identity (FM-1_5...), the UFW header and file list CRCs, each file's CRC
   head        flash [0, 0x4000): the JLFS entries and their CRCs, the SPL (uboot.boot) and the chip
               key blob. The update loader never writes the head; this is what keeps the chip's
               own boot and update mode, the last way back
@@ -19,6 +19,7 @@ What it checks:
               the block that holds it) may differ
 Exit status 0 when everything holds."""
 import argparse
+import re
 import struct
 import sys
 from pathlib import Path
@@ -90,7 +91,7 @@ def app_area(flash):
 def check(path, app=None):
     print(f"{path}")
     p = unpack(path)
-    ok(p["product"].startswith("FM-1_8"), f"identity {p['product']!r} (FM-1_8...: a Felucca-family package)")
+    ok(re.fullmatch(r"FM-1_5(00|\d{6})", p["product"]) is not None, f"identity {p['product']!r} (FM-1_500, or FM-1_5XXYYZZ for a release: ours)")
     ok(p["hdr_ok"] and p["list_ok"], "UFW header and file list CRCs")
     ok(set(p["files"]) == {"flash.bin", "ota.bin"}, f"files: {sorted(p['files'])}")
     for n, (d, c) in p["files"].items():

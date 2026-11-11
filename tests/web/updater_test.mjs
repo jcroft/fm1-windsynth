@@ -17,9 +17,9 @@ const { Updater, productOf, logicalImage } = await import("data:text/javascript;
 
 const image = Uint8Array.from({ length: 0x2000 }, (_, i) => (i * 7) & 0xFF);
 const steps = [];
-const dev = new FakeFM1(image, { after: "FM-1_8000100" });
-const got = await new Updater(dev.access).install(image, "FM-1_8000100", (k) => steps.push(k));
-ok(got === "FM-1_8000100" && dev.bad === 0 && steps.includes("write") && steps.at(-1) === "done",
+const dev = new FakeFM1(image, { after: "FM-1_5000100" });
+const got = await new Updater(dev.access).install(image, "FM-1_5000100", (k) => steps.push(k));
+ok(got === "FM-1_5000100" && dev.bad === 0 && steps.includes("write") && steps.at(-1) === "done",
   `install: running firmware -> loader -> the new firmware (${dev.served} reads, all right)`);
 
 const dev2 = new FakeFM1(image, { unplugAfter: 3 });
@@ -28,18 +28,18 @@ const t0 = Date.now();
 ok(await new Updater(dev2.access).resume(image) === false && Date.now() - t0 < 6000, "unplugged during the write: stops at once");
 
 const dev3 = new FakeFM1(image, { unplugAfter: 2 });
-const e = await new Updater(dev3.access).install(image, "FM-1_800").then(() => null, (x) => x);
+const e = await new Updater(dev3.access).install(image, "FM-1_500").then(() => null, (x) => x);
 ok(e && e.code === "lost", "unplugged in step 1: 'lost', nothing written");
-const e2 = await new Updater({ inputs: new Map(), outputs: new Map() }).install(image, "FM-1_800").then(() => null, (x) => x);
+const e2 = await new Updater({ inputs: new Map(), outputs: new Map() }).install(image, "FM-1_500").then(() => null, (x) => x);
 ok(e2 && e2.code === "notfound", "no FM-1 connected: 'notfound'");
 const dev4 = new FakeFM1(image, { after: "FM-1_015" });
-const e3 = await new Updater(dev4.access).install(image, "FM-1_800").then(() => null, (x) => x);
+const e3 = await new Updater(dev4.access).install(image, "FM-1_500").then(() => null, (x) => x);
 ok(e3 && e3.code === "mismatch" && e3.detail === "FM-1_015", "it comes back as something else: 'mismatch', with what it reports");
 
 if (existsSync("build/windsynth.fwsc")) {
   const raw = new Uint8Array(readFileSync("build/windsynth.fwsc"));
   const img = logicalImage(raw);
-  ok(/^FM-1_8\d*$/.test(productOf(raw)) && img.length === raw.length - 20, `build/windsynth.fwsc: ${productOf(raw)}, its image ${img.length} B`);
+  ok(/^FM-1_5\d*$/.test(productOf(raw)) && img.length === raw.length - 20, `build/windsynth.fwsc: ${productOf(raw)}, its image ${img.length} B`);
 } else {
   console.log(`${"build/windsynth.fwsc (no firmware build)".padEnd(70)} skip`);
 }
