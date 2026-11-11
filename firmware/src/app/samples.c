@@ -6,7 +6,8 @@
  * A message is F0 7D 57 53 01 CMD DATA F7: 7D the non-commercial ID, "WS", the protocol's version 1,
  * then the command and its body with a check byte after it (the bitwise not of the body's sum), the two
  * 8-to-7 packed, least significant bit first. A reply is the same with CMD | 0x40, and starts with rc
- * (SMP_OK and the rest). One request at a time: send the next after the reply.
+ * (SMP_OK and the rest). One request at a time: send the next after the reply. A message with 0x40 in
+ * CMD is a reply, and is dropped unanswered (a MIDI thru that sends ours back mustn't start a loop).
  *
  *   01 INFO               rc, u32 room, u32 the bank's size now (0 none), u16 slots, u16 the largest piece
  *   02 READ  off n        rc, u32 off, n bytes of the bank (n <= SMP_PIECE): to read it back
@@ -101,6 +102,10 @@ int smp_sysex(const uint8_t *in, uint32_t n)
     if (n < 6u || in[0] != 0x7D || in[1] != 0x57 || in[2] != 0x53)
         return 0;
     cmd = in[4];
+    if (cmd & 0x40u)                               /* a reply (ours, echoed back by a MIDI thru on the
+                                                    * computer): never answered, or each answer would
+                                                    * come back to be answered again */
+        return 1;
     if (in[3] != 0x01) {                           /* (another version of the protocol: say so) */
         smp_rc(cmd, SMP_EARG);
         return 1;
