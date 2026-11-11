@@ -5,7 +5,7 @@ Custom firmware that turns the **M-VAVE FM-1** into a synthesizer for **any MIDI
 It runs in the browser first, as the firmware's own C code compiled to WebAssembly, and then on the
 FM-1 itself.
 
-> **Status: 0.1.0, the first release.** It plays: notes, breath, bite and glide from any windsynth
+> **Status: 0.1.1.** It plays: notes, breath, bite and glide from any windsynth
 > drive a Plaits voice (eight engines), with 18 factory presets in 64 slots, a distortion, a modulation
 > effect (chorus, ensemble, flanger, phaser), a delay and a reverb, in the browser and on the FM-1. It's
 > tested on real FM-1 hardware for playability, performance and stability. Still to come: better
