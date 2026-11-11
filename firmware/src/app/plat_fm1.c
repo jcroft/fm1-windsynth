@@ -73,6 +73,29 @@ int plat_midi_in(uint32_t *pkt)
 void plat_midi_out(uint32_t pkt) { midi_out_event(pkt); }
 
 int plat_store_load(uint32_t obj, void *dst, uint32_t max) { return flash_ok ? st_load(obj, dst, max) : -1; }
+
+/* the sample bank: flash between the preset banks and the panel calibration (storage.c), inside
+ * Felucca's data area (FL_STORE_OK), read in place through the plain XIP window (fl_plain_window_init) */
+#define SMP_FLASH 0x9F000u
+typedef char smp_fits[SMP_FLASH + PLAT_SAMPLES_CAP <= 0xDC000u ? 1 : -1];
+const uint8_t *plat_samples(uint32_t *cap)
+{
+    *cap = PLAT_SAMPLES_CAP;
+    return flash_ok ? fm1_xip_ptr(SMP_FLASH) : 0;
+}
+int plat_samples_erase(uint32_t off)
+{
+    if (!flash_ok || off >= PLAT_SAMPLES_CAP || (off & 0xFFFu))
+        return -8;
+    return st_erase(SMP_FLASH + off);   /* (the audio goes silent for it: IRQs are off) */
+}
+int plat_samples_write(uint32_t off, const void *src, uint32_t n)
+{
+    if (!flash_ok || off > PLAT_SAMPLES_CAP || n > PLAT_SAMPLES_CAP - off)
+        return -8;
+    return st_prog(SMP_FLASH + off, src, n);
+}
+void plat_sysex_out(const uint8_t *p, uint32_t n) { ota_wire_send(p, n); }
 int plat_store_save(uint32_t obj, const void *src, uint32_t len) { return flash_ok ? st_save(obj, src, len) : -9; }
 
 static volatile uint32_t audio_cpu_pct, audio_xruns;

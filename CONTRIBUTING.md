@@ -18,11 +18,13 @@ issue first.
 
 - `firmware/src/wind/`: the instrument. `wind_voice.cc` and `wind_voice.h` (the C seam to the Plaits
   engines), `wind_ctl` (MIDI, breath, bite, glide, the note stack), `wind_matrix` (the 4 Mod slots),
-  `wind_fx` (the effects) and `wind_app` (the parameters and the audio block that ties them together).
+  `wind_fx` (the effects), `wind_sample` (the sample layer's player and its bank's format) and `wind_app`
+  (the parameters and the audio block that ties them together).
   `shim/` stands in for libm and the C++ library, so the C++ builds freestanding.
 - `firmware/third_party/mutable/`: Plaits and stmlib, vendored unmodified and pinned by
   `MANIFEST.sha256`. Never edit them; wrap them in `firmware/src/wind/`.
-- `firmware/src/app/`: the UI (`ui.c`: pages, screen, panel keys), the saved project, the device main.
+- `firmware/src/app/`: the UI (`ui.c`: pages, screen, panel keys), the saved project, the device main,
+  and the sample bank's SysEx loader (`samples.c`; `web/fm1samples.js` and `tools/fm1_samples.py` send it).
   `host/windsynth_host.c` runs the whole app from a script (`tests/scenarios/*.scn`); `web/emu/` is
   the same compiled to WebAssembly, with the page.
 - Inherited from the FiMba-1 fork, and through it from Felucca, X0X and FoMni: the platform

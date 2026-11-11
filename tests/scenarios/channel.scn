@@ -2,7 +2,7 @@
 wait 200
 # Setup's knobs: the breath and glide CCs (the controller's wiring), MIDI ch, Theme
 tap GLO
-expect view 12
+expect view 14
 expect knob1 Breath_CC
 expect val1 CC2
 expect knob2 Glide_CC
@@ -24,7 +24,7 @@ spin K3 -2
 expect par28 0
 tap SEQ
 tap SEQ
-expect view 11
+expect view 13
 expect knob1 CC_depth
 expect knob2 Transpose
 expect knob3 Tune

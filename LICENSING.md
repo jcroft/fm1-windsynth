@@ -13,14 +13,14 @@ complete corresponding source under the same licence.
 
 | What | Origin | Licence |
 | --- | --- | --- |
-| Platform: `firmware/hal/`, `firmware/loader/`, `firmware/src/{libc,lcd,gfx,usb,storage,ota,midi_uart}.c`, `firmware/crt0.S`, `firmware/app.ld`, `tools/` (build, package, install, rescue, font), `web/fm1*.js` | [Felucca](https://github.com/hugelton/Felucca), Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments, as changed for [X0X](https://github.com/charlesvestal/fm1-x0x) and [FoMni](https://github.com/charlesvestal/fm1-fomni) (USB names changed here) | GPL-3.0-only |
+| Platform: `firmware/hal/`, `firmware/loader/`, `firmware/src/{libc,lcd,gfx,usb,storage,ota,midi_uart}.c`, `firmware/crt0.S`, `firmware/app.ld`, `tools/` (build, package, install, rescue, font), `web/fm1ota.js`, `web/fm1pkg.js` | [Felucca](https://github.com/hugelton/Felucca), Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments, as changed for [X0X](https://github.com/charlesvestal/fm1-x0x) and [FoMni](https://github.com/charlesvestal/fm1-fomni) (USB names changed here) | GPL-3.0-only |
 | `firmware/src/app/{panel,plat_fm1,main_fm1}.c`, `firmware/src/main.c`, `host/windsynth_host.c`, `web/emu/`, the frame of `firmware/src/app/ui.c` (bands, knobs, autosave) and `project.c` | adapted from FoMni (itself from X0X and Felucca) | GPL-3.0-only |
 | `firmware/src/dsp/fastmath.h` | FoMni / X0X | GPL-3.0-only |
 | Platform tests (`tests/host/{fastmath,encoder,uac,trs}_test.c`, `tests/{storage,ota,ldr}_test.c`, `tests/install_test.py`) | FoMni / Felucca | GPL-3.0-only |
 | The simulated FM-1 for the web installer's tests (`tests/web/fake_fm1.mjs`) and the installer panel's protocol use (`web/fm1ota.js`, `web/fm1pkg.js`, inlined into the page) | Felucca's `web/test_web.mjs` and update modules, by way of FoMni's web installer | GPL-3.0-only |
 | The UI's look (its themes, bars and knob row) and the scenario runner in the simulator | [FiMba-1](https://github.com/jadamsowers/fm1-fimba), Adam Sowers | GPL-3.0-only |
 | The wind instrument: `firmware/src/wind/` (voice, control, matrix, effects, app, the maths seam `wind_math.h` and `shim/`) | FM-1 Windsynth, Copyright (C) 2026 Jeff Croft | MPL-2.0 (`firmware/src/wind/LICENSE`, `LICENSES/MPL-2.0.txt`) |
-| The UI's pages, `tools/wind_cxx.sh`, `tools/check_vendor.py`, `tools/check_wind_license.py`, `tests/host/wind_*`, `tests/scenarios/` | FM-1 Windsynth, Copyright (C) 2026 Jeff Croft | GPL-3.0-only |
+| The UI's pages, `tools/wind_cxx.sh`, `tools/check_vendor.py`, `tools/check_wind_license.py`, `tests/host/wind_*`, `tests/scenarios/`; the sample loader (`firmware/src/app/samples.c`, `tools/fm1_samples.py`, `web/fm1samples.js` and the page's Samples section) and its tests (`tests/samples_test.py`, `tests/web/samples_test.mjs`) | FM-1 Windsynth, Copyright (C) 2026 Jeff Croft | GPL-3.0-only |
 
 ## The instrument under MPL-2.0
 

@@ -3,13 +3,13 @@
 # (Formant, Waveshape, VA, Harmonic) and "Harm off" elsewhere; Aux is one for the Mod slots too.
 wait 200
 tap LFO
-expect view 4
+expect view 6
 expect val3 Pitch
 spin K4 50
 expect par64 50
 expect val4 +50c
 tap LFO
-expect view 5
+expect view 7
 spin K2 1
 expect par66 1
 expect val2 Note
@@ -39,8 +39,8 @@ spin K1 -1000
 expect val1 Off
 # Harmonics: off on Classic (it stays at the knob, 24), on VA it moves
 tap LFO
-expect view 4
-spin K3 -2
+expect view 6
+spin K3 -3
 expect par63 6
 expect val3 Harm_off
 midi 90 3C 64
@@ -58,7 +58,7 @@ spin ALGO 1
 spin ALGO 1
 expect par30 5
 tap LFO
-expect view 4
+expect view 6
 expect val3 Harmonics
 midi 90 3C 64
 wait 50
@@ -70,7 +70,7 @@ wait 200
 # Aux from a Mod slot: Mod 2, breath to Aux at 100
 tap SEL
 tap SEL
-expect view 7
+expect view 9
 spin K1 1
 spin K2 7
 expect par16 7
@@ -91,14 +91,14 @@ expect stale 0
 # Amp at 100 with Fade 1 s: the note starts at full level, and the tremolo fades in from there (the
 # fade is its depth, so no dip at the start)
 tap LFO
-expect view 4
+expect view 6
 spin K3 -4
 expect par63 2
 expect val3 Amp
 spin K4 50
 expect par64 100
 tap LFO
-expect view 5
+expect view 7
 spin K1 1000
 expect par65 1000
 midi 90 3C 64

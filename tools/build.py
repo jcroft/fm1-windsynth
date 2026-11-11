@@ -41,7 +41,7 @@ CFLAGS = ["-Os", "-ffunction-sections", "-fno-builtin", "-Wall", "-Wno-unused-fu
 # build (-ffp-contract=off) computes the same samples
 FPU = ["-mcpu=r3", "-mfprev1", "-ffp-contract=off"]
 # the instrument's C: separate units at -O2
-O2_UNITS = ["wind/wind_ctl.c", "wind/wind_matrix.c", "wind/wind_app.c", "wind/wind_fx.c"]
+O2_UNITS = ["wind/wind_ctl.c", "wind/wind_matrix.c", "wind/wind_app.c", "wind/wind_fx.c", "wind/wind_sample.c"]
 # the wind voice: C++, freestanding (no exceptions, RTTI, static constructors or libm: firmware/src/wind/
 # shim), so it links with no C++ runtime. The host and web builds use the same (tools/wind_cxx.sh)
 WIND_UNITS = ["src/wind/wind_voice.cc",

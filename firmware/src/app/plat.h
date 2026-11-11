@@ -43,6 +43,14 @@ enum { OBJ_PROJ, OBJ_PANEL, OBJ_BANK0, OBJ_BANK1, OBJ_BANK2, OBJ_BANK3, OBJ_NOBJ
 /* flash: OBJ_PROJ 0xFC000, OBJ_PANEL 0xDC000, the preset banks (16 presets each) 0x97000 up (2 sectors
  * each, inside Felucca's data area) */
 
+/* the sample bank (wind_sample.h), read in place: cap bytes of room (device: flash 0x9F000..0xDBFFF, between
+ * the preset banks and the panel calibration, read through the XIP window) */
+#define PLAT_SAMPLES_CAP 0x3D000u
+const uint8_t *plat_samples(uint32_t *cap);
+int plat_samples_erase(uint32_t off);  /* the 4 KiB sector at off in it: 0 = ok */
+int plat_samples_write(uint32_t off, const void *src, uint32_t n);   /* into erased flash: 0 = ok */
+void plat_sysex_out(const uint8_t *p, uint32_t n);   /* one SysEx message, F0 .. F7, to the computer */
+
 /* audio load in % of the render budget, and xruns since boot (device: from the ISR) */
 uint32_t plat_cpu_pct(void);
 uint32_t plat_xruns(void);

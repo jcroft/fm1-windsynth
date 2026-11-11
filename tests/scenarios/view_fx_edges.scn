@@ -9,7 +9,7 @@ tap FX
 tap FX
 tap FX
 tap FX
-expect view 18
+expect view 20
 breath 0 120 20
 tap PLAY
 expect stage 1
@@ -17,7 +17,7 @@ midi 90 45 64
 wait 200
 tap PLAY
 expect stage 0
-expect view 18
+expect view 20
 wait 16
 expect stale 0
 expect blits >-1
@@ -72,21 +72,21 @@ wait 300
 tap FX
 tap FX
 tap FX
-expect view 16
+expect view 18
 spin K2 50
 wait 100
 tap PLAY
 midi 90 45 64
 wait 200
 tap PLAY
-expect view 16
+expect view 18
 wait 140
 expect col64_95 6
 midi 80 45 00
 wait 2000
 # the Reverb (Mix 30): a note ended on Stage, the marker from when it ended (about 600 ms: x 86, not the start)
 tap FX
-expect view 17
+expect view 19
 spin K2 27
 midi 90 45 64
 wait 300
@@ -94,7 +94,7 @@ tap PLAY
 midi 80 45 00
 wait 450
 tap PLAY
-expect view 17
+expect view 19
 wait 50
 expect col86_100 6
 expect col19_100 -1
@@ -104,7 +104,7 @@ wait 5000
 tap FX
 tap FX
 tap FX
-expect view 15
+expect view 17
 spin K2 30
 midi 90 45 64
 wait 300

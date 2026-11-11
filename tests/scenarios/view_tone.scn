@@ -110,7 +110,7 @@ wait 1000
 expect blits 0
 # Breath: the curve (Curve +20: above the diagonal) and, blown, the breath on it; the history
 tap ENV
-expect view 3
+expect view 5
 spin K1 20
 midi 90 41 64
 breath 0 100 300
@@ -146,7 +146,7 @@ breath 40 0 50
 midi 80 41 00
 wait 300
 tap SEQ
-expect view 10
+expect view 12
 spin K2 1996
 expect par10 2000
 midi 90 3E 64
@@ -203,7 +203,7 @@ midi 90 41 64
 midi 80 3E 00
 wait 600
 tap PLAY
-expect view 10
+expect view 12
 wait 50
 shot pitch_after_stage.png
 expect count4_14_40_183_160 >90
@@ -213,7 +213,7 @@ wait 3000
 # Pitch 2: the bite at -0.75 (Bend 2): the pointer at x 84; Glide 100, the CC at 64 adds 202 ms: the
 # dot where 302 ms ends (x 140)
 tap SEQ
-expect view 11
+expect view 13
 midi B0 05 40
 midi E0 00 28
 wait 50
@@ -236,7 +236,7 @@ expect blits 0
 tap SEQ
 spin K1 3
 tap SEQ
-expect view 11
+expect view 13
 wait 30
 shot pitch2_bend5.png
 expect count3_206_72_230_86 >5
@@ -256,9 +256,9 @@ spin K1 -10
 # LFO: one cycle of the shape: Triangle, then Square (its top at y 48, its bottom clear of the Dest's
 # name); Amount +40 on Morph: Morph's value now in the accent
 tap LFO
-expect view 4
+expect view 6
 spin K1 1
-spin K3 -5
+spin K3 -6
 expect val3 Morph
 spin K4 40
 midi 90 43 64
@@ -294,7 +294,7 @@ wait 1000
 expect blits 0
 # LFO 2: Fade 0.8 s and Sync Note: a new note from silence starts the LFO and the fade again ("sync")
 tap LFO
-expect view 5
+expect view 7
 spin K1 800
 spin K2 1
 midi 90 43 64

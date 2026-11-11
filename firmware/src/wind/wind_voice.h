@@ -20,6 +20,9 @@ typedef struct {            /* control state, per 64-frame block */
     float timbre, morph, harmonics;  /* the engine's own: FM uses all three (index, feedback, ratio) */
     float noise;            /* the noise layer's level 0..1, after the matrix */
     float aux;              /* 0: the engine's main output; 1: its AUX output alone (6-op: the same) */
+    float sample;           /* the sample layer's level 0..1, after the matrix (wind_sample.h plays it) */
+    float engine;           /* the engine's level 0..1 (0: not run at all) */
+    uint32_t start;         /* WS_START_*: a phrase or a note starts with this block (the sample's trigger) */
 } wind_frame_t;
 
 /* Plaits' engines: VA-VCF; then, into our filter, 2-op FM, 6-op FM (DX7 patches), granular formant,

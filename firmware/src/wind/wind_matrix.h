@@ -4,9 +4,9 @@
  * https://mozilla.org/MPL/2.0/. */
 /* The mod matrix: WM_NSLOT slots, each a source, a destination and an amount (-100..100).
  *
- *   Cutoff, Resonance, Morph, Timbre, Noise, Harmonics, Aux   the knob's value plus each slot's amount x its source,
- *                              clamped 0..1 (Timbre: the engine's own, FM's index; Classic has none;
- *                              Noise: the noise layer's level)
+ *   Cutoff, Resonance, Morph, Timbre, Noise, Harmonics, Aux, Sample   the knob's value plus each slot's
+ *                              amount x its source, clamped 0..1 (Timbre: the engine's own, FM's index;
+ *                              Classic has none; Noise and Sample: those layers' levels)
  *   Amp                        a gain from 1: a slot of amount a makes it (1 - a) + a x source, so at
  *                              100 the source alone sets the level (breath dynamics); a negative
  *                              amount turns it down as the source rises
@@ -18,9 +18,10 @@
 
 /* (the LFO is a source for the LFO page's own slot only: the Mod slots pick from the ones before it) */
 enum { WM_SRC_OFF, WM_SRC_BREATH, WM_SRC_BITE, WM_SRC_MOD, WM_SRC_PRESSURE, WM_SRC_VELOCITY, WM_SRC_LFO, WM_NSRC };
-/* (Harmonics: the engine's HARMONICS, on the engines where it's smooth; Aux: the Aux mix) */
+/* (Harmonics: the engine's HARMONICS, on the engines where it's smooth; Aux: the Aux mix; Sample: the sample
+ * layer's level) */
 enum { WM_DST_CUTOFF, WM_DST_RES, WM_DST_AMP, WM_DST_MORPH, WM_DST_TIMBRE, WM_DST_NOISE, WM_DST_HARM, WM_DST_AUX,
-       WM_NDST };
+       WM_DST_SAMPLE, WM_NDST };
 #define WM_DST_PITCH WM_NDST           /* the LFO page's slot only: the note, outside the matrix */
 #define WM_NSLOT 6                     /* the Mod pages' four, the LFO page's, then the Filter page's Breath */
 

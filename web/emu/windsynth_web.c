@@ -89,6 +89,16 @@ __attribute__((used, visibility("default"))) uint32_t web_store_writes(void) { r
 __attribute__((used, visibility("default"))) uint32_t web_nobj(void) { return OBJ_NOBJ; }
 __attribute__((used, visibility("default"))) uint32_t web_store_max(void) { return PLAT_STORE_MAX; }
 
+/* the sample bank's flash (samples.c): the page writes a bank there (the rest erased, 0xFF) and has it
+ * read again, before boot or at any time */
+__attribute__((used, visibility("default"))) uint8_t *web_samples(void)
+{
+    uint32_t cap;
+    return (uint8_t *)plat_samples(&cap);
+}
+__attribute__((used, visibility("default"))) uint32_t web_samples_cap(void) { return PLAT_SAMPLES_CAP; }
+__attribute__((used, visibility("default"))) void web_samples_attach(void) { smp_attach(); }
+
 /* the instrument's state for the page's monitor: note, gate, breath, bend, cutoff, res, amp, morph,
  * level, the sounding note (-1 none), the MIDI packets received, the breath hint (wc_breath_hint, -1 none)
  * and the breath source */

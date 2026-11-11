@@ -3,7 +3,8 @@
  * simulator includes it too. (The frame of it, knobs, bands and autosave, is FoMni's and FiMba's ui.c.)
  *
  *   the screen    the page's picture: Filter its response (and, in the accent, where breath and the
- *                 matrix have it now), Noise its filter and level, Breath the curve with the breath on
+ *                 matrix have it now), Noise its filter and level, Sample and Sample 2 the sample (its
+ *                 loop, Start, where it plays), Breath the curve with the breath on
  *                 it and the last moment of breath, Pitch the phrase (the last seconds of pitch), Pitch 2
  *                 the bite's ruler and the glide, LFO its shape and where it is, LFO 2 the last seconds
  *                 of it in its fade (view_tone.inc); the Engine page a scope of the voice, two periods
@@ -21,7 +22,7 @@
  *                 distortion's curve, the modulation's sweep, the delay's echoes, the reverb's tail and
  *                 its room
  *   HOME ENV LFO SEL SEQ GLO FX   the pages (pressed again: the button's next page): HOME Filter,
- *                 Engine (named for the engine: ALGORITHM picks it) and Noise, ENV Breath, LFO LFO and LFO 2, SEL Mod 1-4, SEQ Pitch and Pitch 2 (CC depth, Transpose, Tune), GLO Setup
+ *                 Engine (named for the engine: ALGORITHM picks it), Noise, Sample and Sample 2, ENV Breath, LFO LFO and LFO 2, SEL Mod 1-4, SEQ Pitch and Pitch 2 (CC depth, Transpose, Tune), GLO Setup
  *                 (Breath CC, Glide CC, MIDI ch, Theme) and Setup 2 (Speaker), FX Distortion,
  *                 Modulation, Delay, Reverb and Reverb 2 (the order the sound goes through them). EDIT and
  *                 SELECT step through them all.
@@ -39,18 +40,20 @@
 
 #include "../dsp/fastmath.h"            /* (Stage's dials: no libm on the device) */
 
-enum { V_FILTER, V_ENGINE, V_NOISE, V_BREATH, V_LFO, V_LFO2, V_MOD1, V_MOD2, V_MOD3, V_MOD4, V_PITCH, V_PITCH2, V_SETUP,
+enum { V_FILTER, V_ENGINE, V_NOISE, V_SAMPLE, V_SAMPLE2, V_BREATH, V_LFO, V_LFO2, V_MOD1, V_MOD2, V_MOD3, V_MOD4, V_PITCH, V_PITCH2, V_SETUP,
        V_SETUP2, V_DIST, V_MODFX, V_DELAY, V_REVERB, V_REVERB2, NVIEWS };
-static const char *const VIEW_NAME[NVIEWS] = {"Filter", "Engine", "Noise", "Breath", "LFO", "LFO 2", "Mod 1", "Mod 2", "Mod 3",
+static const char *const VIEW_NAME[NVIEWS] = {"Filter", "Engine", "Noise", "Sample", "Sample 2", "Breath", "LFO", "LFO 2", "Mod 1", "Mod 2", "Mod 3",
                                               "Mod 4", "Pitch", "Pitch 2", "Setup", "Setup 2", "Distortion", "Modulation", "Delay",
                                               "Reverb", "Reverb 2"};
-static const uint8_t VIEW_BTN[NVIEWS] = {B_HOME, B_HOME, B_HOME, B_ENV, B_LFO, B_LFO, B_SEL, B_SEL, B_SEL, B_SEL, B_SEQ, B_SEQ,
+static const uint8_t VIEW_BTN[NVIEWS] = {B_HOME, B_HOME, B_HOME, B_HOME, B_HOME, B_ENV, B_LFO, B_LFO, B_SEL, B_SEL, B_SEL, B_SEL, B_SEQ, B_SEQ,
                                          B_GLO, B_GLO, B_FX, B_FX, B_FX, B_FX, B_FX};
 #define K_NONE 255                     /* a knob with nothing on it */
 static const uint8_t VIEW_KNOB[NVIEWS][4] = {
     {P_CUTOFF, P_RESO, P_SLOPE, P_BRCUT},
     {P_RATIO, P_INDEX, P_MORPH, P_AUX},          /* (the engine itself: ALGORITHM, and the header shows it) */
     {P_NZLEVEL, P_NZTYPE, P_NZFREQ, P_NZRESO},
+    {P_SMSLOT, P_SMLEVEL, P_ENGLEVEL, P_SMTUNE},
+    {P_SMSTART, P_SMLOOP, P_SMTRIG, P_SMTRACK},
     {P_CURVE, P_ATTACK, P_RELEASE, K_NONE},
     {P_LFOSHAPE, P_LFORATE, P_LFODST, P_LFOAMT},
     {P_LFOFADE, P_LFOSYNC, K_NONE, K_NONE},
@@ -741,7 +744,7 @@ static void draw_knobs(void)
         int k = knob_of((int)i);
         h = hash(h, k == K_NONE ? 0xFFFFu : (uint32_t)(uint16_t)proj.par[k] | (uint32_t)k << 16);
     }
-    h = hash(h, (uint32_t)now_touch);
+    h = hash(hash(h, (uint32_t)now_touch), ws_gen());   /* (Slot's text names the bank's sample) */
     {   /* the ghosts: a change that moves only them draws at most every GHOST_MS */
         uint32_t hg = h, now = plat_ms();
         int16_t g[4];

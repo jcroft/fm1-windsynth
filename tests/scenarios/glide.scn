@@ -57,7 +57,7 @@ midi 80 48 00
 wait 100
 # Pitch 2: CC depth; at 320 ms, CC5 at full gives Glide + 320 ms = 520 ms
 tap SEQ
-expect view 11
+expect view 13
 spin K1 -1680
 expect par45 320
 midi B0 05 7F

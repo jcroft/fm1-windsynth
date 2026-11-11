@@ -7,6 +7,7 @@
 #include "wind_ctl.h"
 #include "wind_voice.h"
 #include "wind_fx.h"
+#include "wind_sample.h"
 #include "wind_math.h"
 
 const char *const WA_NOTE_NAME[12] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
@@ -38,6 +39,9 @@ static const wa_param_t PARAMS[P_NPARAMS] = {
     {"Breath", -100, 100, 75},             /* breath to cutoff */
     {"Row", 0, 2, 0},                      /* Stage: Filter, Engine, FX */
     {"Speaker", 0, WA_SPK_N - 1, WA_SPK_AUTO},
+    {"Slot", 0, WS_NSLOT, 0}, {"Level", 0, 100, 100}, {"Engine", 0, 100, 100}, {"Tune", -24, 24, 0},
+    {"Start", 0, 100, 0}, {"Loop", 0, WS_NLOOP - 1, WS_LOOP_ON}, {"Trigger", 0, WS_NTRIG - 1, WS_TRIG_PHRASE},
+    {"Track", 0, 1, 1},
 };
 
 const wa_param_t *wa_param_info(int i) { return &PARAMS[(unsigned)i < P_NPARAMS ? i : 0]; }
@@ -244,6 +248,22 @@ void wa_param_text(int i, int v, char *b)
         return;
     case P_THEME: copy_s(b, v ? "Dark" : "Light"); return;
     case P_SPEAKER: copy_s(b, v == WA_SPK_ON ? "On" : "Auto"); return;
+    case P_SMSLOT: {                                     /* "Off", "3 SAX", "7 empty" */
+        ws_info_t in;
+        if (!v) {
+            copy_s(b, "Off");
+            return;
+        }
+        b = put_u(b, (uint32_t)v);
+        *b++ = ' ';
+        copy_s(b, ws_slot_info(v, &in) ? in.name : "empty");
+        return;
+    }
+    case P_SMTUNE: copy_s(put_i(b, v, 1), " st"); return;
+    case P_SMSTART: copy_s(put_u(b, (uint32_t)v), "%"); return;
+    case P_SMLOOP: copy_s(b, v == WS_LOOP_OFF ? "Off" : v == WS_LOOP_PINGPONG ? "Ping-pong" : "Loop"); return;
+    case P_SMTRIG: copy_s(b, v == WS_TRIG_NOTE ? "Note" : "Phrase"); return;
+    case P_SMTRACK: copy_s(b, v ? "On" : "Off"); return;
     case P_ENGINE: copy_s(b, WA_ENGINE_NAME[(unsigned)v < WV_NENGINE ? v : 0]); return;
     case P_DXPATCH: wv_dx_name((uint32_t)v, b); return;
     case P_RATIO:                                        /* FM's: the modulator's ratio, "1.00", "3.50" */
@@ -272,6 +292,10 @@ static struct {
     uint32_t shape, sync, rnd;
 } lfo = {5.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, WA_LFO_SINE, 0u, 22222u};
 static int nz_par[3] = {50, 24, 0};    /* the noise layer's Type, Freq, Reso */
+static int sm_par[P_SMTRACK - P_SMSLOT + 1];   /* the Sample pages' values (Level and Engine unused here) */
+static float engine_level = 1.0f;
+static int last_top = -1;              /* the note sounding at the last block (a new one starts the sample: Trigger Note) */
+static float last_gate;                /* ...and the gate (one from silence: a phrase) */
 volatile wa_state_t wa_state;
 
 /* the panel's keys and a panic, from the UI to the next block: a ring with one writer, one reader */
@@ -329,6 +353,9 @@ void wa_init(void)
     wc_init();
     wv_init();
     wf_init();
+    ws_init();
+    last_top = -1;
+    last_gate = 0.0f;
     slot[WA_LFO_SLOT].src = WM_SRC_LFO;
     slot[WA_BREATH_SLOT].src = WM_SRC_BREATH;
     slot[WA_BREATH_SLOT].dst = WM_DST_CUTOFF;
@@ -389,6 +416,15 @@ void wa_set(int k, int v)
     case P_MORATE: wf_cfg.mo_hz = wf_rate_hz((float)v * 0.01f); break;
     case P_MODEPTH: wf_cfg.mo_depth = (float)v * 0.01f; break;
     case P_NZLEVEL: base[WM_DST_NOISE] = (float)v * 0.01f; break;
+    case P_SMLEVEL: base[WM_DST_SAMPLE] = (float)v * 0.01f; break;
+    case P_ENGLEVEL: engine_level = (float)v * 0.01f; break;
+    case P_SMSLOT: case P_SMTUNE: case P_SMSTART: case P_SMLOOP: case P_SMTRIG: case P_SMTRACK:
+#define SM(p) sm_par[(p) - P_SMSLOT]
+        SM(k) = v;
+        ws_settings(SM(P_SMSLOT), (float)SM(P_SMTUNE), (float)SM(P_SMSTART) * 0.01f, SM(P_SMLOOP), SM(P_SMTRIG),
+                    SM(P_SMTRACK));
+#undef SM
+        break;
     case P_NZTYPE: case P_NZFREQ: case P_NZRESO:
         nz_par[k - P_NZTYPE] = v;
         wv_noise((float)nz_par[0] * 0.01f, (float)nz_par[1], (float)nz_par[2] * 0.01f);
@@ -431,6 +467,7 @@ int wa_live(int k, float *v)
     case P_MORPH: d = WM_DST_MORPH; *v = wa_state.morph; break;
     case P_INDEX: d = WM_DST_TIMBRE; *v = wa_state.timbre; break;
     case P_NZLEVEL: d = WM_DST_NOISE; *v = wa_state.noise; break;
+    case P_SMLEVEL: d = WM_DST_SAMPLE; *v = wa_state.sample; break;
     case P_AUX: d = WM_DST_AUX; *v = wa_state.aux; break;
     case P_RATIO:                      /* (only the smooth engines' HARMONICS can be moved) */
         if (!wa_harm_smooth(engine))
@@ -626,6 +663,12 @@ void wa_render(int32_t *out, uint32_t n, uint32_t gain_q12, int (*midi_in)(uint3
         f.harmonics = wa_harm_smooth(engine) ? m[WM_DST_HARM] : ratio;
         f.noise = m[WM_DST_NOISE];
         f.aux = m[WM_DST_AUX];
+        f.sample = m[WM_DST_SAMPLE];
+        f.engine = engine_level;
+        f.start = c.gate > 0.5f && last_gate <= 0.5f ? WS_START_PHRASE          /* a phrase, from silence */
+                  : c.gate > 0.5f && wc_top_note() != last_top ? WS_START_NOTE : 0u;   /* a new note in it */
+        last_top = wc_top_note();
+        last_gate = c.gate;
         wv_tap(tap);
         wv_render(&f, out, k);
         scope_block(tap, k, f.note, m[WM_DST_AMP]);
@@ -648,6 +691,8 @@ void wa_render(int32_t *out, uint32_t n, uint32_t gain_q12, int (*midi_in)(uint3
         wa_state.noise = f.noise;
         wa_state.harmonics = f.harmonics;
         wa_state.aux = f.aux;
+        wa_state.sample = f.sample;
+        wa_state.sample_at = ws_where();
         wa_state.lfo = lv;
         wa_state.pitch = f.note;
         wa_state.top = wc_top_note();
