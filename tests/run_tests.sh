@@ -26,6 +26,7 @@ run fastmath sh -c "$CC -O2 -ffp-contract=off -Wall -Wextra -Werror -o $OUT/fast
 run encoder sh -c "$CC -O2 -w -Ifirmware/hal -o $OUT/encoder_test tests/host/encoder_test.c && $OUT/encoder_test"
 run uac sh -c "$CC -O2 -w -Ifirmware/src -Ifirmware/hal -o $OUT/uac_test tests/host/uac_test.c -lm && $OUT/uac_test"
 run trs sh -c "$CC -O2 -w -Ifirmware/src -Ifirmware/hal -o $OUT/trs_test tests/host/trs_test.c && $OUT/trs_test"
+run flash-ok sh -c "$CC -O2 -std=c99 -Wall -Wextra -Werror -Ifirmware/hal -o $OUT/flash_ok_test tests/host/flash_ok_test.c && $OUT/flash_ok_test"
 # the wind voice: upstream Plaits renders the reference sweep (its own desktop build); ours, freestanding
 # and linked by $CC with no -lm or C++ runtime as on the device, must match it and play in tune
 CXX="${CXX:-c++}"

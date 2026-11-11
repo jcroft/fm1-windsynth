@@ -117,7 +117,7 @@ python3 tools/fm1_install.py --info          # identity of the connected FM-1
 
 Installing firmware is at your own risk. Hold OCT− and OCT+ for 5 seconds for Felucca's update
 mode. If the FM-1 no longer starts but reaches the chip's update mode (4C4A:8057 on USB),
-`tools/fm1_rescue.sh` puts stock firmware back from a Mac; otherwise recovery needs
+`tools/fm1_rescue.sh` puts stock firmware (V15 or V16) back from a Mac or Linux; otherwise recovery needs
 [FM-1-transporter](https://github.com/kurogedelic/FM-1-transporter).
 
 ## Before installing
@@ -147,9 +147,14 @@ python3 tools/check_fwsc.py build/windsynth.fwsc --app build/windsynth.bin --ref
 
 Before the first install, get the way back ready:
 
-- Download M-VAVE's stock firmware (m-vave.com/download, FM-1 V15, "PC Firmware") and keep it.
-  `tools/fm1_rescue.py` accepts only that exact file (it checks its SHA-256), and it is what you'd
-  need if the FM-1 ever ends up in a crash loop.
+- Download M-VAVE's stock firmware and keep both versions: V16 from m-vave.com/download ("PC
+  Firmware") and V15, which M-VAVE no longer offers, from
+  [the Internet Archive](https://web.archive.org/web/20261009203224id_/https://yms-file-store.oss-cn-hongkong.aliyuncs.com/software/firmware/FM-1.fwsc).
+  `tools/fm1_rescue.py` accepts only those exact files (it checks their SHA-256) and writes the one
+  whose bootloader the FM-1 already has, and it is what you'd need if the FM-1 ever ends up in a
+  crash loop; `tools/fm1_rescue.sh` fetches both by itself. Newer FM-1s (UC25HQ80 flash, ID B36014)
+  usually came with V16. The install page's stock restore writes V15 only, so it is for units
+  that came with V15.
 - `python3 tools/fm1_install.py --info` reads the identity of the connected FM-1 without writing
   anything: run it first to see that the installer finds the device.
 
