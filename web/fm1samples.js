@@ -127,6 +127,65 @@ export function wavInfo(b) {
   return out;
 }
 
+// an AIFF or AIFF-C file (which browsers don't decode): { rate, channels: [Float32Array, ...], root, fine,
+// loop } (root, fine and loop from its INST chunk's sustain loop, if it has one), or null if it isn't one.
+// PCM of 8 to 32 bits (big-endian; AIFF-C's "sowt" little-endian) and AIFF-C's 32- and 64-bit float.
+export function aiffDecode(b) {
+  const str = (i) => String.fromCharCode(...b.subarray(i, i + 4));
+  if (b.length < 12 || str(0) !== "FORM" || (str(8) !== "AIFF" && str(8) !== "AIFC")) return null;
+  const dv = new DataView(b.buffer, b.byteOffset, b.byteLength);
+  let ch = 0, frames = 0, bits = 0, rate = 0, comp = "NONE", ssnd = -1, ssndLen = 0, inst = -1;
+  const marks = new Map();
+  for (let i = 12; i + 8 <= b.length;) {
+    const id = str(i), n = dv.getUint32(i + 4), o = i + 8;
+    if (id === "COMM" && n >= 18) {
+      ch = dv.getUint16(o);
+      frames = dv.getUint32(o + 2);
+      bits = dv.getUint16(o + 6);
+      const e = dv.getUint16(o + 8) & 0x7FFF, hi = dv.getUint32(o + 10), lo = dv.getUint32(o + 14);
+      rate = Math.round((hi * 4294967296 + lo) * Math.pow(2, e - 16383 - 63));   // (80-bit extended)
+      if (str(8) === "AIFC" && n >= 22) comp = str(o + 18);
+    } else if (id === "SSND" && n >= 8) {
+      ssnd = o + 8 + dv.getUint32(o);
+      ssndLen = Math.min(n - 8, b.length - (o + 8));
+    } else if (id === "MARK" && n >= 2) {
+      for (let k = 0, m = o + 2, cnt = dv.getUint16(o); k < cnt && m + 7 <= o + n; k++) {
+        marks.set(dv.getUint16(m), dv.getUint32(m + 2));
+        m += 7 + b[m + 6] + ((b[m + 6] + 1) & 1);   // (a pstring, padded to an even length)
+      }
+    } else if (id === "INST" && n >= 20) inst = o;
+    i = o + n + (n & 1);
+  }
+  const fl = comp === "fl32" || comp === "FL32" ? 4 : comp === "fl64" || comp === "FL64" ? 8 : 0;
+  const le = comp === "sowt";
+  if (!ch || !rate || ssnd < 0 || (!fl && comp !== "NONE" && !le) || (!fl && (bits < 1 || bits > 32)))
+    throw new Error(comp !== "NONE" ? `AIFF-C compressed as "${comp}" isn't one this reads` : "not an AIFF this reads");
+  const width = fl || Math.ceil(bits / 8), n = Math.min(frames, Math.floor(ssndLen / (width * ch)));
+  const out = Array.from({ length: ch }, () => new Float32Array(n));
+  for (let k = 0, p = ssnd; k < n; k++)
+    for (let c = 0; c < ch; c++, p += width) {
+      let v;
+      if (fl === 4) v = dv.getFloat32(p);
+      else if (fl === 8) v = dv.getFloat64(p);
+      else {
+        let x = 0;
+        for (let j = 0; j < width; j++) x = x * 256 + b[le ? p + width - 1 - j : p + j];
+        if (x >= 2 ** (width * 8 - 1)) x -= 2 ** (width * 8);
+        v = x / 2 ** (width * 8 - 1);
+      }
+      out[c][k] = v;
+    }
+  const r = { rate, channels: out };
+  if (inst >= 0) {
+    r.root = b[inst];
+    const det = dv.getInt8(inst + 1);                  // (cents, -50..50)
+    r.fine = det;
+    const play = dv.getUint16(inst + 8), s = marks.get(dv.getUint16(inst + 10)), e = marks.get(dv.getUint16(inst + 12));
+    if (play && s != null && e != null && s < e && e <= n) r.loop = [s, e];
+  }
+  return r;
+}
+
 // a slot from mono samples at `rate`: { name, rate, fmt, root, fine, loop: [start, end) or [0, 0], data }
 export function makeSlot(x, rate, { name = "", fmt = FMT_S16, root, fine, loop } = {}) {
   const note = root == null ? detectPitch(x, rate) : root + (fine || 0) / 100;   // (null: unpitched)

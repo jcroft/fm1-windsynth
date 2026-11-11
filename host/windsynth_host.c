@@ -55,6 +55,7 @@
  *                                 peak_db_max peak_db_min; text, "_" a space: msg0 msg1 (the message's
  *                                 lines) knob1..knob4 (a knob's name on this page, "-" none) val1..val4 (its value as shown))
  *   samples FILE|none            put a sample bank (tools/fm1_samples.py build) in the flash, as if loaded
+ *   sysexecho                    the loader's last reply sent back to it: it must take it unanswered
  *   sysex FILE                   send each line of FILE (a SysEx message in hex, F0 .. F7) to the sample
  *                                loader, as the web page or fm1_samples.py would: each reply must be OK
  *   scopemark                    keep the Engine page's newest scope trace (expect scope_since)
@@ -831,6 +832,19 @@ int main(int argc, char **argv)
                 printf("  samples %s: %zu bytes\n", a, got);
             }
             smp_attach();
+        } else if (!strcmp(cmd, "sysexecho")) {  /* the loader's last reply, sent back to it (a MIDI thru on
+                                                  * the computer): taken, and not answered */
+            uint8_t m[sizeof sx_reply];
+            uint32_t mn = sx_reply_n;
+            memcpy(m, sx_reply, mn);
+            sx_reply_n = 0;
+            if (mn < 8 || !smp_sysex(m + 1, mn - 2))
+                printf("FAIL sysexecho: not taken (%u bytes)\n", mn), fails++;
+            else if (sx_reply_n)
+                printf("FAIL sysexecho: answered\n"), fails++;
+            else
+                printf("  sysexecho: dropped\n");
+            run_ms(1);
         } else if (!strcmp(cmd, "sysex")) {      /* each line of FILE a SysEx message (hex, F0 .. F7) to the
                                                   * sample loader, one at a time; each reply's rc must be 0 */
             FILE *xf = fopen(a, "r");

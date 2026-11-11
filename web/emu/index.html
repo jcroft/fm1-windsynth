@@ -146,8 +146,8 @@ kbd { font: 600 .85em ui-monospace, Menlo, monospace; background: var(--card); b
     away, and <b>Send to FM-1</b> puts them on yours (Chrome or Edge, over the USB cable). A sustained sound gets
     its pitch and a loop found for it; check them by ear, and change them below.</p>
   <div class="row">
-    <label for="smpFile">Add sounds (WAV, MP3, FLAC, Ogg, M4A: what your browser plays):</label>
-    <input type="file" id="smpFile" accept="audio/*,.wav,.flac,.mp3,.ogg,.m4a" multiple>
+    <label for="smpFile">Add sounds (WAV, AIFF, MP3, FLAC, Ogg, M4A):</label>
+    <input type="file" id="smpFile" accept="audio/*,.wav,.aif,.aiff,.aifc,.flac,.mp3,.ogg,.m4a" multiple>
     <label>Rate <select id="smpRate">
       <option value="44100">44.1 kHz</option><option value="32000">32 kHz</option><option value="22050" selected>22.05 kHz</option>
       <option value="16000">16 kHz</option><option value="11025">11 kHz</option></select></label>
@@ -899,6 +899,20 @@ function preview(s) {
   src.stop(t + 2.2);
 }
 
+// decoded channels at their own rate (an AIFF: aiffDecode) to an AudioBuffer at `rate`, as decodeAudioData would
+async function resampled(a, rate) {
+  const len = a.channels[0].length;
+  if (!len) throw new Error("it is empty");
+  const ctx = new OfflineAudioContext(a.channels.length, Math.max(1, Math.round(len * rate / a.rate)), rate);
+  const b = ctx.createBuffer(a.channels.length, len, a.rate), src = ctx.createBufferSource();
+  a.channels.forEach((d, c) => b.copyToChannel(d, c));
+  ctx.destination.channelInterpretation = "discrete";
+  src.buffer = b;
+  src.connect(ctx.destination);
+  src.start();
+  return ctx.startRendering();
+}
+
 // sound files into slots (from `at`, or the first empty ones)
 async function add(files, at) {
   const rate = +q("smpRate").value, fmt = +q("smpFmt").value;
@@ -908,8 +922,8 @@ async function add(files, at) {
     if (i < 0) { say(`All ${SMP.NSLOT} slots are full: remove one first.`); break; }
     say(`Reading ${f.name}`);
     try {
-      const raw = new Uint8Array(await f.arrayBuffer()), own = wavInfo(raw);
-      const buf = await new OfflineAudioContext(1, 1, rate).decodeAudioData(raw.slice().buffer);
+      const raw = new Uint8Array(await f.arrayBuffer()), aiff = aiffDecode(raw), own = aiff || wavInfo(raw);
+      const buf = aiff ? await resampled(aiff, rate) : await new OfflineAudioContext(1, 1, rate).decodeAudioData(raw.slice().buffer);
       const mono = new Float32Array(buf.length);
       for (let c = 0; c < buf.numberOfChannels; c++) {
         const d = buf.getChannelData(c);

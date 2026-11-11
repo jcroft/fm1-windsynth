@@ -26,6 +26,9 @@ expect slots 2
 # (END again, its reply lost: still OK, the bank is the one there)
 sysex build/samples/end_again.txt
 expect slots 2
+# (that reply echoed back by a MIDI thru: dropped, not answered, so no loop)
+sysexecho
+expect slots 2
 expect msg1 LOADED
 wait 1500
 expect val1 1_A440

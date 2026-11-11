@@ -108,5 +108,46 @@ class FakeFM1 {
      "the link: no FM-1 connected");
 }
 
+// AIFF and AIFF-C (browsers don't decode them): built here, read back by aiffDecode
+{
+  const be16 = (v) => [v >> 8 & 255, v & 255], be32 = (v) => [v >>> 24, v >> 16 & 255, v >> 8 & 255, v & 255];
+  const ext = (r) => { const e = Math.floor(Math.log2(r)), m = r / 2 ** e * 2 ** 31; return [...be16(16383 + e), ...be32(m >>> 0), 0, 0, 0, 0]; };
+  const chunk = (id, body) => [...new TextEncoder().encode(id), ...be32(body.length), ...body, ...(body.length & 1 ? [0] : [])];
+  function aiff({ form = "AIFF", comp = null, bits = 16, ch = 2, rate = 44100, frames = 1000, inst = false }) {
+    const w = Math.ceil(bits / 8), data = [];
+    for (let k = 0; k < frames; k++)
+      for (let c = 0; c < ch; c++) {
+        const v = Math.round(Math.sin(2 * Math.PI * 440 * k / rate) * (c ? -0.5 : 0.5) * (2 ** (w * 8 - 1) - 1));
+        const u = v < 0 ? v + 2 ** (w * 8) : v, bytes = [];
+        for (let j = w - 1; j >= 0; j--) bytes.push(Math.floor(u / 2 ** (8 * j)) & 255);
+        data.push(...(comp === "sowt" ? bytes.reverse() : bytes));
+      }
+    let comm = [...be16(ch), ...be32(frames), ...be16(bits), ...ext(rate)];
+    if (comp) comm = [...comm, ...new TextEncoder().encode(comp), 0, 0];
+    let body = [...new TextEncoder().encode(form), ...chunk("COMM", comm)];
+    if (inst) {
+      body = [...body, ...chunk("MARK", [0, 2, 0, 1, ...be32(100), 1, 0x41, 0, 2, ...be32(900), 2, 0x42, 0x43, 0])];
+      body = [...body, ...chunk("INST", [62, 0xF6, 0, 127, 1, 127, 0, 0, 0, 1, 0, 1, 0, 2, 0, 0, 0, 0, 0, 0])];
+    }
+    body = [...body, ...chunk("SSND", [0, 0, 0, 0, 0, 0, 0, 0, ...data])];
+    return Uint8Array.from([...new TextEncoder().encode("FORM"), ...be32(body.length), ...body]);
+  }
+  const near = (a, k, want, bits = 16) => Math.abs(a[k] - want) < 1e-3 + 2 / 2 ** (Math.ceil(bits / 8) * 8 - 1);
+  const sine = (k, r) => 0.5 * Math.sin(2 * Math.PI * 440 * k / r);
+  for (const [what, opt] of [["16-bit stereo", {}], ["24-bit mono", { bits: 24, ch: 1, rate: 48000 }],
+                             ["8-bit", { bits: 8, ch: 1, rate: 22050 }], ["AIFF-C sowt", { form: "AIFC", comp: "sowt" }],
+                             ["AIFF-C NONE", { form: "AIFC", comp: "NONE", bits: 32, ch: 1 }]]) {
+    const r = S.aiffDecode(aiff(opt)), rate = opt.rate || 44100, ch = opt.ch || 2;
+    ok(r && r.rate === rate && r.channels.length === ch && r.channels[0].length === 1000 &&
+       near(r.channels[0], 37, sine(37, rate), opt.bits) && (ch < 2 || near(r.channels[1], 37, -sine(37, rate), opt.bits)) && near(r.channels[0], 999, sine(999, rate), opt.bits),
+       `AIFF ${what}: read`);
+  }
+  const it = S.aiffDecode(aiff({ inst: true }));
+  ok(it.root === 62 && it.fine === -10 && it.loop?.join() === "100,900", "AIFF: root, detune and the sustain loop from INST and MARK");
+  ok(S.aiffDecode(new Uint8Array([82, 73, 70, 70, 0, 0, 0, 4, 87, 65, 86, 69])) === null, "a WAV isn't an AIFF");
+  ok((() => { try { S.aiffDecode(aiff({ form: "AIFC", comp: "ima4" })); return false; } catch (e) { return /ima4/.test(e.message); } })(),
+     "a compressed AIFF-C is refused, by name");
+}
+
 if (failed) { console.log(`${failed} failed`); process.exit(1); }
 console.log("samples page ok");
