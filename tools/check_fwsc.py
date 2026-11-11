@@ -88,10 +88,14 @@ def app_area(flash):
     return h, ents, bytes(region), cfg, blk
 
 
-def check(path, app=None):
+def check(path, app=None, ours=True):
     print(f"{path}")
     p = unpack(path)
-    ok(re.fullmatch(r"FM-1_5(00|\d{6})", p["product"]) is not None, f"identity {p['product']!r} (FM-1_500, or FM-1_5XXYYZZ for a release: ours)")
+    if ours:                             # (the reference is FoMni's, FM-1_800)
+        ok(re.fullmatch(r"FM-1_5(00|\d{6})", p["product"]) is not None,
+           f"identity {p['product']!r} (FM-1_500, or FM-1_5XXYYZZ for a release: ours)")
+    else:
+        ok(p["product"].startswith("FM-1_"), f"identity {p['product']!r}")
     ok(p["hdr_ok"] and p["list_ok"], "UFW header and file list CRCs")
     ok(set(p["files"]) == {"flash.bin", "ota.bin"}, f"files: {sorted(p['files'])}")
     for n, (d, c) in p["files"].items():
@@ -142,7 +146,7 @@ def main():
     me = check(a.package, a.app)
     if a.ref:
         print()
-        ref = check(a.ref)
+        ref = check(a.ref, ours=False)
         print(f"\n{a.package} against {a.ref}")
         ok(me["head"] == ref["head"], "head [0, 0x4000) byte-identical: the same SPL, entries and key")
         ok(me["ota"] == ref["ota"], f"update loader (ota.bin, {len(me['ota'])} B) byte-identical")

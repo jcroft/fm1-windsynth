@@ -33,6 +33,13 @@ def ok(cond, what):
 
 def image_size(data):
     """(kind, width, height) of a PNG, JPEG or WebP, or None"""
+    try:
+        return _image_size(data)
+    except (struct.error, IndexError):   # cut short
+        return None
+
+
+def _image_size(data):
     if data[:8] == b"\x89PNG\r\n\x1a\n" and data[12:16] == b"IHDR":
         return ("png",) + struct.unpack(">II", data[16:24])
     if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
@@ -60,23 +67,31 @@ def image_size(data):
 
 def check(path):
     print(path)
-    d = json.loads(Path(path).read_text())
-    ok(isinstance(d, dict) and set(d) <= KEYS, f"keys {sorted(d)} (known: {sorted(KEYS)})")
+    d = json.loads(Path(path).read_text(encoding="utf-8"))
+    if not isinstance(d, dict):
+        ok(False, "an object of fields")
+        return
+    ok(set(d) <= KEYS, f"keys {sorted(d)} (known: {sorted(KEYS)})")
     what = d.get("what", "")
-    ok(isinstance(what, str) and 0 < len(what) <= 300, f"what: {len(what)} characters (1 to 300)")
+    if not isinstance(what, str):
+        ok(False, "what: text")
+        what = ""
+    ok(0 < len(what) <= 300, f"what: {len(what)} characters (1 to 300)")
     ok(not LINKISH.search(what), "what: plain words, no links, addresses or markup")
     if "author" in d:
         a = d["author"]
         ok(isinstance(a, str) and 2 <= len(a) <= 60 and not LINKISH.search(a), f"author {a!r}: 2 to 60 characters, no links")
     k = d.get("kinds", [])
-    ok(isinstance(k, list) and k and all(x in KINDS for x in k), f"kinds {k} (from {sorted(KINDS)})")
+    ok(isinstance(k, list) and k and all(isinstance(x, str) and x in KINDS for x in k), f"kinds {k} (from {sorted(KINDS)})")
     for key in ("play", "editor", "cheat"):
         if key in d:
             ok(isinstance(d[key], str) and re.fullmatch(r"https://[^\s]+", d[key]) is not None, f"{key}: an https:// address")
     if "image" in d:
-        img = ROOT / d["image"]
-        ok(img.is_file(), f"image {d['image']} is in the repository")
-        if img.is_file():
+        rel = d["image"]
+        img = (ROOT / rel).resolve() if isinstance(rel, str) and rel and not rel.startswith("/") else None
+        inside = img is not None and img.is_relative_to(ROOT) and img.is_file()
+        ok(inside, f"image {rel!r}: a file in the repository, by its path from the root")
+        if inside:
             data = img.read_bytes()
             sz = image_size(data)
             ok(sz is not None, f"image: PNG, JPEG or WebP ({sz[0] if sz else 'unknown'})")
