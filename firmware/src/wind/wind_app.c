@@ -579,16 +579,19 @@ static float gate_in, gate_held, gate_last;
 static float breath_gate(const wc_out_t *c)
 {
     const wc_mon_t *mon = wc_monitor();
+    const float w = gate_w;            /* (read once: the UI writes it) */
     float x;
-    if (c->gate > 0.5f && gate_last <= 0.5f)
-        gate_held = 0.0f;              /* a phrase starts: it opens as far as its breath does */
+    if (c->gate > 0.5f && gate_last <= 0.5f) {
+        gate_held = 0.0f;              /* a phrase starts: it opens as far as its breath does, the breath */
+        gate_in = c->breath_in;        /* now, not the last phrase's tail (a stray note just after it) */
+    }
     gate_last = c->gate;
     gate_in += (c->breath_in - gate_in) * GATE_SMOOTH;
     gate_in = fm_flush(gate_in);
-    x = gate_in >= gate_w ? 1.0f : gate_in <= 0.0f ? 0.0f : gate_in / gate_w;
+    x = gate_in >= w ? 1.0f : gate_in <= 0.0f ? 0.0f : gate_in / w;
     if (c->gate > 0.5f && x > gate_held)
         gate_held = x;
-    if (gate_w <= 0.0f || !mon->t_breath || mon->breath_src != wc_cfg.breath_src)
+    if (w <= 0.0f || !mon->t_breath || mon->breath_src != wc_cfg.breath_src)
         return 1.0f;                   /* Off, or no breath heard on the source chosen (yet) */
     return gate_held;
 }

@@ -44,6 +44,22 @@ wait 100
 expect amp 0
 midi 80 3D 00
 wait 300
+# a stray note just after a phrase ends (breath and note off together, the stray 10 ms on): closed, not
+# opened by the last phrase's breath still fading in the smoothing
+midi B0 02 7F
+midi 90 3D 40
+wait 100
+expect amp 100
+midi B0 02 00
+midi 80 3D 00
+wait 10
+midi 90 3E 40
+wait 2
+expect amp 0
+wait 50
+expect amp 0
+midi 80 3E 00
+wait 300
 # the softest playing: a phrase that starts and stays at CC 3 sounds, at its full level (the old gate,
 # open at CC 10 and squared, kept it under -50 dB)
 midi B0 02 03
@@ -116,6 +132,7 @@ wait 1600
 release SAVE
 tap SAVE
 wait 100
+expect par7 60
 expect par70 3
 expect par5 -100
 # kept through a restart, and a project saved before the gate was a setting (format 15) gets Gate 2
@@ -130,6 +147,16 @@ reboot
 wait 200
 expect par70 2
 expect par5 -100
+# a panel key plays at full breath: never closed, with the breath heard (after the restart) and at 0,
+# where Gate 2, from the old project, closes a MIDI note
+breath 0 60 50
+breath 60 0 50
+wait 300
+midi 90 3D 40
+wait 100
+expect amp 0
+midi 80 3D 00
+wait 300
 # a panel key plays at full breath: never closed
 key 4 down
 wait 50

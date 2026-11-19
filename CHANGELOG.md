@@ -9,10 +9,12 @@ taken from its section below. Add the section in the same pull request as the `V
 - **Soft playing sounds again.** The breath gate (0.0.33), which keeps a controller's stray notes silent,
   opened over breath CC 0 to 10, squared, so a phrase started very softly was a whisper or nothing, as if
   there were a breath threshold. It now opens in a straight line from 0 to breath CC 2: a note with no
-  breath at all is still silent, and the softest breath sounds at its full level.
+  breath at all is still silent, CC 1 plays at half level, and from CC 2 up a note sounds at its full
+  level.
 - **The gate is a setting:** Gate, the Breath page's fourth knob (ENV). It's the breath CC the level is
   fully open at, 1 to 20 (2 to start); Off turns the gate off. Raise it if your controller sends stray
-  notes with a little breath behind them. Like the breath curve, it's your rig's, so presets keep it.
+  notes with a little breath behind them. Like the breath curve, it's your rig's, so changing presets
+  leaves it alone.
 
 ## 0.1.1
 
