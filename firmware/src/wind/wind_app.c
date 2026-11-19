@@ -38,6 +38,7 @@ static const wa_param_t PARAMS[P_NPARAMS] = {
     {"Breath", -100, 100, 75},             /* breath to cutoff */
     {"Row", 0, 2, 0},                      /* Stage: Filter, Engine, FX */
     {"Speaker", 0, WA_SPK_N - 1, WA_SPK_AUTO},
+    {"Gate", 0, 20, 2},                    /* the breath gate: 0 Off, else the breath CC it's fully open at */
 };
 
 const wa_param_t *wa_param_info(int i) { return &PARAMS[(unsigned)i < P_NPARAMS ? i : 0]; }
@@ -45,6 +46,7 @@ const wa_param_t *wa_param_info(int i) { return &PARAMS[(unsigned)i < P_NPARAMS 
 const char *const WA_ENGINE_NAME[WV_NENGINE] = {"Classic", "FM", "6-op", "Formant", "Waveshape", "VA",
                                                  "PD", "Harmonic"};
 static int engine;                     /* the engine playing: its knobs' names */
+static float gate_w = 2.0f / 127.0f;   /* the breath gate's Gate, in breath 0..1 (0: Off; wa_set) */
 int wa_harm_smooth(int e) { return e == WV_GRAIN || e == WV_SHAPE || e == WV_VA || e == WV_HARM; }
 
 /* What HARMONICS (Ratio), TIMBRE (Index) and MORPH do on each engine, after Plaits' manual. Classic has
@@ -70,14 +72,14 @@ const char *wa_param_name(int i)
     }
 }
 
-/* the controller's and the room's settings: the breath curve, Pitch 2 (the glide CC's depth, Transpose,
+/* the controller's and the room's settings: the breath curve and gate, Pitch 2 (the glide CC's depth, Transpose,
  * Tune), the panel keys and Setup (the breath and glide CCs, MIDI ch, Theme; the Speaker). A preset is the
  * rest, the sound. */
 int wa_param_global(int i)
 {
     switch (i) {
     case P_BSRC: case P_CURVE: case P_GSRC: case P_GDEPTH: case P_KEYBREATH: case P_OCTAVE:
-    case P_TRANSPOSE: case P_TUNE: case P_MIDICH: case P_THEME: case P_STAGEROW: case P_SPEAKER:
+    case P_TRANSPOSE: case P_TUNE: case P_MIDICH: case P_THEME: case P_STAGEROW: case P_SPEAKER: case P_BGATE:
         return 1;
     default:
         return 0;
@@ -244,6 +246,12 @@ void wa_param_text(int i, int v, char *b)
         return;
     case P_THEME: copy_s(b, v ? "Dark" : "Light"); return;
     case P_SPEAKER: copy_s(b, v == WA_SPK_ON ? "On" : "Auto"); return;
+    case P_BGATE:
+        if (!v)
+            copy_s(b, "Off");
+        else
+            put_u(b, (uint32_t)v);
+        return;
     case P_ENGINE: copy_s(b, WA_ENGINE_NAME[(unsigned)v < WV_NENGINE ? v : 0]); return;
     case P_DXPATCH: wv_dx_name((uint32_t)v, b); return;
     case P_RATIO:                                        /* FM's: the modulator's ratio, "1.00", "3.50" */
@@ -396,6 +404,7 @@ void wa_set(int k, int v)
     case P_SLOPE: wv_slope(v ? WV_SLOPE_24 : WV_SLOPE_12); break;
     case P_BSRC: wc_cfg.breath_src = (uint8_t)v; break;
     case P_CURVE: wc_cfg.breath_curve = (int8_t)v; break;
+    case P_BGATE: gate_w = (float)v * (1.0f / 127.0f); break;
     case P_ATTACK: case P_RELEASE:
         *(k == P_ATTACK ? &attack_ms : &release_ms) = v;
         wv_env((float)attack_ms * 0.001f, (float)release_ms * 0.001f);
@@ -559,12 +568,12 @@ static void drain(int (*midi_in)(uint32_t *pkt))
 }
 
 /* the breath gate: a phrase with no breath behind it is silent, as on a wind patch whose level follows the
- * breath (a controller's stray notes at its threshold, with the breath near 0). It reads the breath as it
- * comes (before the curve: the same CCs at any curve), smoothed as the breath is, opens over the first
- * BREATH_GATE of it, squared, and holds what it reached until the next phrase (a note from silence): a
+ * breath (a controller's stray notes at its threshold, with the breath at or near 0). It reads the breath as
+ * it comes (before the curve: the same CCs at any curve), smoothed as the breath is, and opens in a straight
+ * line from breath CC 0 to Gate (the Breath page's K4: 2 by default, 0 Off), so the softest breath a
+ * controller sends still sounds. It holds what it reached until the next phrase (a note from silence): a
  * phrase's release and a breath tapering off keep their level. It waits for the breath source to have been
  * heard, so a controller with no breath (or one sending it on another CC: Setup names it) still plays. */
-#define BREATH_GATE 0.08f
 #define GATE_SMOOTH 0.38f              /* the breath's 3 ms one-pole, per 1.451 ms block */
 static float gate_in, gate_held, gate_last;
 static float breath_gate(const wc_out_t *c)
@@ -576,12 +585,11 @@ static float breath_gate(const wc_out_t *c)
     gate_last = c->gate;
     gate_in += (c->breath_in - gate_in) * GATE_SMOOTH;
     gate_in = fm_flush(gate_in);
-    x = gate_in >= BREATH_GATE ? 1.0f : gate_in <= 0.0f ? 0.0f : gate_in * (1.0f / BREATH_GATE);
-    x *= x;
+    x = gate_in >= gate_w ? 1.0f : gate_in <= 0.0f ? 0.0f : gate_in / gate_w;
     if (c->gate > 0.5f && x > gate_held)
         gate_held = x;
-    if (!mon->t_breath || mon->breath_src != wc_cfg.breath_src)
-        return 1.0f;                   /* no breath heard on the source chosen (yet) */
+    if (gate_w <= 0.0f || !mon->t_breath || mon->breath_src != wc_cfg.breath_src)
+        return 1.0f;                   /* Off, or no breath heard on the source chosen (yet) */
     return gate_held;
 }
 

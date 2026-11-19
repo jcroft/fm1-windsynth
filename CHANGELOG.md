@@ -4,6 +4,16 @@ A release is a push to `main` that changes `VERSION` to a version past 0.0.x wit
 release build, tags the commit `vX.Y.Z` and publishes the GitHub Release with that version's notes,
 taken from its section below. Add the section in the same pull request as the `VERSION` change.
 
+## 0.1.2
+
+- **Soft playing sounds again.** The breath gate (0.0.33), which keeps a controller's stray notes silent,
+  opened over breath CC 0 to 10, squared, so a phrase started very softly was a whisper or nothing, as if
+  there were a breath threshold. It now opens in a straight line from 0 to breath CC 2: a note with no
+  breath at all is still silent, and the softest breath sounds at its full level.
+- **The gate is a setting:** Gate, the Breath page's fourth knob (ENV). It's the breath CC the level is
+  fully open at, 1 to 20 (2 to start); Off turns the gate off. Raise it if your controller sends stray
+  notes with a little breath behind them. Like the breath curve, it's your rig's, so presets keep it.
+
 ## 0.1.1
 
 - **Newer FM-1s now save and update.** FM-1s sold since autumn 2026 (mostly from AliExpress) have a

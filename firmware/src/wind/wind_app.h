@@ -42,6 +42,7 @@ enum {
     P_BRCUT,                                         /* Filter page: breath to cutoff, always there (0.0.19) */
     P_STAGEROW,                                      /* Stage: the row K1-K4 turn (0.0.24) */
     P_SPEAKER,                                       /* Setup 2 page: the speaker while USB records (0.0.31) */
+    P_BGATE,                                         /* Breath page: the breath gate, in breath CC steps (0.1.2) */
     P_NPARAMS
 };
 typedef struct {
