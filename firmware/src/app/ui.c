@@ -51,7 +51,7 @@ static const uint8_t VIEW_KNOB[NVIEWS][4] = {
     {P_CUTOFF, P_RESO, P_SLOPE, P_BRCUT},
     {P_RATIO, P_INDEX, P_MORPH, P_AUX},          /* (the engine itself: ALGORITHM, and the header shows it) */
     {P_NZLEVEL, P_NZTYPE, P_NZFREQ, P_NZRESO},
-    {P_CURVE, P_ATTACK, P_RELEASE, K_NONE},
+    {P_CURVE, P_ATTACK, P_RELEASE, P_BGATE},
     {P_LFOSHAPE, P_LFORATE, P_LFODST, P_LFOAMT},
     {P_LFOFADE, P_LFOSYNC, K_NONE, K_NONE},
     {P_M1SRC, P_M1DST, P_M1AMT, K_NONE},
@@ -264,7 +264,7 @@ static void preset_name(int slot, char *t)
     t[3] = 0;
 }
 
-/* back to the init sound: every sound setting. The rig's (the breath curve, Pitch 2, the keys, Setup)
+/* back to the init sound: every sound setting. The rig's (the breath curve and gate, Pitch 2, the keys, Setup)
  * stays, and so does the preset it would be saved to. Kept as any change is. */
 static void reset_defaults(void)
 {

@@ -5,7 +5,7 @@ Custom firmware that turns the **M-VAVE FM-1** into a synthesizer for **any MIDI
 It runs in the browser first, as the firmware's own C code compiled to WebAssembly, and then on the
 FM-1 itself.
 
-> **Status: 0.1.1.** It plays: notes, breath, bite and glide from any windsynth
+> **Status: 0.1.2.** It plays: notes, breath, bite and glide from any windsynth
 > drive a Plaits voice (eight engines), with 18 factory presets in 64 slots, a distortion, a modulation
 > effect (chorus, ensemble, flanger, phaser), a delay and a reverb, in the browser and on the FM-1. It's
 > tested on real FM-1 hardware for playability, performance and stability. Still to come: better
@@ -23,7 +23,7 @@ full breath (they're switches, so they sense no pressure). **OCT−** / **OCT+**
 
 | Control | Default | Options |
 | --- | --- | --- |
-| Breath | CC2, to filter cutoff (the Filter page's Breath knob, +75); a phrase with no breath is silent (the level opens over the first sliver of breath, CC 0 to 10, once the breath source has been heard) | Aftertouch or any CC as the source; a curve; how much it opens the cutoff (Breath, −100 to +100); the Mod slots also send it to amp, resonance, morph and the rest |
+| Breath | CC2, to filter cutoff (the Filter page's Breath knob, +75); a phrase with no breath is silent (the breath gate: the level opens from breath CC 0 to 2, once the breath source has been heard) | Aftertouch or any CC as the source; a curve; the gate (Gate on the Breath page: the breath CC it's fully open at, 1 to 20, or Off); how much it opens the cutoff (Breath, −100 to +100); the Mod slots also send it to amp, resonance, morph and the rest |
 | Bite | Pitch bend, ±2 semitones | 0 to 12 semitones |
 | Glide | 4 ms; CC5 adds up to 400 ms to it, and at 0 adds nothing | The glide time itself (up to 2 s, or off); another CC, or none; how much the CC adds at full (CC depth, up to 2 s); glide on every note or legato only |
 
@@ -40,7 +40,7 @@ step through every page.
 | HOME | Filter | Cutoff, Resonance, Slope (12 or 24 dB), Breath (how far breath opens the cutoff, −100 to +100, +75 to start) |
 | HOME again | Engine (the header names it) | The engine's own three knobs, named for what they do on it: Harmonics and Timbre (Classic has neither), Morph (Classic: the waveform, a saw up to 25, a square at 50, then a pulse that narrows and widens again, with a sub-octave below 20 and above 80; FM: the feedback, none at 50); then Aux: from the engine's main output (0) to its second output alone (100; not on 6-op, whose second output is the same). The ALGORITHM knob picks the engine. See the engines below. |
 | HOME again | Noise | Level (0 is off), Type (low-pass through band-pass to high-pass), Freq (the noise filter's pitch, in semitones from the note), Reso |
-| ENV | Breath | Curve, Attack, Release |
+| ENV | Breath | Curve, Attack, Release, Gate (the breath gate: a phrase with no breath behind it is silent, so a controller's stray notes at its breath threshold don't sound; the level opens from breath CC 0 up to Gate, 2 to start, and Off turns it off; raise it if your controller sends stray notes with a little breath) |
 | LFO | LFO | Shape (Sine, Triangle, Saw, Square, S&H), Rate (0.05 to 20 Hz, 5 Hz by default), Dest (the Mod slots' destinations, plus Pitch), Amount (−100 to +100; on Pitch, in cents; 0 by default, so it's off) |
 | LFO again | LFO 2 | Fade (how long it takes to come in after a note starts from silence), Sync (Free, or Note: each new phrase restarts it) |
 | SEL | Mod 1–4 (press again for the next) | Source (breath, bite, mod wheel, pressure, velocity), Destination (cutoff, resonance, amp, morph, timbre: the Engine page's third knob, FM's Index; noise: the noise layer's level; harmonics: the Engine page's second knob, on Formant, Waveshape, VA and Harmonic only, "Harm off" elsewhere; aux: the Aux mix), Amount (−100 to +100) |
@@ -112,7 +112,7 @@ press **SAVE** again (any other button leaves the presets alone). What you're pl
 included, is also kept by itself a few seconds after you stop, so it comes back after a restart.
 
 A preset holds the sound: the Filter, Engine, Noise, LFO, Pitch and Mod pages, the effects, and Attack and
-Release. Your rig's settings stay put when you change presets: the breath curve, Pitch 2 (the glide CC's
+Release. Your rig's settings stay put when you change presets: the breath curve and gate, Pitch 2 (the glide CC's
 depth, Transpose and Tune), the keys' octave and Setup (the breath and glide CCs, MIDI ch and Theme; the Speaker).
 Hold **SAVE** for 1.5 s, then press it again, for the init sound (the preset slot is untouched until
 you save).
